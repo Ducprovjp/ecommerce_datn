@@ -47,6 +47,29 @@ export const getAllOrdersOfShop = (shopId) => async (dispatch) => {
   }
 };
 
+// Get all orders of shipper
+export const getAllOrdersOfShipper = (shipperId) => async (dispatch) => {
+  try {
+    dispatch({
+      type: "getAllOrdersShipperRequest",
+    });
+
+    const { data } = await axios.get(
+      `${server}/order/get-shipper-all-orders/${shipperId}`
+    );
+
+    dispatch({
+      type: "getAllOrdersShipperSuccess",
+      payload: data.orders,
+    });
+  } catch (error) {
+    dispatch({
+      type: "getAllOrdersShipperFailed",
+      payload: error.response.data.message,
+    });
+  }
+};
+
 // get all orders of Admin
 export const getAllOrdersOfAdmin = () => async (dispatch) => {
   try {

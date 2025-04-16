@@ -27,6 +27,11 @@ const UserOrderDetails = () => {
 
   const data = orders && orders.find((item) => item._id === id);
 
+  const navigate = useNavigate();
+  const handleGoToOrders = () => {
+    navigate("/profile");
+  };
+
   const reviewHandler = async (type) => {
     try {
       const endpoint =
@@ -86,6 +91,13 @@ const UserOrderDetails = () => {
           <BsFillBagFill size={30} color="crimson" />
           <h1 className="pl-2 text-[25px]">Order Details</h1>
         </div>
+        {/* phần thêm vào */}
+        <button
+          onClick={handleGoToOrders}
+          className={`${styles.button} !bg-[#f63b60]  font-[600] !h-[45px] text-[18px]`}
+        >
+          Order List
+        </button>
       </div>
 
       <div className="w-full flex items-center justify-between pt-6">
@@ -112,7 +124,8 @@ const UserOrderDetails = () => {
               <div className="w-full">
                 <h5 className="pl-3 text-[20px]">{item.name}</h5>
                 <h5 className="pl-3 text-[20px] text-[#00000091]">
-                  US${item.discountPrice} x {item.qty}
+                  {item.discountPrice.toLocaleString("vi-VN") + " VNĐ"} x{" "}
+                  {item.qty}
                 </h5>
               </div>
               {!item.isReviewed && data?.status === "Delivered" ? (
@@ -120,7 +133,7 @@ const UserOrderDetails = () => {
                   className={`${styles.button} text-[#fff]`}
                   onClick={() => setOpen(true) || setSelectedItem(item)}
                 >
-                  write a review
+                  Write a review
                 </div>
               ) : null}
             </div>
@@ -151,7 +164,8 @@ const UserOrderDetails = () => {
               <div>
                 <div className="pl-3 text-[20px]">{selectedItem?.name}</div>
                 <h4 className="pl-3 text-[20px]">
-                  US${selectedItem?.discountPrice} x {selectedItem?.qty}
+                  {selectedItem?.discountPrice.toLocaleString("vi-VN") + " VNĐ"}{" "}
+                  x {selectedItem?.qty}
                 </h4>
               </div>
             </div>
@@ -216,7 +230,8 @@ const UserOrderDetails = () => {
 
       <div className="border-t w-full text-right">
         <h5>
-          Total Price: <strong>US${data?.totalPrice}</strong>
+          Total Price:{" "}
+          <strong>{data?.totalPrice.toLocaleString("vi-VN") + " VNĐ"}</strong>
         </h5>
       </div>
       <br />
@@ -228,19 +243,17 @@ const UserOrderDetails = () => {
         <div className="w-full 800px:w-[60%]">
           <h4 className="pt-3 text-[20px] font-[600]">Shipping Address:</h4>
 
-          <h4 className="pt-3 text-[20px]">
-            {data?.shippingAddress.address1 +
-              " " +
-              data?.shippingAddress.address2}
+          <h4 className="pt-3 text-[20px]">{data?.shippingAddress.address1}</h4>
+          <h4 className=" text-[20px]">
+            {data?.shippingAddress.ward}, {data?.shippingAddress.district},{" "}
+            {data?.shippingAddress.province}
           </h4>
-          <h4 className="text-[20px]">{data?.shippingAddress.country}</h4>
-          <h4 className=" text-[20px]">{data?.shippingAddress.city}</h4>
 
           <h4 className=" text-[20px]">{data?.user?.phoneNumber}</h4>
         </div>
 
         <div className="w-full 800px:w-[40%]">
-          <h4 className="pt-3 text-[20px]">Payment Info:</h4>
+          <h4 className="pt-3 text-[20px] font-[600]">Payment Info:</h4>
           <h4>
             Status:{" "}
             {/* checks if the `status` property exists
@@ -260,7 +273,7 @@ const UserOrderDetails = () => {
       </div>
       <br />
 
-      <Link to="/">
+      <Link to="/inbox">
         <div className={`${styles.button} text-white`}>Send Message</div>
       </Link>
       <br />

@@ -43,6 +43,27 @@ export const loadSeller = () => async (dispatch) => {
   }
 };
 
+// load shipper
+export const loadShipper = () => async (dispatch) => {
+  try {
+    dispatch({
+      type: "LoadShipperRequest",
+    });
+    const { data } = await axios.get(`${server}/shipper/getShipper`, {
+      withCredentials: true,
+    });
+    dispatch({
+      type: "LoadShipperSuccess",
+      payload: data.shipper,
+    });
+  } catch (error) {
+    dispatch({
+      type: "LoadShipperFail",
+      payload: error.response.data.message,
+    });
+  }
+};
+
 // User update information
 export const updateUserInformation =
   (name, email, phoneNumber, password) => async (dispatch) => {
@@ -76,9 +97,8 @@ export const updateUserInformation =
   };
 
 // update user address
-export const updatUserAddress =
-  (country, city, address1, address2, zipCode, addressType) =>
-  async (dispatch) => {
+export const updateUserAddress =
+  (province, district, ward, address1, addressType) => async (dispatch) => {
     try {
       dispatch({
         type: "updateUserAddressRequest",
@@ -87,11 +107,10 @@ export const updatUserAddress =
       const { data } = await axios.put(
         `${server}/user/update-user-addresses`,
         {
-          country,
-          city,
+          province,
+          district,
+          ward,
           address1,
-          address2,
-          zipCode,
           addressType,
         },
         { withCredentials: true }

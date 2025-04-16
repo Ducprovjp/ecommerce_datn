@@ -78,6 +78,22 @@ const AdminSideBar = ({ active }) => {
       </div>
 
       <div className="w-full flex items-center p-4">
+        <Link to="/admin-shippers" className="w-full flex items-center">
+          <HiOutlineUserGroup
+            size={30}
+            color={`${active === 9 ? "crimson" : "#555"}`}
+          />
+          <h5
+            className={`hidden 800px:block pl-2 text-[18px] font-[400] ${
+              active === 9 ? "text-[crimson]" : "text-[#555]"
+            }`}
+          >
+            All Shippers
+          </h5>
+        </Link>
+      </div>
+
+      <div className="w-full flex items-center p-4">
         <Link to="/admin-products" className="w-full flex items-center">
           <BsHandbag size={30} color={`${active === 5 ? "crimson" : "#555"}`} />
           <h5

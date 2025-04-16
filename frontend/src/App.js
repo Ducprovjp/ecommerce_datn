@@ -22,6 +22,9 @@ import {
   OrderDetailsPage,
   TrackOrderPage,
   UserInbox,
+  ShipperCreatePage,
+  ShipperLoginPage,
+  ShipperActivationPage,
 } from "./routes/Routes";
 import {
   ShopDashboardPage,
@@ -40,6 +43,17 @@ import {
 } from "./routes/ShopRoutes";
 
 import {
+  ShipperAllOrders,
+  ShipperInboxPage,
+  ShipperHomePage,
+  ShipperPreviewPage,
+  ShipperSettingsPage,
+  ShipperDashboardPage,
+  ShipperDeliveredArea,
+  ShipperOrderDetails,
+} from "./routes/ShipperRoutes";
+
+import {
   AdminDashboardPage,
   AdminDashboardUsers,
   AdminDashboardSellers,
@@ -47,15 +61,17 @@ import {
   AdminDashboardProducts,
   AdminDashboardEvents,
   AdminDashboardWithdraw,
+  AdminDashboardShippers,
 } from "./routes/AdminRoutes";
 
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useEffect } from "react";
-import { loadSeller, loadUser } from "./redux/actions/user";
+import { loadSeller, loadShipper, loadUser } from "./redux/actions/user";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import ProtectedAdminRoute from "./routes/ProtectedAdminRoute";
 import SellerProtectedRoute from "./routes/SellerProtectedRoute";
+import ShipperProtectedRoute from "./routes/ShipperProtectedRoute";
 import { ShopHomePage } from "./ShopRoutes";
 import { getAllProducts } from "./redux/actions/product";
 import { getAllEvents } from "./redux/actions/event";
@@ -75,6 +91,7 @@ const App = () => {
   useEffect(() => {
     Store.dispatch(loadUser());
     Store.dispatch(loadSeller());
+    Store.dispatch(loadShipper());
     Store.dispatch(getAllProducts());
     Store.dispatch(getAllEvents());
     getStripeApikey();
@@ -108,6 +125,10 @@ const App = () => {
         <Route
           path="/seller/activation/:activation_token"
           element={<SellerActivationPage />}
+        />
+        <Route
+          path="/shipper/activation/:activation_token"
+          element={<ShipperActivationPage />}
         />
         <Route path="/products" element={<ProductsPage />} />
         <Route path="/product/:id" element={<ProductDetailsPage />} />
@@ -161,6 +182,7 @@ const App = () => {
         />
 
         <Route path="/shop/preview/:id" element={<ShopPreviewPage />} />
+        <Route path="/shipper/preview/:id" element={<ShipperPreviewPage />} />
         {/* shop Routes */}
         <Route path="/shop-create" element={<ShopCreatePage />} />
         <Route path="/shop-login" element={<ShopLoginPage />} />
@@ -278,6 +300,99 @@ const App = () => {
           }
         />
 
+        {/* Shipper Routes */}
+        <Route path="/shipper-create" element={<ShipperCreatePage />} />
+        <Route path="/shipper-login" element={<ShipperLoginPage />} />
+        <Route
+          path="/shipper/:id"
+          element={
+            <ShipperProtectedRoute>
+              <ShipperHomePage />
+            </ShipperProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/shipper-settings"
+          element={
+            <ShipperProtectedRoute>
+              <ShipperSettingsPage />
+            </ShipperProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/shipper-dashboard"
+          element={
+            <ShipperProtectedRoute>
+              <ShipperDashboardPage />
+            </ShipperProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/shipper-dashboard-orders"
+          element={
+            <ShipperProtectedRoute>
+              <ShipperAllOrders />
+            </ShipperProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/shipper/order/:id"
+          element={
+            <ShipperProtectedRoute>
+              <ShipperOrderDetails />
+            </ShipperProtectedRoute>
+          }
+        />
+
+        {/* <Route
+          path="/shipper-dashboard-refunds"
+          element={
+            <SellerProtectedRoute>
+              <ShopAllRefunds />
+            </SellerProtectedRoute>
+          }
+        /> */}
+
+        {/* <Route
+          path="/order/:id"
+          element={
+            <SellerProtectedRoute>
+              <ShopOrderDetails />
+            </SellerProtectedRoute>
+          }
+        /> */}
+
+        {/* <Route
+          path="/shipper-dashboard-withdraw-money"
+          element={
+            <SellerProtectedRoute>
+              <ShopWithDrawMoneyPage />
+            </SellerProtectedRoute>
+          }
+        /> */}
+
+        <Route
+          path="/shipper-dashboard-messages"
+          element={
+            <ShipperProtectedRoute>
+              <ShipperInboxPage />
+            </ShipperProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/shipper-dashboard-delivered-area"
+          element={
+            <ShipperProtectedRoute>
+              <ShipperDeliveredArea />
+            </ShipperProtectedRoute>
+          }
+        />
+
         {/* Admin Routes */}
         <Route
           path="/admin/dashboard"
@@ -308,6 +423,14 @@ const App = () => {
           element={
             <ProtectedAdminRoute>
               <AdminDashboardOrders />
+            </ProtectedAdminRoute>
+          }
+        />
+        <Route
+          path="/admin-shippers"
+          element={
+            <ProtectedAdminRoute>
+              <AdminDashboardShippers />
             </ProtectedAdminRoute>
           }
         />

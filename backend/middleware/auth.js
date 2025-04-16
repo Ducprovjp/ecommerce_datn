@@ -3,6 +3,7 @@ const catchAsyncErrors = require("./catchAsyncErrors");
 const jwt = require("jsonwebtoken");
 const User = require("../model/user");
 const Shop = require("../model/shop");
+const Shipper = require("../model/shipper");
 
 // Check if user is authenticated or not
 exports.isAuthenticated = catchAsyncErrors(async (req, res, next) => {
@@ -25,6 +26,19 @@ exports.isSeller = catchAsyncErrors(async (req, res, next) => {
   const decoded = jwt.verify(seller_token, process.env.JWT_SECRET_KEY);
 
   req.seller = await Shop.findById(decoded.id);
+
+  next();
+});
+
+exports.isShipper = catchAsyncErrors(async (req, res, next) => {
+  const { shipper_token } = req.cookies;
+  if (!shipper_token) {
+    return next(new ErrorHandler("Please login to continue", 401));
+  }
+
+  const decoded = jwt.verify(shipper_token, process.env.JWT_SECRET_KEY);
+
+  req.shipper = await Shipper.findById(decoded.id);
 
   next();
 });

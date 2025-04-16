@@ -6,7 +6,11 @@ import { format } from "timeago.js";
 import { backend_url, server } from "../server";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { AiOutlineArrowRight, AiOutlineSend } from "react-icons/ai";
+import {
+  AiOutlineArrowRight,
+  AiOutlineArrowLeft,
+  AiOutlineSend,
+} from "react-icons/ai";
 import { TfiGallery } from "react-icons/tfi";
 import styles from "../styles/styles";
 const ENDPOINT = "http://localhost:4000/";
@@ -25,6 +29,7 @@ const UserInbox = () => {
   const [activeStatus, setActiveStatus] = useState(false);
   const [open, setOpen] = useState(false);
   const scrollRef = useRef(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     socketId.on("getMessage", (data) => {
@@ -207,25 +212,39 @@ const UserInbox = () => {
       {!open && (
         <>
           <Header />
-          <h1 className="text-center text-[30px] py-3 font-Poppins">
-            All Messages
-          </h1>
+          <div
+            className={`${styles.section} flex items-center justify-between py-3 px-4`}
+          >
+            <button
+              onClick={() => navigate("/profile")}
+              className="flex items-center text-[20px] font-Poppins text-[#333] hover:text-[#555] transition-colors duration-200"
+            >
+              <AiOutlineArrowLeft size={24} className="mr-2" />
+              Back
+            </button>
+            <h1 className="text-center text-[30px] font-Poppins flex-1">
+              All Messages
+            </h1>
+            <div className="w-[100px]"></div> {/* Spacer để cân đối */}
+          </div>
           {/* All messages list */}
-          {conversations &&
-            conversations.map((item, index) => (
-              <MessageList
-                data={item}
-                key={index}
-                index={index}
-                setOpen={setOpen}
-                setCurrentChat={setCurrentChat}
-                me={user?._id}
-                setUserData={setUserData}
-                userData={userData}
-                online={onlineCheck(item)}
-                setActiveStatus={setActiveStatus}
-              />
-            ))}
+          <div className={`${styles.section}`}>
+            {conversations &&
+              conversations.map((item, index) => (
+                <MessageList
+                  data={item}
+                  key={index}
+                  index={index}
+                  setOpen={setOpen}
+                  setCurrentChat={setCurrentChat}
+                  me={user?._id}
+                  setUserData={setUserData}
+                  userData={userData}
+                  online={onlineCheck(item)}
+                  setActiveStatus={setActiveStatus}
+                />
+              ))}
+          </div>
         </>
       )}
 

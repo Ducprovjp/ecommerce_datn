@@ -269,7 +269,7 @@ const MessageList = ({
   const [active, setActive] = useState(0);
 
   useEffect(() => {
-    const userId = data.members.find((user) => user != me);
+    const userId = data.members.find((user) => user !== me);
 
     const getUser = async () => {
       try {

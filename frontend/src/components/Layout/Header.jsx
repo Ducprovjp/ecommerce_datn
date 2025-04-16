@@ -20,6 +20,7 @@ import { RxCross1 } from "react-icons/rx";
 
 const Header = ({ activeHeading }) => {
   const { isSeller } = useSelector((state) => state.seller);
+  const { isShipper } = useSelector((state) => state.shipper);
   const { cart } = useSelector((state) => state.cart);
   const { wishlist } = useSelector((state) => state.wishlist);
   const { isAuthenticated, user } = useSelector((state) => state.user);
@@ -106,112 +107,124 @@ const Header = ({ activeHeading }) => {
           </div>
           {/* Search end */}
 
-          {/* Become a Seller */}
-          <div className={`${styles.button}`}>
-            <Link to={`${isSeller ? "/dashboard" : "/shop-create"}`}>
-              <h1 className="text-[#fff] flex items-center">
-                {isSeller ? "Go Dashboard" : "Become Seller"}{" "}
-                <IoIosArrowForward className="ml-1" />
-              </h1>
-            </Link>
+          {/* Become a Shipper & Seller */}
+          <div className="flex space-x-2">
+            {/* Become a Shipper */}
+            <div className={`${styles.button}`}>
+              <Link to={`${isShipper ? "/dashboard" : "/shipper-create"}`}>
+                <h1 className="text-[#fff] flex items-center">
+                  {isShipper ? "Go Dashboard" : "Become Shipper"}{" "}
+                  <IoIosArrowForward className="ml-1" />
+                </h1>
+              </Link>
+            </div>
+
+            {/* Become a Seller */}
+            <div className={`${styles.button}`}>
+              <Link to={`${isSeller ? "/dashboard" : "/shop-create"}`}>
+                <h1 className="text-[#fff] flex items-center">
+                  {isSeller ? "Go Dashboard" : "Become Seller"}{" "}
+                  <IoIosArrowForward className="ml-1" />
+                </h1>
+              </Link>
+            </div>
           </div>
-          {/* Become a Seller end */}
         </div>
       </div>
 
       {/*  2nd part of header start */}
       <div
         className={`${
-          active == true ? "shadow-sm fixed top-0 left-0 z-10" : null
+          active === true ? "shadow-sm fixed top-0 left-0 z-10" : null
         } transition hidden 800px:flex items-center justify-between w-full bg-[#3321c8] h-[70px]`}
       >
-        <div
-          className={`${styles.section} relative ${styles.noramlFlex} justify-between`}
-        >
-          {/* Catagories */}
-          <div onClick={() => setDropDown(!dropDown)}>
-            <div className="relative h-[60px] mt-[10px] w-[270px] hidden 1000px:block">
-              <BiMenuAltLeft size={30} className="absolute top-3 left-2" />
-              <button
-                className={`h-[100%] w-full flex justify-between items-center pl-10 bg-white font-sans text-lg font-[500] select-none rounded-t-md`}
-              >
-                All Categories
-              </button>
-              <IoIosArrowDown
-                size={20}
-                className="absolute right-2 top-4 cursor-pointer"
-                onClick={() => setDropDown(!dropDown)}
-              />
-              {dropDown ? (
-                <DropDown
-                  categoriesData={categoriesData}
-                  setDropDown={setDropDown}
+        <div className="w-full max-w-[1200px] mx-auto">
+          <div className={`${styles.noramlFlex} justify-between`}>
+            {/* Catagories */}
+            <div onClick={() => setDropDown(!dropDown)}>
+              <div className="relative h-[60px] mt-[10px] w-[270px] hidden 1000px:block">
+                <BiMenuAltLeft size={30} className="absolute top-3 left-2" />
+                <button
+                  className={`h-[100%] w-full flex justify-between items-center pl-10 bg-white font-sans text-lg font-[500] select-none rounded-t-md`}
+                >
+                  All Categories
+                </button>
+                <IoIosArrowDown
+                  size={20}
+                  className="absolute right-2 top-4 cursor-pointer"
+                  onClick={() => setDropDown(!dropDown)}
                 />
+                {dropDown ? (
+                  <DropDown
+                    categoriesData={categoriesData}
+                    setDropDown={setDropDown}
+                  />
+                ) : null}
+              </div>
+            </div>
+
+            {/* NavItems */}
+            <div className={`${styles.noramlFlex}`}>
+              <Navbar active={activeHeading} />
+            </div>
+
+            <div className="flex">
+              <div className={`${styles.noramlFlex}`}>
+                <div
+                  className="relative cursor-pointer mr-[15px]"
+                  onClick={() => setOpenWishlist(true)}
+                >
+                  <AiOutlineHeart size={30} color="rgb(255 255 255 / 83%)" />
+                  <span className="absolute right-0 top-0 rounded-full bg-[#3bc177] w-4 h-4 top right p-0 m-0 text-white font-mono text-[12px] leading-tight text-center">
+                    {wishlist && wishlist.length}
+                  </span>
+                </div>
+              </div>
+
+              <div className={`${styles.noramlFlex}`}>
+                <div
+                  className="relative cursor-pointer mr-[15px]"
+                  onClick={() => setOpenCart(true)}
+                >
+                  <AiOutlineShoppingCart
+                    size={30}
+                    color="rgb(255 255 255 / 83%)"
+                  />
+                  <span className="absolute right-0 top-0 rounded-full bg-[#3bc177] w-4 h-4 top right p-0 m-0 text-white font-mono text-[12px] leading-tight text-center">
+                    {cart && cart.length}
+                  </span>
+                </div>
+              </div>
+
+              {/* avatar */}
+              <div className={`${styles.noramlFlex}`}>
+                <div className="relative cursor-pointer mr-[15px]">
+                  {isAuthenticated ? (
+                    <Link to="/profile">
+                      <img
+                        src={`${backend_url}${user.avatar}`}
+                        className="w-[35px] h-[35px] rounded-full"
+                        alt=""
+                      />
+                    </Link>
+                  ) : (
+                    <Link to="/login">
+                      <CgProfile size={30} color="rgb(255 255 255 / 83%)" />
+                    </Link>
+                  )}
+                </div>
+              </div>
+              {/* Avatar end */}
+              {/* card  popup start */}
+              {openCart ? <Cart setOpenCart={setOpenCart} /> : null}
+              {/* card popup end */}
+
+              {/* Wish list pop uo Start */}
+              {openWishlist ? (
+                <Wishlist setOpenWishlist={setOpenWishlist} />
               ) : null}
+              {/* Wish list pop uo end */}
             </div>
-          </div>
-
-          {/* NavItems */}
-          <div className={`${styles.noramlFlex}`}>
-            <Navbar active={activeHeading} />
-          </div>
-
-          <div className="flex">
-            <div className={`${styles.noramlFlex}`}>
-              <div
-                className="relative cursor-pointer mr-[15px]"
-                onClick={() => setOpenWishlist(true)}
-              >
-                <AiOutlineHeart size={30} color="rgb(255 255 255 / 83%)" />
-                <span className="absolute right-0 top-0 rounded-full bg-[#3bc177] w-4 h-4 top right p-0 m-0 text-white font-mono text-[12px] leading-tight text-center">
-                  {wishlist && wishlist.length}
-                </span>
-              </div>
-            </div>
-
-            <div className={`${styles.noramlFlex}`}>
-              <div
-                className="relative cursor-pointer mr-[15px]"
-                onClick={() => setOpenCart(true)}
-              >
-                <AiOutlineShoppingCart
-                  size={30}
-                  color="rgb(255 255 255 / 83%)"
-                />
-                <span className="absolute right-0 top-0 rounded-full bg-[#3bc177] w-4 h-4 top right p-0 m-0 text-white font-mono text-[12px] leading-tight text-center">
-                  {cart && cart.length}
-                </span>
-              </div>
-            </div>
-
-            {/* avatar */}
-            <div className={`${styles.noramlFlex}`}>
-              <div className="relative cursor-pointer mr-[15px]">
-                {isAuthenticated ? (
-                  <Link to="/profile">
-                    <img
-                      src={`${backend_url}${user.avatar}`}
-                      className="w-[35px] h-[35px] rounded-full"
-                      alt=""
-                    />
-                  </Link>
-                ) : (
-                  <Link to="/login">
-                    <CgProfile size={30} color="rgb(255 255 255 / 83%)" />
-                  </Link>
-                )}
-              </div>
-            </div>
-            {/* Avatar end */}
-            {/* card  popup start */}
-            {openCart ? <Cart setOpenCart={setOpenCart} /> : null}
-            {/* card popup end */}
-
-            {/* Wish list pop uo Start */}
-            {openWishlist ? (
-              <Wishlist setOpenWishlist={setOpenWishlist} />
-            ) : null}
-            {/* Wish list pop uo end */}
           </div>
         </div>
       </div>
@@ -223,7 +236,7 @@ const Header = ({ activeHeading }) => {
         }
             w-full h-[60px] bg-[#fff] z-50 top-0 left-0 shadow-sm 800px:hidden`}
       >
-        <div className="w-full flex items-center justify-between">
+        <div className="w-full flex items-center justify-between max-w-[1200px] mx-auto">
           <div>
             <BiMenuAltLeft
               size={40}
@@ -321,6 +334,15 @@ const Header = ({ activeHeading }) => {
               <Link to={`${isSeller ? "/dashboard" : "/shop-create"}`}>
                 <h1 className="text-[#fff] flex items-center">
                   {isSeller ? "Go Dashboard" : "Become Seller"}{" "}
+                  <IoIosArrowForward className="ml-1" />
+                </h1>
+              </Link>
+            </div>
+
+            <div className={`${styles.button} ml-4 !rounded-[4px]`}>
+              <Link to={`${isShipper ? "/dashboard" : "/shipper-create"}`}>
+                <h1 className="text-[#fff] flex items-center">
+                  {isShipper ? "Go Dashboard" : "Become Shipper"}{" "}
                   <IoIosArrowForward className="ml-1" />
                 </h1>
               </Link>

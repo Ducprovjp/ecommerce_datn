@@ -27,7 +27,7 @@ export const brandingData = [
   {
     id: 1,
     title: "Free Shipping",
-    Description: "From all orders over 100$",
+    Description: "From all orders over 200.000VNĐ",
     icon: (
       <svg
         width="36"
@@ -191,72 +191,72 @@ export const brandingData = [
 export const categoriesData = [
   {
     id: 1,
-    title: "Computers and Laptops",
+    title: "Fashion & Apparel",
     subTitle: "",
-    image_Url:
-      "https://cdn.shopify.com/s/files/1/1706/9177/products/NEWAppleMacbookProwithM1ProChip14InchLaptop2021ModelMKGQ3LL_A_16GB_1TBSSD_custommacbd.jpg?v=1659592838",
+    image_Url: "https://media.bazaarvoice.com/Shutterstock_2258480541.png",
   },
   {
     id: 2,
-    title: "cosmetics and body care",
+    title: "Electronics",
     subTitle: "",
     image_Url:
-      "https://indian-retailer.s3.ap-south-1.amazonaws.com/s3fs-public/2021-07/kosme1.png",
+      "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRth4FHgoxD8tpLsEIoE4wqq_hUaSa40dnqwg&s",
   },
   {
     id: 3,
-    title: "Accesories",
+    title: "Home & Living",
     subTitle: "",
     image_Url:
-      "https://img.freepik.com/free-vector/ordering-goods-online-internet-store-online-shopping-niche-e-commerce-website-mother-buying-babies-clothes-footwear-toys-infant-accessories_335657-2345.jpg?w=2000",
+      "https://img.jakpost.net/c/2019/09/17/2019_09_17_79579_1568684756._large.jpg",
   },
   {
     id: 4,
-    title: "Cloths",
+    title: "Beauty & Health",
     subTitle: "",
     image_Url:
-      "https://www.shift4shop.com/2015/images/industries/clothing/clothing-apparel.png",
+      "https://i.pinimg.com/736x/52/92/1c/52921c3e63f6329301e7041d5dcedd14.jpg",
   },
   {
     id: 5,
-    title: "Shoes",
+    title: "Sports & Outdoors",
     subTitle: "",
     image_Url:
-      "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQvBQPQMVNRd6TtDkGs2dCri0Y-rxKkFOiEWw&usqp=CAU",
+      "https://media.istockphoto.com/id/949190736/vi/anh/thi%E1%BA%BFt-b%E1%BB%8B-th%E1%BB%83-thao-kh%C3%A1c-nhau-tr%C3%AAn-c%E1%BB%8F.jpg?s=612x612&w=0&k=20&c=v5UjMJFcIerqqH-j7B8Dzc2w5UmKXol3Tst-Gv0aTA4=",
   },
   {
     id: 6,
-    title: "Gifts",
+    title: "Toys & Kids",
     subTitle: "",
     image_Url:
-      "https://securecdn.pymnts.com/wp-content/uploads/2014/11/Gifts-Photo-700x489.jpg",
+      "https://www.chemicalsafetyfacts.org/wp-content/uploads/shutterstock_383521510-002-scaled.jpg",
   },
   {
     id: 7,
-    title: "Pet Care",
+    title: "Books & Stationery",
     subTitle: "",
-    image_Url: "https://cdn.openpr.com/T/c/Tc15444071_g.jpg",
+    image_Url:
+      "https://a0.anyrgb.com/pngimg/1500/112/job-book-stationery-office-pen-case-bookshelf-stapler-jobs-file-folders-old-book-book-icon-operation.png",
   },
   {
     id: 8,
-    title: "Mobile and Tablets",
+    title: "Groceries & Food",
     subTitle: "",
     image_Url:
-      "https://st-troy.mncdn.com/mnresize/1500/1500/Content/media/ProductImg/original/mpwp3tua-apple-iphone-14-256gb-mavi-mpwp3tua-637986832343472449.jpg",
+      "https://media.wired.com/photos/61562228a62d729110ec10fe/4:3/w_1766,h_1324,c_limit/Gear-Meal-Kits-misfits-market-source-misfits-market.jpeg",
   },
   {
     id: 9,
-    title: "Music and Gaming",
+    title: "Automotive & Tools",
     subTitle: "",
     image_Url:
-      "https://static.vecteezy.com/system/resources/previews/011/996/555/original/3d-black-headphone-illustration-ecommerce-icon-png.png",
+      "https://hi-spec.com/cdn/shop/articles/Tools_Every_DIY_Mechanic_Needs_-_Header_image_800x800.jpg?v=1640855146",
   },
   {
     id: 10,
     title: "Others",
     subTitle: "",
     image_Url:
-      "https://searchspring.com/wp-content/uploads/2022/10/Hero-Image-Platform-Others-2.png",
+      "https://m.media-amazon.com/images/M/MV5BZDM3Y2RhNjUtZWJlNy00MjQyLWJjYjQtOGE0ZTA1ZmY3NDZmXkEyXkFqcGc@._V1_.jpg",
   },
 ];
 

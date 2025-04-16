@@ -122,110 +122,115 @@ const ProductDetails = ({ data }) => {
       {data ? (
         <div className={`${styles.section} w-[90%] 800px:w-[80%] `}>
           <div className="w-full py-5">
-            <div className="block w-full 800px:flex">
+            <div className="block w-full 800px:flex 800px:gap-6">
+              {/* Left */}
               <div className="w-full 800px:w-[50%]">
-                <img
-                  src={`${backend_url}${data && data.images[select]}`}
-                  alt=""
-                  className="w-[80%]"
-                />
-                <div className="w-full flex">
+                {/* Ảnh lớn */}
+                {data && data.images && data.images[select] && (
+                  <div className="mb-4">
+                    <img
+                      src={`${backend_url}${data.images[select]}`}
+                      alt={`${data.name} main view`}
+                      className="w-[400px] h-[400px] object-cover rounded-[5px] mx-auto"
+                    />
+                  </div>
+                )}
+
+                {/* Ảnh thu nhỏ - nằm ngang */}
+                <div className="w-full flex overflow-x-auto gap-3">
                   {data &&
+                    data.images &&
                     data.images.map((i, index) => (
                       <div
+                        key={index}
                         className={`${
-                          select === 0 ? "border" : "null"
-                        } cursor-pointer`}
+                          select === index ? "border-2 border-blue-500" : ""
+                        } cursor-pointer flex-shrink-0`}
                       >
                         <img
                           src={`${backend_url}${i}`}
-                          alt=""
-                          className="h-[200px] overflow-hidden mr-3 mt-3"
+                          alt={`${data.name} thumbnail ${index + 1}`}
+                          className="w-[200px] h-[200px] object-cover rounded-[5px]"
                           onClick={() => setSelect(index)}
                         />
                       </div>
                     ))}
-                  <div
-                    className={`${
-                      select === 1 ? "border" : "null"
-                    } cursor-pointer `}
-                  >
-                    {/* <img
-                                            src={data?.image_Url[1].url}
-                                            alt="img"
-                                            className="h-[200px]"
-                                            onClick={() => setSelect(1)}
-                                        /> */}
-                  </div>
                 </div>
               </div>
-              {/* Rtght */}
-              <div className="w-full 800px:w-[50%] pt-5 ">
+
+              {/* Right */}
+              <div className="w-full 800px:w-[50%] pt-5">
                 <h1 className={`${styles.productTitle}`}>{data.name}</h1>
-                <p>{data.description}</p>
+                {data.description.split("\n").map((line, index) => (
+                  <p key={index}>{line}</p>
+                ))}
                 <div className="flex pt-3">
                   <h4 className={`${styles.productDiscountPrice}`}>
-                    {data.discountPrice}$
+                    {data.discountPrice.toLocaleString("vi-VN") + " VNĐ"}
                   </h4>
                   <h3 className={`${styles.price}`}>
-                    {data.originalPrice ? data.originalPrice + "$" : null}
+                    {data.originalPrice
+                      ? data.originalPrice.toLocaleString("vi-VN") + " VNĐ"
+                      : null}
                   </h3>
                 </div>
 
                 {/* inc dec option */}
                 <div className="flex items-center mt-12 justify-between pr-3">
-                  <div>
+                  <div className="flex items-center">
                     <button
-                      className="bg-gradient-to-r from-teal-400 to-teal-500 text-white font-bold rounded-l px-4 py-2 shadow-lg hover:opacity-75 transition duration-300 ease-in-out"
+                      className="h-10 bg-gradient-to-r from-teal-400 to-teal-500 text-white font-bold rounded-l-md px-4 shadow-lg hover:scale-105 active:scale-95 transition-all duration-200 ease-in-out"
                       onClick={decrementCount}
                     >
                       -
                     </button>
-
-                    <span className="bg-gray-200 text-gray-800 font-medium px-4 py-[11px]">
+                    <span className="h-10 bg-gray-200 text-gray-800 font-medium px-4 flex items-center justify-center border-y border-gray-300">
                       {count}
                     </span>
-
                     <button
-                      className="bg-gradient-to-r from-teal-400 to-teal-500 text-white font-bold rounded-l px-4 py-2 shadow-lg hover:opacity-75 transition duration-300 ease-in-out"
+                      className="h-10 bg-gradient-to-r from-teal-400 to-teal-500 text-white font-bold rounded-r-md px-4 shadow-lg hover:scale-105 active:scale-95 transition-all duration-200 ease-in-out"
                       onClick={incrementCount}
                     >
                       +
                     </button>
                   </div>
 
-                  <div>
+                  <div className="flex items-center justify-center w-10 h-10 bg-gray-100 rounded-full shadow-md hover:bg-gray-200 transition-all duration-200">
                     {click ? (
                       <AiFillHeart
-                        size={30}
-                        className="cursor-pointer"
+                        size={24}
+                        className="cursor-pointer transform hover:scale-110 active:scale-95 transition-all duration-200"
                         onClick={() => removeFromWishlistHandler(data)}
-                        color={click ? "red" : "#333"}
+                        color="red"
                         title="Remove from wishlist"
                       />
                     ) : (
                       <AiOutlineHeart
-                        size={30}
-                        className="cursor-pointer"
+                        size={24}
+                        className="cursor-pointer transform hover:scale-110 active:scale-95 transition-all duration-200"
                         onClick={() => addToWishlistHandler(data)}
+                        color="#333"
                         title="Add to wishlist"
                       />
                     )}
                   </div>
                 </div>
+
                 <div
-                  className={`${styles.button} !mt-6 !rounded !h-11 flex items-center`}
+                  className={`${styles.button} !mt-6 !rounded-md !h-11 flex items-center justify-center bg-gradient-to-r from-teal-400 to-teal-500 shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all duration-200`}
                   onClick={() => addToCartHandler(data._id)}
                 >
-                  <span className="text-white flex items-center">
-                    Add to Cart <AiOutlineShoppingCart className="ml-1" />
+                  <span className="text-white font-semibold text-[16px] flex items-center">
+                    Add to Cart
+                    <AiOutlineShoppingCart size={20} className="ml-2" />
                   </span>
                 </div>
+
                 <div className="flex items-center pt-8">
                   <Link to={`/shop/preview/${data?.shop._id}`}>
                     <img
                       src={`${backend_url}${data?.shop?.avatar}`}
-                      alt=""
+                      alt={`${data.shop.name} avatar`}
                       className="w-[50px] h-[50px] rounded-full mr-2"
                     />
                   </Link>
@@ -239,17 +244,17 @@ const ProductDetails = ({ data }) => {
                       </h3>
                     </Link>
                     <h5 className="pb-3 text-[15px]">
-                      {" "}
-                      ({averageRating}/5) Ratingss
+                      ({averageRating}/5) Ratings
                     </h5>
                   </div>
 
                   <div
-                    className={`${styles.button} bg-[#6443d1] mt-4 !rounded !h-11`}
+                    className={`${styles.button} bg-[#6443d1] mt-4 !rounded-md !h-11 flex items-center justify-center shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all duration-200`}
                     onClick={handleMessageSubmit}
                   >
-                    <span className="text-white flex items-center">
-                      Send Message <AiOutlineMessage className="ml-1" />
+                    <span className="text-white font-semibold text-[16px] flex items-center">
+                      Send Message
+                      <AiOutlineMessage size={20} className="ml-2" />
                     </span>
                   </div>
                 </div>
@@ -330,7 +335,9 @@ const ProductDetailsInfo = ({
       {active === 1 ? (
         <>
           <p className="py-2 text-[18px] leading-8 pb-10 whitespace-pre-line  ">
-            {data.description}
+            {data.description.split("\n").map((line, index) => (
+              <p key={index}>{line}</p>
+            ))}
           </p>
         </>
       ) : null}

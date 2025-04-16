@@ -98,7 +98,7 @@ const AllEvents = () => {
       row.push({
         id: item._id,
         name: item.name,
-        price: "US$ " + item.discountPrice,
+        price: item.discountPrice.toLocaleString("vi-VN") + " VNĐ",
         Stock: item.stock,
         sold: item.sold_out,
       });

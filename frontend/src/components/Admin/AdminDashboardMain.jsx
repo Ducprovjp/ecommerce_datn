@@ -24,10 +24,9 @@ const AdminDashboardMain = () => {
   }, []);
 
   const adminEarning =
-    adminOrders &&
-    adminOrders.reduce((acc, item) => acc + item.totalPrice * 0.1, 0);
+    adminOrders && adminOrders.reduce((acc, item) => acc + item.totalPrice, 0);
 
-  const adminBalance = adminEarning?.toFixed(2);
+  const adminBalance = adminEarning?.toLocaleString("vi-VN") + " VNĐ";
 
   const columns = [
     { field: "id", headerName: "Order ID", minWidth: 150, flex: 0.7 },
@@ -73,7 +72,7 @@ const AdminDashboardMain = () => {
       row.push({
         id: item._id,
         itemsQty: item?.cart?.reduce((acc, item) => acc + item.qty, 0),
-        total: item?.totalPrice + " $",
+        total: item?.totalPrice.toLocaleString("vi-VN") + " VNĐ",
         status: item?.status,
         createdAt: item?.createdAt.slice(0, 10),
       });
@@ -101,7 +100,7 @@ const AdminDashboardMain = () => {
                 </h3>
               </div>
               <h5 className="pt-2 pl-[36px] text-[22px] font-[500]">
-                $ {adminBalance}
+                {adminBalance}
               </h5>
             </div>
 

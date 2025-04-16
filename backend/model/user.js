@@ -18,24 +18,21 @@ const userSchema = new mongoose.Schema({
     select: false,
   },
   phoneNumber: {
-    type: Number,
+    type: String,
   },
   addresses: [
     {
-      country: {
+      province: {
         type: String,
       },
-      city: {
+      district: {
+        type: String,
+      },
+      ward: {
         type: String,
       },
       address1: {
         type: String,
-      },
-      address2: {
-        type: String,
-      },
-      zipCode: {
-        type: Number,
       },
       addressType: {
         type: String,

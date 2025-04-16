@@ -45,12 +45,14 @@ router.post("/create-user", upload.single("file"), async (req, res, next) => {
 
     const activationUrl = `http://localhost:3000/activation/${activationToken}`;
 
+    const message = `Hello ${user.name}, please click on the link to activate your account <a href="${activationUrl}" style="text-decoration: underline; color: blue; font-weight: bold;">ACTIVE</a>`;
+
     // send email to user
     try {
       await sendMail({
         email: user.email,
         subject: "Activate your account",
-        message: `Hello  ${user.name}, please click on the link to activate your account ${activationUrl} `,
+        html: message,
       });
       res.status(201).json({
         success: true,
@@ -115,7 +117,7 @@ router.post(
       const { email, password } = req.body;
 
       if (!email || !password) {
-        return next(new ErrorHandler("Please provide the all filelds", 400));
+        return next(new ErrorHandler("Please provide the all fields", 400));
       }
       const user = await User.findOne({ email }).select("+password");
       // +password is used to select the password field from the database

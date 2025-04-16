@@ -25,12 +25,20 @@ const orderSchema = new mongoose.Schema({
     id: {
       type: String,
     },
+    orderId: {
+      type: String,
+    },
     status: {
       type: String,
     },
     type: {
       type: String,
     },
+  },
+  shipperId: {
+    type: Object,
+    ref: "Shipper",
+    default: null,
   },
   paidAt: {
     type: Date,

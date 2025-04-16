@@ -59,6 +59,7 @@ app.get("/", (req, res) => {
 // routes
 const user = require("./controller/user");
 const shop = require("./controller/shop");
+const shipper = require("./controller/shipper");
 const product = require("./controller/product");
 const event = require("./controller/event");
 const coupon = require("./controller/coupounCode");
@@ -67,18 +68,21 @@ const order = require("./controller/order");
 const message = require("./controller/message");
 const conversation = require("./controller/conversation");
 const withdraw = require("./controller/withdraw");
+const chatbot = require("./controller/chatBot");
 app.use("/api/v2/withdraw", withdraw);
 
 // end points
 app.use("/api/v2/user", user);
+app.use("/api/v2/shop", shop);
+app.use("/api/v2/shipper", shipper);
 app.use("/api/v2/conversation", conversation);
 app.use("/api/v2/message", message);
 app.use("/api/v2/order", order);
-app.use("/api/v2/shop", shop);
 app.use("/api/v2/product", product);
 app.use("/api/v2/event", event);
 app.use("/api/v2/coupon", coupon);
 app.use("/api/v2/payment", payment);
+app.use("/api/v2/chatbot", chatbot);
 
 // it'for errhendel
 app.use(ErrorHandler);
@@ -86,13 +90,13 @@ app.use(ErrorHandler);
 // Handling Uncaught Exceptions
 process.on("uncaughtException", (err) => {
   console.log(`Error: ${err.message}`);
-  console.log(`shutting down the server for handling UNCAUGHT EXCEPTION! 💥`);
+  console.log(`Shutting down the server for handling UNCAUGHT EXCEPTION! 💥`);
 });
 
 // unhandled promise rejection
 process.on("unhandledRejection", (err) => {
   console.log(`Shutting down the server for ${err.message}`);
-  console.log(`shutting down the server for unhandle promise rejection`);
+  console.log(`Shutting down the server for unhandle promise rejection`);
 
   server.close(() => {
     process.exit(1);

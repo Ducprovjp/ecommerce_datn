@@ -30,6 +30,31 @@ export const orderReducer = createReducer(initialState, {
     state.isLoading = false;
     state.error = action.payload;
   },
+  // get all orders of shop
+  getAllOrdersShopRequest: (state) => {
+    state.isLoading = true;
+  },
+  getAllOrdersShopSuccess: (state, action) => {
+    state.isLoading = false;
+    state.orders = action.payload;
+  },
+  getAllOrdersShopFailed: (state, action) => {
+    state.isLoading = false;
+    state.error = action.payload;
+  },
+
+  // get all orders of Shipper
+  getAllOrdersShipperRequest: (state) => {
+    state.isLoading = true;
+  },
+  getAllOrdersShipperSuccess: (state, action) => {
+    state.isLoading = false;
+    state.orders = action.payload;
+  },
+  getAllOrdersShipperFailed: (state, action) => {
+    state.isLoading = false;
+    state.error = action.payload;
+  },
   // get all orders for admin
   adminAllOrdersRequest: (state) => {
     state.adminOrderLoading = true;
