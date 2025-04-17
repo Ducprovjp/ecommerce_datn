@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { server } from "../server";
+import { server } from "../../server";
 import axios from "axios";
 
-const SellerActivationPage = () => {
+const ShipperActivationPage = () => {
   const { activation_token } = useParams();
   const [error, setError] = useState(false);
 
@@ -11,7 +11,7 @@ const SellerActivationPage = () => {
     if (activation_token) {
       const activationEmail = async () => {
         try {
-          const res = await axios.post(`${server}/shop/activation`, {
+          const res = await axios.post(`${server}/shipper/activation`, {
             activation_token,
           });
         } catch (err) {
@@ -37,11 +37,11 @@ const SellerActivationPage = () => {
         <p className="text-red-800">Your token has expired</p>
       ) : (
         <p className="text-green-800">
-          Your Account has been created sucessfully!
+          Your account has been created successfully!
         </p>
       )}
     </div>
   );
 };
 
-export default SellerActivationPage;
+export default ShipperActivationPage;

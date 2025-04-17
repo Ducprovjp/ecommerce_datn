@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import ShipperCreate from "../components/Shipper/ShipperCreate";
+import ShipperCreate from "../../components/Shipper/ShipperCreate";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 

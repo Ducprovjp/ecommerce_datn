@@ -1,25 +1,19 @@
-import LoginPage from "../pages/LoginPage";
-import SignupPage from "../pages/SignupPage";
-import ActivationPage from "../pages/ActivationPage";
-import HomePage from "../pages/HomePage";
-import ProductsPage from "../pages/ProductsPage";
-import BestSellingPage from "../pages/BestSellingPage";
-import EventsPage from "../pages/EventsPage";
-import FAQPage from "../pages/FAQPage";
-import CheckoutPage from "../pages/CheckoutPage";
-import PaymentPage from "../pages/PaymentPage";
-import OrderSuccessPage from "../pages/OrderSuccessPage";
-import ProductDetailsPage from "../pages/ProductDetailsPage";
-import ProfilePage from "../pages/ProfilePage";
-import ShopCreatePage from "../pages/ShopCreate";
-import SellerActivationPage from "../pages/SellerActivationPage";
-import ShopLoginPage from "../pages/ShopLoginPage";
-import OrderDetailsPage from "../pages/OrderDetailsPage";
-import TrackOrderPage from "../pages/TrackOrderPage";
-import UserInbox from "../pages/UserInbox";
-import ShipperCreatePage from "../pages/ShipperCreate";
-import ShipperLoginPage from "../pages/ShipperLoginPage";
-import ShipperActivationPage from "../pages/ShipperActivationPage";
+import LoginPage from "../pages/User/LoginPage";
+import SignupPage from "../pages/User/SignupPage";
+import ActivationPage from "../pages/User/ActivationPage";
+import HomePage from "../pages/User/HomePage";
+import ProductsPage from "../pages/User/ProductsPage";
+import BestSellingPage from "../pages/User/BestSellingPage";
+import EventsPage from "../pages/User/EventsPage";
+import FAQPage from "../pages/User/FAQPage";
+import CheckoutPage from "../pages/User/CheckoutPage";
+import PaymentPage from "../pages/User/PaymentPage";
+import OrderSuccessPage from "../pages/User/OrderSuccessPage";
+import ProductDetailsPage from "../pages/User/ProductDetailsPage";
+import ProfilePage from "../pages/User/ProfilePage";
+import OrderDetailsPage from "../pages/User/OrderDetailsPage";
+import TrackOrderPage from "../pages/User/TrackOrderPage";
+import UserInbox from "../pages/User/UserInbox";
 
 export {
   LoginPage,
@@ -35,13 +29,7 @@ export {
   OrderSuccessPage,
   ProductDetailsPage,
   ProfilePage,
-  ShopCreatePage,
-  SellerActivationPage,
-  ShopLoginPage,
   OrderDetailsPage,
   TrackOrderPage,
   UserInbox,
-  ShipperCreatePage,
-  ShipperLoginPage,
-  ShipperActivationPage,
 };

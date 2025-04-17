@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
-import Header from "../components/Layout/Header";
+import Header from "../../components/Layout/Header";
 import { useSelector } from "react-redux";
-import Loader from "../components/Layout/Loader";
-import styles from "../styles/styles";
-import ProductCard from "../components/Route/ProductCard/ProductCard";
-import Footer from "../components/Layout/Footer";
+import Loader from "../../components/Layout/Loader";
+import styles from "../../styles/styles";
+import ProductCard from "../../components/Route/ProductCard/ProductCard";
+import Footer from "../../components/Layout/Footer";
 
 const BestSellingPage = () => {
   const [data, setData] = useState([]);

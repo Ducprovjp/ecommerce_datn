@@ -407,7 +407,7 @@ const CartData = ({
         <h5 className="text-[18px] font-[600]">
           -{" "}
           {discountPercentenge
-            ? discountPercentenge.toString().toLocaleString("vi-VN") + " VNĐ"
+            ? discountPercentenge.toLocaleString("vi-VN") + " VNĐ"
             : null}
         </h5>
       </div>

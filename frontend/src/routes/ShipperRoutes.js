@@ -6,6 +6,9 @@ import ShipperSettingsPage from "../pages/Shipper/ShipperSettingsPage";
 import ShipperDashboardPage from "../pages/Shipper/ShipperDashboardPage";
 import ShipperDeliveredArea from "../pages/Shipper/ShipperDeliveredArea";
 import ShipperOrderDetails from "../pages/Shipper/ShipperOrderDetails";
+import ShipperLoginPage from "../pages/Shipper/ShipperLoginPage";
+import ShipperActivationPage from "../pages/Shipper/ShipperActivationPage";
+import ShipperCreatePage from "../pages/Shipper/ShipperCreate";
 
 export {
   ShipperAllOrders,
@@ -16,4 +19,7 @@ export {
   ShipperDashboardPage,
   ShipperDeliveredArea,
   ShipperOrderDetails,
+  ShipperLoginPage,
+  ShipperActivationPage,
+  ShipperCreatePage,
 };
