@@ -99,14 +99,74 @@ router.get(
   "/get-all-products",
   catchAsyncErrors(async (req, res, next) => {
     try {
-      const products = await Product.find().sort({ createdAt: -1 });
+      const {
+        minPrice,
+        maxPrice,
+        category,
+        sort,
+        page = 1,
+        limit = 10,
+      } = req.query;
+
+      // Xây dựng query lọc
+      const query = {};
+      if (category) {
+        query.category = { $regex: category, $options: "i" }; // Không phân biệt hoa thường
+      }
+      if (minPrice && !isNaN(minPrice)) {
+        query.discountPrice = {
+          ...query.discountPrice,
+          $gte: parseFloat(minPrice),
+        };
+      }
+      if (maxPrice && !isNaN(maxPrice)) {
+        query.discountPrice = {
+          ...query.discountPrice,
+          $lte: parseFloat(maxPrice),
+        };
+      }
+
+      // Xây dựng sort
+      let sortOption = {};
+      switch (sort) {
+        case "price-asc":
+          sortOption = { discountPrice: 1 };
+          break;
+        case "price-desc":
+          sortOption = { discountPrice: -1 };
+          break;
+        case "name-asc":
+          sortOption = { name: 1 };
+          break;
+        case "name-desc":
+          sortOption = { name: -1 };
+          break;
+        default:
+          sortOption = { createdAt: -1 }; // Mặc định sắp xếp theo ngày tạo
+      }
+
+      // Phân trang
+      const pageNum = parseInt(page);
+      const limitNum = parseInt(limit);
+      const skip = (pageNum - 1) * limitNum;
+
+      // Lấy sản phẩm
+      const products = await Product.find(query)
+        .sort(sortOption)
+        .skip(skip)
+        .limit(limitNum);
+
+      // Tính tổng số trang
+      const totalProducts = await Product.countDocuments(query);
+      const totalPages = Math.ceil(totalProducts / limitNum);
 
       res.status(201).json({
         success: true,
         products,
+        totalPages,
       });
     } catch (error) {
-      return next(new ErrorHandler(error, 400));
+      return next(new ErrorHandler(error.message, 500));
     }
   })
 );

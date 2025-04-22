@@ -1,9 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import styles from "../../styles/styles";
 import { Country, State } from "country-state-city";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { useEffect } from "react";
 import axios from "axios";
 import { server } from "../../server";
 import { toast } from "react-toastify";
@@ -19,11 +18,29 @@ const Checkout = () => {
   const [couponCode, setCouponCode] = useState("");
   const [couponCodeData, setCouponCodeData] = useState(null);
   const [discountPrice, setDiscountPrice] = useState(null);
+  const [availableCoupons, setAvailableCoupons] = useState([]);
+  const [isLoadingCoupons, setIsLoadingCoupons] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     window.scrollTo(0, 0);
+    fetchAvailableCoupons();
   }, []);
+
+  const fetchAvailableCoupons = async () => {
+    setIsLoadingCoupons(true);
+    try {
+      const response = await axios.get(
+        `${server}/coupon/get-all-available-coupons`
+      );
+      setAvailableCoupons(response.data.couponCodes);
+    } catch (error) {
+      console.error("Error fetching coupons:", error);
+      toast.error("Failed to load available coupons");
+    } finally {
+      setIsLoadingCoupons(false);
+    }
+  };
 
   const paymentSubmit = () => {
     if ((address1 === "" || province === "" || district === "", ward === "")) {
@@ -62,36 +79,46 @@ const Checkout = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const name = couponCode;
 
-    await axios.get(`${server}/coupon/get-coupon-value/${name}`).then((res) => {
-      const shopId = res.data.couponCode?.shopId;
+    if (!couponCode) {
+      toast.error("Please select a coupon code");
+      return;
+    }
 
-      const couponCodeValue = res.data.couponCode?.value;
+    const selectedCoupon = availableCoupons.find(
+      (coupon) => coupon.name === couponCode
+    );
 
-      if (res.data.couponCode !== null) {
-        const isCouponValid =
-          cart && cart.filter((item) => item.shopId === shopId);
+    if (!selectedCoupon) {
+      toast.error("Invalid coupon code");
+      return;
+    }
 
-        if (isCouponValid.length === 0) {
-          toast.error("Coupon code is not valid for this shop");
-          setCouponCode("");
-        } else {
-          const eligiblePrice = isCouponValid.reduce(
-            (acc, item) => acc + item.qty * item.discountPrice,
-            0
-          );
-          const discountPrice = (eligiblePrice * couponCodeValue) / 100;
-          setDiscountPrice(discountPrice);
-          setCouponCodeData(res.data.couponCode);
-          setCouponCode("");
-        }
+    // Check if the coupon is valid for the current cart
+    const shopId = selectedCoupon.shopId;
+    const isCouponValid = cart && cart.filter((item) => item.shopId === shopId);
+
+    if (isCouponValid.length === 0) {
+      toast.error("Coupon code is not valid for this shop");
+      setCouponCode("");
+    } else {
+      const eligiblePrice = isCouponValid.reduce(
+        (acc, item) => acc + item.qty * item.discountPrice,
+        0
+      );
+
+      let discountAmount = 0;
+
+      if (selectedCoupon.discountType === "percentage") {
+        discountAmount = (eligiblePrice * selectedCoupon.value) / 100;
+      } else {
+        // Fixed amount discount
+        discountAmount = selectedCoupon.value;
       }
-      if (res.data.couponCode === null) {
-        toast.error("Coupon code doesn't exist!");
-        setCouponCode("");
-      }
-    });
+
+      setDiscountPrice(discountAmount);
+      setCouponCodeData(selectedCoupon);
+    }
   };
 
   const discountPercentenge = couponCodeData ? discountPrice : "";
@@ -99,8 +126,6 @@ const Checkout = () => {
   const totalPrice = couponCodeData
     ? subTotalPrice + shipping - discountPercentenge
     : subTotalPrice + shipping;
-
-  console.log(discountPercentenge);
 
   return (
     <div className="w-full flex flex-col items-center py-8">
@@ -129,6 +154,8 @@ const Checkout = () => {
             couponCode={couponCode}
             setCouponCode={setCouponCode}
             discountPercentenge={discountPercentenge}
+            availableCoupons={availableCoupons}
+            isLoadingCoupons={isLoadingCoupons}
           />
         </div>
       </div>
@@ -226,8 +253,9 @@ const ShippingInfo = ({
         setDistrict(item.district); // Đặt district sau khi danh sách quận có dữ liệu
         setWard(item.ward); // Đặt ward sau khi danh sách phường có dữ liệu
       } else {
-        setDistrict(""); // Nếu không tìm thấy, reset quận/huyện
-        setWards([]); // Xóa danh sách phường/xã
+        setDistricts([]); // Nếu không tìm thấy, reset quận/huyện
+        setDistrict("");
+        setWards([]);
         setWard("");
       }
     } else {
@@ -385,7 +413,13 @@ const CartData = ({
   couponCode,
   setCouponCode,
   discountPercentenge,
+  availableCoupons,
+  isLoadingCoupons,
 }) => {
+  const selectedCoupon = availableCoupons.find(
+    (coupon) => coupon.name === couponCode
+  );
+
   return (
     <div className="w-full bg-[#fff] rounded-md p-5 pb-8">
       <div className="flex justify-between">
@@ -416,14 +450,61 @@ const CartData = ({
       </h5>
       <br />
       <form onSubmit={handleSubmit}>
-        <input
-          type="text"
-          className={`${styles.input} h-[40px] pl-2`}
-          placeholder="Coupoun code"
-          value={couponCode}
-          onChange={(e) => setCouponCode(e.target.value)}
-          required
-        />
+        <div className="mb-4">
+          <label className="block text-[14px] font-[500] mb-2">
+            Select Coupon:
+          </label>
+          {isLoadingCoupons ? (
+            <div className="h-[40px] flex items-center justify-center">
+              <span>Loading coupons...</span>
+            </div>
+          ) : (
+            <select
+              value={couponCode}
+              onChange={(e) => setCouponCode(e.target.value)}
+              className={`${styles.input} h-[40px] pl-2 w-full`}
+              required
+            >
+              <option value="">Select a coupon</option>
+              {availableCoupons.map((coupon) => (
+                <option key={coupon.name} value={coupon.name}>
+                  {coupon.name} -{" "}
+                  {coupon.discountType === "percentage"
+                    ? `${coupon.value}% off`
+                    : `${coupon.value.toLocaleString("vi-VN")} VNĐ off`}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+
+        {selectedCoupon && (
+          <div className="mb-4 p-3 bg-gray-50 rounded-md">
+            <h4 className="text-[14px] font-[600] mb-1">
+              {selectedCoupon.name}
+            </h4>
+            <p className="text-[12px] text-gray-600">
+              {selectedCoupon.discountType === "percentage"
+                ? `${selectedCoupon.value}% discount`
+                : `${selectedCoupon.value.toLocaleString(
+                    "vi-VN"
+                  )} VNĐ discount`}
+            </p>
+            {selectedCoupon.minAmount && (
+              <p className="text-[12px] text-gray-600">
+                Min. order: {selectedCoupon.minAmount.toLocaleString("vi-VN")}{" "}
+                VNĐ
+              </p>
+            )}
+            {selectedCoupon.endDate && (
+              <p className="text-[12px] text-gray-600">
+                Valid until:{" "}
+                {new Date(selectedCoupon.endDate).toLocaleDateString()}
+              </p>
+            )}
+          </div>
+        )}
+
         <input
           className={`w-full h-[40px] border border-[#f63b60] text-center text-[#f63b60] rounded-[3px] mt-8 cursor-pointer`}
           required

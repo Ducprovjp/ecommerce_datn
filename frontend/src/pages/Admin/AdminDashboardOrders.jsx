@@ -20,22 +20,33 @@ const AdminDashboardOrders = () => {
     { field: "id", headerName: "Order ID", minWidth: 150, flex: 0.7 },
 
     {
+      field: "itemsName",
+      headerName: "Items name",
+      type: "text",
+      minWidth: 200,
+      flex: 1.0,
+    },
+    {
       field: "status",
       headerName: "Status",
-      minWidth: 130,
-      flex: 0.7,
-      cellClassName: (params) => {
-        return params.getValue(params.id, "status") === "Delivered"
-          ? "greenColor"
-          : "redColor";
-      },
+      minWidth: 100,
+      flex: 0.5,
+      renderCell: (params) => (
+        <span
+          className={`font-bold ${
+            params.value === "Delivered" ? "text-green-600" : "text-yellow-500"
+          }`}
+        >
+          {params.value}
+        </span>
+      ),
     },
     {
       field: "itemsQty",
       headerName: "Items Qty",
       type: "number",
       minWidth: 130,
-      flex: 0.7,
+      flex: 0.4,
     },
 
     {
@@ -59,6 +70,7 @@ const AdminDashboardOrders = () => {
     adminOrders.forEach((item) => {
       row.push({
         id: item._id,
+        itemsName: item?.cart?.map((i) => i.name),
         itemsQty: item?.cart?.reduce((acc, item) => acc + item.qty, 0),
         total: item?.totalPrice.toLocaleString("vi-VN") + " VNĐ",
         status: item?.status,

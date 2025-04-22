@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import styles from "../../styles/styles";
 import { productData, categoriesData } from "../../static/data";
@@ -33,6 +33,9 @@ const Header = ({ activeHeading }) => {
   const [openWishlist, setOpenWishlist] = useState(false);
   const [open, setOpen] = useState(false); // mobile menu
 
+  const [isSearchActive, setIsSearchActive] = useState(false);
+  const searchRef = useRef(null);
+
   // Handle search change
   const handleSearchChange = (e) => {
     const term = e.target.value;
@@ -44,8 +47,25 @@ const Header = ({ activeHeading }) => {
       allProducts.filter((product) =>
         product.name.toLowerCase().includes(term.toLowerCase())
       );
+
     setSearchData(filteredProducts);
+
+    // Set isSearchActive to true when there are search results
+    setIsSearchActive(filteredProducts.length > 0);
   };
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setIsSearchActive(false);
+      }
+    };
+
+    document.addEventListener("click", handleClickOutside);
+    return () => {
+      document.removeEventListener("click", handleClickOutside);
+    };
+  }, []);
 
   window.addEventListener("scroll", () => {
     if (window.scrollY > 70) {
@@ -68,7 +88,7 @@ const Header = ({ activeHeading }) => {
             </Link>
           </div>
           {/*Search box  */}
-          <div className="w-[50%] relative">
+          <div className="w-[50%] relative" ref={searchRef}>
             <input
               type="text"
               placeholder="Search for product..."
@@ -80,53 +100,52 @@ const Header = ({ activeHeading }) => {
               size={30}
               className="absolute right-2 top-1.5 cursor-pointer"
             />
-            {
-              // Search data if length is not 0 then show
-              searchData && searchData.length !== 0 ? (
-                <div className="absolute min-h-[30vh] bg-slate-50 shadow-sm-2 z-[9] p-4">
-                  {searchData &&
-                    searchData.map((i, index) => {
-                      const d = i.name;
-
-                      return (
-                        <Link to={`/product/${i._id}`}>
-                          <div className="w-full flex items-start-py-3">
-                            <img
-                              src={`${backend_url}${i.images[0]}`}
-                              alt="img"
-                              className="w-[40px] h-[40px] mr-[10px]"
-                            />
-                            <h1>{i.name}</h1>
-                          </div>
-                        </Link>
-                      );
-                    })}
-                </div>
-              ) : null
-            }
+            {isSearchActive && searchData && searchData.length !== 0 ? (
+              <div className="absolute min-h-[30vh] bg-slate-50 shadow-lg z-[9] p-4 rounded-lg">
+                {searchData.map((i, index) => {
+                  return (
+                    <Link
+                      to={`/product/${i._id}`}
+                      className="group w-full flex items-center py-3 hover:bg-slate-100 hover:border-[#3957db] hover:border-[1px] transition-all duration-300 ease-in-out rounded-lg"
+                    >
+                      <img
+                        src={`${backend_url}${i.images[0]}`}
+                        alt="img"
+                        className="w-[40px] h-[40px] mr-[10px] transition-transform duration-300 ease-in-out"
+                      />
+                      <h1 className="text-sm group-hover:text-blue-600 font-medium transition-colors duration-300 ease-in-out">
+                        {i.name}
+                      </h1>
+                    </Link>
+                  );
+                })}
+              </div>
+            ) : null}
           </div>
           {/* Search end */}
 
           {/* Become a Shipper & Seller */}
-          <div className="flex space-x-2">
-            {/* Become a Shipper */}
-            <div className={`${styles.button}`}>
-              <Link to={`${isShipper ? "/dashboard" : "/shipper-create"}`}>
-                <h1 className="text-[#fff] flex items-center">
-                  {isShipper ? "Go Dashboard" : "Become Shipper"}{" "}
-                  <IoIosArrowForward className="ml-1" />
-                </h1>
-              </Link>
-            </div>
+          <div className="flex justify-center items-center">
+            <div className="flex flex-col md:flex-row md:space-x-2 space-y-4 md:space-y-0 items-center">
+              {/* Become a Shipper */}
+              <div className={`${styles.button}`}>
+                <Link to={`${isShipper ? "/dashboard" : "/shipper-create"}`}>
+                  <h1 className="text-[#fff] flex items-center">
+                    {isShipper ? "Go Dashboard" : "Become Shipper"}{" "}
+                    <IoIosArrowForward className="ml-1" />
+                  </h1>
+                </Link>
+              </div>
 
-            {/* Become a Seller */}
-            <div className={`${styles.button}`}>
-              <Link to={`${isSeller ? "/dashboard" : "/shop-create"}`}>
-                <h1 className="text-[#fff] flex items-center">
-                  {isSeller ? "Go Dashboard" : "Become Seller"}{" "}
-                  <IoIosArrowForward className="ml-1" />
-                </h1>
-              </Link>
+              {/* Become a Seller */}
+              <div className={`${styles.button}`}>
+                <Link to={`${isSeller ? "/dashboard" : "/shop-create"}`}>
+                  <h1 className="text-[#fff] flex items-center">
+                    {isSeller ? "Go Dashboard" : "Become Seller"}{" "}
+                    <IoIosArrowForward className="ml-1" />
+                  </h1>
+                </Link>
+              </div>
             </div>
           </div>
         </div>
@@ -146,13 +165,20 @@ const Header = ({ activeHeading }) => {
                 <BiMenuAltLeft size={30} className="absolute top-3 left-2" />
                 <button
                   className={`h-[100%] w-full flex justify-between items-center pl-10 bg-white font-sans text-lg font-[500] select-none rounded-t-md`}
+                  onClick={(e) => {
+                    e.stopPropagation(); // Ngăn chặn sự kiện lan ra ngoài
+                    setDropDown(!dropDown);
+                  }}
                 >
                   All Categories
                 </button>
                 <IoIosArrowDown
                   size={20}
                   className="absolute right-2 top-4 cursor-pointer"
-                  onClick={() => setDropDown(!dropDown)}
+                  onClick={(e) => {
+                    e.stopPropagation(); // Ngăn chặn sự kiện lan ra ngoài
+                    setDropDown(!dropDown);
+                  }}
                 />
                 {dropDown ? (
                   <DropDown
@@ -309,16 +335,16 @@ const Header = ({ activeHeading }) => {
 
               {searchData && (
                 <div className="absolute bg-[#fff] z-10 shadow w-full left-0 p-3">
-                  {searchData.map((i) => {
+                  {searchData.map((i, index) => {
                     const d = i.name;
 
                     const Product_name = d.replace(/\s+/g, "-");
                     return (
-                      <Link to={`/product/${Product_name}`}>
+                      <Link to={`/product/${i._id}`}>
                         <div className="flex items-center">
                           <img
-                            src={i.image_Url[0].url}
-                            alt=""
+                            src={`${backend_url}${i.images[0]}`}
+                            alt="img"
                             className="w-[50px] mr-2"
                           />
                           <h5>{i.name}</h5>

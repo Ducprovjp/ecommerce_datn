@@ -217,10 +217,10 @@ const ProductDetails = ({ data }) => {
                 </div>
 
                 <div
-                  className={`${styles.button} !mt-6 !rounded-md !h-11 flex items-center justify-center bg-gradient-to-r from-teal-400 to-teal-500 shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all duration-200`}
+                  className={`${styles.button} mt-6 rounded-[4px] h-11 flex items-center`}
                   onClick={() => addToCartHandler(data._id)}
                 >
-                  <span className="text-white font-semibold text-[16px] flex items-center">
+                  <span className="text-[#fff] flex items-center">
                     Add to Cart
                     <AiOutlineShoppingCart size={20} className="ml-2" />
                   </span>
