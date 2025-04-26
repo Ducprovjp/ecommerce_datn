@@ -167,9 +167,13 @@ router.get(
   "/logout",
   catchAsyncErrors(async (req, res, next) => {
     try {
+      console.log("NODE_ENV:", process.env.NODE_ENV); // Debug
       res.cookie("token", null, {
         expires: new Date(Date.now()),
         httpOnly: true,
+        secure: process.env.NODE_ENV === "PRODUCTION", // HTTPS trong PRODUCTION
+        sameSite: process.env.NODE_ENV === "PRODUCTION" ? "none" : "lax", // Cross-origin trong production
+        path: "/", // Áp dụng cho toàn bộ domain
       });
       res.status(201).json({
         success: true,
