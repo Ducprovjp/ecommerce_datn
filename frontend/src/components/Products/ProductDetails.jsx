@@ -129,7 +129,7 @@ const ProductDetails = ({ data }) => {
                 {data && data.images && data.images[select] && (
                   <div className="mb-4">
                     <img
-                      src={`${backend_url}${data.images[select]}`}
+                      src={data.images[select]}
                       alt={`${data.name} main view`}
                       className="w-[400px] h-[400px] object-cover rounded-[5px] mx-auto"
                     />
@@ -148,7 +148,7 @@ const ProductDetails = ({ data }) => {
                         } cursor-pointer flex-shrink-0`}
                       >
                         <img
-                          src={`${backend_url}${i}`}
+                          src={i}
                           alt={`${data.name} thumbnail ${index + 1}`}
                           className="w-[200px] h-[200px] object-cover rounded-[5px]"
                           onClick={() => setSelect(index)}

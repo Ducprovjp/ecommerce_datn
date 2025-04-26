@@ -89,7 +89,7 @@ const OrderStatus = () => {
         </div>
         <Link to="/dashboard-orders">
           <div
-            className={`${styles.button} !bg-[#fce1e6] !rounded-[4px] text-[#e94560] font-[600] !h-[45px] text-[18px]`}
+            className={`${styles.button} !bg-[#f63b60] !rounded-[4px] text-[#e94560] font-[600] !h-[45px] text-[18px]`}
           >
             Order List
           </div>
@@ -127,7 +127,7 @@ const OrderStatus = () => {
             </div>
           ))}
         <div
-          className={`${styles.button} !bg-[#FCE1E6] !rounded-[4px] text-[#E94560] font-[600] !h-[45px] text-[18px]`}
+          className={`${styles.button} !bg-[#f63b60] !rounded-[4px] text-[#E94560] font-[600] !h-[45px] text-[18px]`}
           onClick={orderCancelHandler}
         >
           Cancel Order
@@ -226,7 +226,7 @@ const OrderStatus = () => {
         ) : null}
 
         <div
-          className={`${styles.button} mt-5 !bg-[#c7e9cc] !rounded-[4px] text-[#E94560] font-[600] !h-[45px] text-[18px]`}
+          className={`${styles.button} mt-5 !bg-[#16b12e] !rounded-[4px] text-[#E94560] font-[600] !h-[45px] text-[18px]`}
           onClick={
             data?.status !== "Processing refund"
               ? orderUpdateHandler
