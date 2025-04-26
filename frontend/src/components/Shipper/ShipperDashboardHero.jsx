@@ -31,12 +31,22 @@ const ShipperDashboardHero = () => {
       headerName: "Status",
       minWidth: 100,
       flex: 0.5,
-      cellClassName: (params) => {
-        return params.getValue(params.id, "status") === "Delivered"
-          ? "greenColor"
-          : "redColor";
+      renderCell: (params) => {
+        const greenStatuses = ["Delivered", "Refund Success"];
+        return (
+          <span
+            className={`font-bold ${
+              greenStatuses.includes(params.value)
+                ? "text-green-600"
+                : "text-yellow-500"
+            }`}
+          >
+            {params.value}
+          </span>
+        );
       },
     },
+
     {
       field: "itemsQty",
       headerName: "Items Qty",

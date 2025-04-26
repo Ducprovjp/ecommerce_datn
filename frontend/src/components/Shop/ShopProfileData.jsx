@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { getAllProductsShop } from "../../redux/actions/product";
 import styles from "../../styles/styles";
 import ProductCard from "../Route/ProductCard/ProductCard";
@@ -12,11 +12,16 @@ const ShopProfileData = ({ isOwner }) => {
   const { products } = useSelector((state) => state.products);
   const { events } = useSelector((state) => state.events);
   const { seller } = useSelector((state) => state.seller);
+  const navigate = useNavigate();
   const { id } = useParams();
+
+  const navigateBack = () => {
+    navigate(-1);
+  };
 
   const dispatch = useDispatch();
   useEffect(() => {
-    dispatch(getAllEventsShop(seller._id));
+    dispatch(getAllEventsShop(id));
   }, [dispatch]);
 
   const [active, setActive] = useState(1);
@@ -58,13 +63,22 @@ const ShopProfileData = ({ isOwner }) => {
           </div>
         </div>
         <div>
-          {isOwner && (
+          {isOwner ? (
             <div>
               <Link to="/dashboard">
                 <div className={`${styles.button} !rounded-[4px] h-[42px]`}>
                   <span className="text-[#fff]">Go Dashboard</span>
                 </div>
               </Link>
+            </div>
+          ) : (
+            <div>
+              <button
+                onClick={navigateBack}
+                className={`${styles.button} !rounded-[4px] h-[42px]`}
+              >
+                Back
+              </button>
             </div>
           )}
         </div>

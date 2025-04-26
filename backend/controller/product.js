@@ -9,6 +9,24 @@ const { upload } = require("../multer");
 const ErrorHandler = require("../utils/ErrorHandler");
 const fs = require("fs");
 
+// upload image
+router.post(
+  "/upload-image",
+  upload.array("images"),
+  catchAsyncErrors(async (req, res, next) => {
+    try {
+      const files = req.files;
+      const imageUrls = files.map((file) => file.path);
+      res.status(200).json({
+        success: true,
+        imageUrls,
+      });
+    } catch (error) {
+      return next(new ErrorHandler(error, 400));
+    }
+  })
+);
+
 // create product
 router.post(
   "/create-product",
@@ -19,23 +37,95 @@ router.post(
       const shop = await Shop.findById(shopId);
       if (!shop) {
         return next(new ErrorHandler("Shop Id is invalid!", 400));
-      } else {
-        const files = req.files;
-        const imageUrls = files.map((file) => `${file.filename}`);
-
-        const productData = req.body;
-        productData.images = imageUrls;
-        productData.shop = shop;
-
-        const product = await Product.create(productData);
-
-        res.status(201).json({
-          success: true,
-          product,
-        });
       }
+
+      const files = req.files;
+      const imageUrls = files.map((file) => file.path); // dùng .path để lấy URL trên cloudinary
+
+      const productData = req.body;
+      productData.images = imageUrls;
+      productData.shop = shop;
+
+      const product = await Product.create(productData);
+
+      res.status(201).json({
+        success: true,
+        product,
+      });
     } catch (error) {
       return next(new ErrorHandler(error, 400));
+    }
+  })
+);
+
+// router.put(
+//   "/update-product/:id",
+//   isSeller,
+//   catchAsyncErrors(async (req, res, next) => {
+//     try {
+//       const productId = req.params.id;
+
+//       const product = await Product.findById(productId);
+
+//       if (!product) {
+//         return next(new ErrorHandler("Product not found with this id!", 500));
+//       }
+
+//       if (product.shop.toString() !== req.user.id) {
+//         return next(new ErrorHandler("You are not allowed to update this product", 400));
+//       }
+
+//       await product.updateOne(req.body);
+
+//       res.status(200).json({
+//         success: true,
+//         product,
+//       });
+//     } catch (error) {
+//       return next(new ErrorHandler(error, 400));
+//     }
+//   })
+// );
+
+// update product
+router.put(
+  "/update-product/:id",
+  isSeller,
+  upload.array("images"),
+  catchAsyncErrors(async (req, res, next) => {
+    try {
+      let updatedData = req.body;
+
+      // Nếu có ảnh mới được upload
+      if (req.files && req.files.length > 0) {
+        const imageUrls = req.files.map((file) => file.path);
+        const oldImages = req.body.oldImages
+          ? JSON.parse(req.body.oldImages)
+          : [];
+        updatedData.images = [...oldImages, ...imageUrls];
+      } else {
+        // Nếu không có ảnh mới, sử dụng danh sách ảnh cũ
+        updatedData.images = req.body.oldImages
+          ? JSON.parse(req.body.oldImages)
+          : [];
+      }
+
+      const updatedProduct = await Product.findByIdAndUpdate(
+        req.params.id,
+        { $set: updatedData },
+        { new: true }
+      );
+
+      if (!updatedProduct) {
+        return next(new ErrorHandler("Product not found", 404));
+      }
+
+      res.status(200).json({
+        success: true,
+        product: updatedProduct,
+      });
+    } catch (error) {
+      return next(new ErrorHandler(error.message, 500));
     }
   })
 );
@@ -99,14 +189,74 @@ router.get(
   "/get-all-products",
   catchAsyncErrors(async (req, res, next) => {
     try {
-      const products = await Product.find().sort({ createdAt: -1 });
+      const {
+        minPrice,
+        maxPrice,
+        category,
+        sort,
+        page = 1,
+        limit = 10,
+      } = req.query;
+
+      // Xây dựng query lọc
+      const query = {};
+      if (category) {
+        query.category = { $regex: category, $options: "i" }; // Không phân biệt hoa thường
+      }
+      if (minPrice && !isNaN(minPrice)) {
+        query.discountPrice = {
+          ...query.discountPrice,
+          $gte: parseFloat(minPrice),
+        };
+      }
+      if (maxPrice && !isNaN(maxPrice)) {
+        query.discountPrice = {
+          ...query.discountPrice,
+          $lte: parseFloat(maxPrice),
+        };
+      }
+
+      // Xây dựng sort
+      let sortOption = {};
+      switch (sort) {
+        case "price-asc":
+          sortOption = { discountPrice: 1 };
+          break;
+        case "price-desc":
+          sortOption = { discountPrice: -1 };
+          break;
+        case "name-asc":
+          sortOption = { name: 1 };
+          break;
+        case "name-desc":
+          sortOption = { name: -1 };
+          break;
+        default:
+          sortOption = { createdAt: -1 }; // Mặc định sắp xếp theo ngày tạo
+      }
+
+      // Phân trang
+      const pageNum = parseInt(page);
+      const limitNum = parseInt(limit);
+      const skip = (pageNum - 1) * limitNum;
+
+      // Lấy sản phẩm
+      const products = await Product.find(query)
+        .sort(sortOption)
+        .skip(skip)
+        .limit(limitNum);
+
+      // Tính tổng số trang
+      const totalProducts = await Product.countDocuments(query);
+      const totalPages = Math.ceil(totalProducts / limitNum);
 
       res.status(201).json({
         success: true,
         products,
+        totalPages,
       });
     } catch (error) {
-      return next(new ErrorHandler(error, 400));
+      return next(new ErrorHandler(error.message, 500));
     }
   })
 );

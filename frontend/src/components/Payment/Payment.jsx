@@ -509,7 +509,7 @@ const CartData = ({ orderData }) => {
         <h3 className="text-[16px] font-[400] text-[#000000a4]">Discount:</h3>
         <h5 className="text-[18px] font-[600]">
           {orderData?.discountPrice
-            ? orderData.discountPrice.toLocaleString("vi-VN") + " VNĐ"
+            ? "- " + orderData.discountPrice.toLocaleString("vi-VN") + " VNĐ"
             : "0 VNĐ"}
         </h5>
       </div>

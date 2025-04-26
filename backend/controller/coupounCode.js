@@ -1,4 +1,5 @@
 const express = require("express");
+const moment = require("moment-timezone");
 const catchAsyncErrors = require("../middleware/catchAsyncErrors");
 const Shop = require("../model/shop");
 const ErrorHandler = require("../utils/ErrorHandler");
@@ -45,6 +46,43 @@ router.get(
       });
     } catch (error) {
       return next(new ErrorHandler(error, 400));
+    }
+  })
+);
+
+// get all available coupon codes for a user
+router.get(
+  "/get-all-available-coupons",
+  catchAsyncErrors(async (req, res, next) => {
+    try {
+      // Lấy thời gian UTC và thêm 7 giờ (UTC+7)
+      const currentDate = new Date(Date.now() + 7 * 60 * 60 * 1000);
+      console.log("Current Date:", currentDate.toISOString());
+
+      // Tìm tất cả mã giảm giá đang hoạt động, chưa hết hạn và đã bắt đầu
+      const couponCodes = await CoupounCode.find({
+        isActive: true,
+        endDate: { $gt: currentDate },
+        startDate: { $lte: currentDate },
+        $or: [
+          { usageLimit: 0 },
+          { $expr: { $lt: ["$usedCount", "$usageLimit"] } },
+        ],
+      });
+
+      console.log("Coupons found:", couponCodes);
+
+      res.status(200).json({
+        success: true,
+        couponCodes,
+        debug: {
+          currentDate: currentDate.toISOString(),
+          totalCouponsFound: couponCodes.length,
+        },
+      });
+    } catch (error) {
+      console.error("Error fetching coupons:", error);
+      return next(new ErrorHandler(error.message, 400));
     }
   })
 );

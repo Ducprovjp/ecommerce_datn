@@ -16,15 +16,9 @@ import {
   OrderSuccessPage,
   ProductDetailsPage,
   ProfilePage,
-  ShopCreatePage,
-  SellerActivationPage,
-  ShopLoginPage,
   OrderDetailsPage,
   TrackOrderPage,
   UserInbox,
-  ShipperCreatePage,
-  ShipperLoginPage,
-  ShipperActivationPage,
 } from "./routes/Routes";
 import {
   ShopDashboardPage,
@@ -40,6 +34,9 @@ import {
   ShopSettingsPage,
   ShopWithDrawMoneyPage,
   ShopInboxPage,
+  ShopCreatePage,
+  SellerActivationPage,
+  ShopLoginPage,
 } from "./routes/ShopRoutes";
 
 import {
@@ -51,6 +48,9 @@ import {
   ShipperDashboardPage,
   ShipperDeliveredArea,
   ShipperOrderDetails,
+  ShipperCreatePage,
+  ShipperLoginPage,
+  ShipperActivationPage,
 } from "./routes/ShipperRoutes";
 
 import {

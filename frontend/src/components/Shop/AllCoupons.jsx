@@ -19,6 +19,10 @@ const AllCoupons = () => {
   const [maxAmount, setMaxAmount] = useState(null);
   const [selectedProducts, setSelectedProducts] = useState(null);
   const [value, setValue] = useState(null);
+  const [discountType, setDiscountType] = useState("percentage");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [usageLimit, setUsageLimit] = useState(0);
   const { seller } = useSelector((state) => state.seller);
   const { products } = useSelector((state) => state.products);
 
@@ -60,6 +64,10 @@ const AllCoupons = () => {
           maxAmount,
           selectedProducts,
           value,
+          discountType,
+          startDate: startDate ? new Date(startDate) : new Date(),
+          endDate: new Date(endDate),
+          usageLimit,
           shopId: seller._id,
         },
         { withCredentials: true }
@@ -83,8 +91,26 @@ const AllCoupons = () => {
       flex: 1.4,
     },
     {
-      field: "price",
+      field: "discountType",
+      headerName: "Type",
+      minWidth: 100,
+      flex: 0.6,
+    },
+    {
+      field: "value",
       headerName: "Value",
+      minWidth: 100,
+      flex: 0.6,
+    },
+    {
+      field: "endDate",
+      headerName: "Expiry",
+      minWidth: 120,
+      flex: 0.7,
+    },
+    {
+      field: "usageLimit",
+      headerName: "Usage Limit",
       minWidth: 100,
       flex: 0.6,
     },
@@ -114,8 +140,13 @@ const AllCoupons = () => {
       row.push({
         id: item._id,
         name: item.name,
-        price: item.value + " %",
-        sold: 10,
+        discountType: item.discountType || "percentage",
+        value:
+          item.discountType === "percentage"
+            ? `${item.value}%`
+            : `${item.value.toLocaleString("vi-VN")} VNĐ`,
+        endDate: new Date(item.endDate).toLocaleDateString(),
+        usageLimit: item.usageLimit || "Unlimited",
       });
     });
 
@@ -142,7 +173,7 @@ const AllCoupons = () => {
           />
           {open && (
             <div className="fixed top-0 left-0 w-full h-screen bg-[#00000062] z-[20000] flex items-center justify-center">
-              <div className="w-[90%] 800px:w-[40%] h-[80vh] bg-white rounded-md shadow p-4">
+              <div className="w-[90%] 800px:w-[40%] h-[80vh] bg-white rounded-md shadow p-4 overflow-y-auto">
                 <div className="w-full flex justify-end">
                   <RxCross1
                     size={30}
@@ -172,17 +203,35 @@ const AllCoupons = () => {
 
                   <div>
                     <label className="pb-2">
-                      Discount Percentenge{" "}
-                      <span className="text-red-500">*</span>
+                      Discount Type <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      className="w-full mt-2 border h-[35px] rounded-[5px]"
+                      value={discountType}
+                      onChange={(e) => setDiscountType(e.target.value)}
+                      required
+                    >
+                      <option value="percentage">Percentage</option>
+                      <option value="fixed">Fixed Amount</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="pb-2">
+                      Discount Value <span className="text-red-500">*</span>
                     </label>
                     <input
-                      type="text"
+                      type="number"
                       name="value"
                       value={value}
                       required
                       className="mt-2 appearance-none block w-full px-3 h-[35px] border border-gray-300 rounded-[3px] placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                       onChange={(e) => setValue(e.target.value)}
-                      placeholder="Enter your coupon code value..."
+                      placeholder={
+                        discountType === "percentage"
+                          ? "Enter discount percentage..."
+                          : "Enter discount amount in VNĐ..."
+                      }
                     />
                   </div>
 
@@ -190,7 +239,7 @@ const AllCoupons = () => {
                     <label className="pb-2">Min Amount</label>
                     <input
                       type="number"
-                      name="value"
+                      name="minAmount"
                       value={minAmount}
                       className="mt-2 appearance-none block w-full px-3 h-[35px] border border-gray-300 rounded-[3px] placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                       onChange={(e) => setMinAmout(e.target.value)}
@@ -202,11 +251,50 @@ const AllCoupons = () => {
                     <label className="pb-2">Max Amount</label>
                     <input
                       type="number"
-                      name="value"
+                      name="maxAmount"
                       value={maxAmount}
                       className="mt-2 appearance-none block w-full px-3 h-[35px] border border-gray-300 rounded-[3px] placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                       onChange={(e) => setMaxAmount(e.target.value)}
                       placeholder="Set maximum discount amount... "
+                    />
+                  </div>
+
+                  <div>
+                    <label className="pb-2">
+                      Start Date <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      name="startDate"
+                      value={startDate}
+                      className="mt-2 appearance-none block w-full px-3 h-[35px] border border-gray-300 rounded-[3px] placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                      onChange={(e) => setStartDate(e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="pb-2">
+                      End Date <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      name="endDate"
+                      value={endDate}
+                      required
+                      className="mt-2 appearance-none block w-full px-3 h-[35px] border border-gray-300 rounded-[3px] placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                      onChange={(e) => setEndDate(e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="pb-2">Usage Limit</label>
+                    <input
+                      type="number"
+                      name="usageLimit"
+                      value={usageLimit}
+                      className="mt-2 appearance-none block w-full px-3 h-[35px] border border-gray-300 rounded-[3px] placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                      onChange={(e) => setUsageLimit(e.target.value)}
+                      placeholder="Set usage limit (0 for unlimited)..."
                     />
                   </div>
 

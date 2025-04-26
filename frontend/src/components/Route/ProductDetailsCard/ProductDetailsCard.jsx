@@ -118,7 +118,7 @@ const ProductDetailsCard = ({ setOpen, data }) => {
                     </span>
                   </div>
                   <h5 className="text-[16px] text-[red] mt-5">
-                    ({data.total_sell}) Sold out
+                    ({data?.sold_out}) Sold out
                   </h5>
                 </div>
                 {/* right */}
@@ -142,40 +142,39 @@ const ProductDetailsCard = ({ setOpen, data }) => {
                   </div>
 
                   <div className="flex items-center mt-12 justify-between pr-3">
-                    <div>
+                    <div className="flex items-center">
                       <button
-                        className="bg-gradient-to-r from-teal-400 to-teal-500 text-white font-bold rounded-l px-4 py-2 shadow-lg hover:opacity-75 transition duration-300 ease-in-out"
+                        className="h-10 bg-gradient-to-r from-teal-400 to-teal-500 text-white font-bold rounded-l-md px-4 shadow-lg hover:scale-105 active:scale-95 transition-all duration-200 ease-in-out"
                         onClick={decrementCount}
                       >
                         -
                       </button>
-
-                      <span className="bg-gray-200 text-gray-800 font-medium px-4 py-[11px]">
+                      <span className="h-10 bg-gray-200 text-gray-800 font-medium px-4 flex items-center justify-center border-y border-gray-300">
                         {count}
                       </span>
-
                       <button
-                        className="bg-gradient-to-r from-teal-400 to-teal-500 text-white font-bold rounded-l px-4 py-2 shadow-lg hover:opacity-75 transition duration-300 ease-in-out"
+                        className="h-10 bg-gradient-to-r from-teal-400 to-teal-500 text-white font-bold rounded-r-md px-4 shadow-lg hover:scale-105 active:scale-95 transition-all duration-200 ease-in-out"
                         onClick={incrementCount}
                       >
                         +
                       </button>
                     </div>
 
-                    <div>
+                    <div className="flex items-center justify-center w-10 h-10 bg-gray-100 rounded-full shadow-md hover:bg-gray-200 transition-all duration-200">
                       {click ? (
                         <AiFillHeart
-                          size={30}
-                          className="cursor-pointer"
+                          size={24}
+                          className="cursor-pointer transform hover:scale-110 active:scale-95 transition-all duration-200"
                           onClick={() => removeFromWishlistHandler(data)}
-                          color={click ? "red" : "#333"}
+                          color="red"
                           title="Remove from wishlist"
                         />
                       ) : (
                         <AiOutlineHeart
-                          size={30}
-                          className="cursor-pointer"
+                          size={24}
+                          className="cursor-pointer transform hover:scale-110 active:scale-95 transition-all duration-200"
                           onClick={() => addToWishlistHandler(data)}
+                          color="#333"
                           title="Add to wishlist"
                         />
                       )}
