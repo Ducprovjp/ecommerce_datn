@@ -77,8 +77,12 @@ const AllProducts = () => {
     updateFormData.append("name", formData.name);
     updateFormData.append("description", formData.description);
     updateFormData.append("category", formData.category);
-    updateFormData.append("tags", formData.tags);
-    updateFormData.append("originalPrice", formData.originalPrice);
+    if (formData.originalPrice) {
+      updateFormData.append("originalPrice", formData.originalPrice);
+    }
+    if (formData.tags) {
+      updateFormData.append("tags", formData.tags);
+    }
     updateFormData.append("discountPrice", formData.discountPrice);
     updateFormData.append("stock", formData.stock);
     updateFormData.append("oldImages", JSON.stringify(formData.images));
