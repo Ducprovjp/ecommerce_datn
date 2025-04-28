@@ -40,7 +40,7 @@ const ShipperInfo = ({ isOwner }) => {
       {isLoading ? (
         <Loader />
       ) : (
-        <div className="flex items-center">
+        <div>
           <div className="w-full py-5">
             <div className="w-full flex item-center justify-center">
               <img
