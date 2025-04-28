@@ -35,8 +35,9 @@ const Login = () => {
   };
 
   const handleGoogleSignIn = async (response) => {
+    console.log("Google Sign-In response:", response);
     try {
-      await axios.post(
+      const res = await axios.post(
         `${server}/user/auth/google`,
         { id_token: response.credential },
         { withCredentials: true }
@@ -45,7 +46,8 @@ const Login = () => {
       navigate("/");
       window.location.reload(true);
     } catch (err) {
-      toast.error(err.response.data.message || "Google Login Failed");
+      console.error("Google login error:", err.response?.data);
+      toast.error(err.response?.data?.message || "Google Login Failed");
     }
   };
 
@@ -56,17 +58,20 @@ const Login = () => {
           client_id: process.env.REACT_APP_GOOGLE_CLIENT_ID,
           callback: handleGoogleSignIn,
         });
-        window.google.accounts.id.renderButton(
-          document.getElementById("googleSignInButton"),
-          {
+        const buttonDiv = document.getElementById("googleSignInButton");
+        if (buttonDiv) {
+          window.google.accounts.id.renderButton(buttonDiv, {
             theme: "outline",
             size: "large",
             text: "sign_in_with",
             shape: "rectangular",
             logo_alignment: "left",
-          }
-        );
+          });
+        } else {
+          console.error("Google Sign-In button div not found");
+        }
       } else {
+        console.log("Google SDK not ready, retrying...");
         setTimeout(initializeGoogleSignIn, 100);
       }
     };
@@ -178,6 +183,7 @@ const Login = () => {
               <div
                 id="googleSignInButton"
                 className="flex justify-center"
+                style={{ minHeight: "40px" }}
               ></div>
             </div>
 

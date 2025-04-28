@@ -8,45 +8,66 @@ import { server } from "../../server";
 import { toast } from "react-toastify";
 
 const Signup = () => {
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [visible, setVisible] = useState(false);
   const [avatar, setAvatar] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  // const navigate = useNavigate()
-
-  // fule upload
   const handleFileInputChange = (e) => {
     const file = e.target.files[0];
-    setAvatar(file);
+    if (file) {
+      // Validate file type and size
+      const validTypes = ["image/jpeg", "image/jpg", "image/png"];
+      const maxSize = 2 * 1024 * 1024; // 2MB
+      if (!validTypes.includes(file.type)) {
+        toast.error("Please upload a JPG, JPEG, or PNG file");
+        return;
+      }
+      if (file.size > maxSize) {
+        toast.error("File size must be less than 2MB");
+        return;
+      }
+      setAvatar(file);
+    }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    console.log("Submitting signup with:", {
+      name,
+      email,
+      hasAvatar: !!avatar,
+    });
     const config = { headers: { "Content-Type": "multipart/form-data" } };
-    // meaning of uper line is that we are creating a new object with the name of config and the value of config is {headers:{'Content-Type':'multipart/form-data'}}
-
     const newForm = new FormData();
-    // meaning of uper line is that we are creating a new form data object and we are sending it to the backend with the name of newForm and the value of newForm is new FormData()
-    newForm.append("file", avatar);
-    // meanin of newForm.append("file",avatar) is that we are sending a file to the backend with the name of file and the value of the file is avatar
+    if (avatar) newForm.append("file", avatar); // Only append if avatar exists
     newForm.append("name", name);
     newForm.append("email", email);
     newForm.append("password", password);
 
-    axios
-      .post(`${server}/user/create-user`, newForm, config)
-      .then((res) => {
-        toast.success(res.data.message);
-        setName("");
-        setEmail("");
-        setPassword("");
-        setAvatar();
-      })
-      .catch((error) => {
-        toast.error(error.response.data.message);
-      });
+    try {
+      const res = await axios.post(
+        `${server}/user/create-user`,
+        newForm,
+        config
+      );
+      console.log("Signup response:", res.data);
+      toast.success(res.data.message);
+      setName("");
+      setEmail("");
+      setPassword("");
+      setAvatar(null);
+      navigate("/login");
+    } catch (error) {
+      console.error("Signup error:", error.response?.data);
+      toast.error(error.response?.data?.message || "Signup Failed");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -59,10 +80,10 @@ const Signup = () => {
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
           <form className="space-y-6" onSubmit={handleSubmit}>
-            {/* Full Name start */}
+            {/* Full Name */}
             <div>
               <label
-                htmlFor="email"
+                htmlFor="name"
                 className="block text-sm font-medium text-gray-700"
               >
                 Full Name
@@ -70,8 +91,8 @@ const Signup = () => {
               <div className="mt-1">
                 <input
                   type="text"
-                  name="text"
-                  autoComplete="text"
+                  name="name"
+                  autoComplete="name"
                   required
                   placeholder="Hoang Viet Duc"
                   value={name}
@@ -80,9 +101,7 @@ const Signup = () => {
                 />
               </div>
             </div>
-            {/* Full Name end */}
-
-            {/* Email address */}
+            {/* Email */}
             <div>
               <label
                 htmlFor="email"
@@ -90,7 +109,7 @@ const Signup = () => {
               >
                 Email Address
               </label>
-              <div className="mt-1 relative">
+              <div className="mt-1">
                 <input
                   type="email"
                   name="email"
@@ -103,8 +122,7 @@ const Signup = () => {
                 />
               </div>
             </div>
-            {/* Email address end */}
-            {/* Password start */}
+            {/* Password */}
             <div>
               <label
                 htmlFor="password"
@@ -116,8 +134,9 @@ const Signup = () => {
                 <input
                   type={visible ? "text" : "password"}
                   name="password"
-                  autoComplete="password"
+                  autoComplete="new-password"
                   required
+                  placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
@@ -137,14 +156,14 @@ const Signup = () => {
                 )}
               </div>
             </div>
-            {/* Password end */}
-
-            {/* Avatar start */}
+            {/* Avatar */}
             <div>
               <label
                 htmlFor="avatar"
                 className="block text-sm font-medium text-gray-700"
-              ></label>
+              >
+                Avatar
+              </label>
               <div className="mt-2 flex items-center">
                 <span className="inline-block h-8 w-8 rounded-full overflow-hidden">
                   {avatar ? (
@@ -157,7 +176,6 @@ const Signup = () => {
                     <RxAvatar className="h-8 w-8" />
                   )}
                 </span>
-                {/* Input file start */}
                 <label
                   htmlFor="file-input"
                   className="ml-5 flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
@@ -172,20 +190,17 @@ const Signup = () => {
                     className="sr-only"
                   />
                 </label>
-                {/* Input file end */}
               </div>
             </div>
-            {/* Avatar end */}
-
             <div>
               <button
                 type="submit"
-                className=' className="group relative w-full h-[40px] flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"'
+                className="group relative w-full h-[40px] flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400"
+                disabled={loading}
               >
-                Submit
+                {loading ? "Submitting..." : "Submit"}
               </button>
             </div>
-
             <div className={`${styles.noramlFlex} w-full`}>
               <h4>Already have an account?</h4>
               <Link to="/login" className="text-blue-600 pl-2">
