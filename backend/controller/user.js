@@ -13,39 +13,59 @@ const { OAuth2Client } = require("google-auth-library");
 
 const router = express.Router();
 
-router.post("/create-user", upload.single("file"), async (req, res, next) => {
-  try {
+router.post(
+  "/create-user",
+  upload.single("file"),
+  catchAsyncErrors(async (req, res, next) => {
     const { name, email, password } = req.body;
-    const userEmail = await User.findOne({ email });
+    console.log("Received signup request:", {
+      name,
+      email,
+      hasFile: !!req.file,
+    });
 
-    if (userEmail) {
-      // if user already exits account is not create and file is deleted
-      const filename = req.file.filename;
-      const filePath = `uploads/${filename}`;
-      fs.unlink(filePath, (err) => {
-        if (err) {
-          console.log(err);
-          res.status(500).json({ message: "Error deleting file" });
-        }
-      });
-
-      return next(new ErrorHandler("User already exits", 400));
+    // Validate required fields
+    if (!name) return next(new ErrorHandler("Name is required", 400));
+    if (!email) return next(new ErrorHandler("Email is required", 400));
+    if (!password) return next(new ErrorHandler("Password is required", 400));
+    if (password.length < 4) {
+      return next(
+        new ErrorHandler("Password must be at least 4 characters", 400)
+      );
     }
 
-    const filename = req.file.filename;
-    const fileUrl = path.join(filename);
+    // Check if email already exists
+    const userEmail = await User.findOne({ email });
+    if (userEmail) {
+      if (req.file) {
+        const filename = req.file.filename;
+        const filePath = `uploads/${filename}`;
+        fs.unlink(filePath, (err) => {
+          if (err) console.error("Error deleting file:", err);
+        });
+      }
+      return next(new ErrorHandler("User already exists", 400));
+    }
+
+    // Handle avatar
+    let fileUrl = "default-avatar.png";
+    if (req.file) {
+      const filename = req.file.filename;
+      fileUrl = path.join(filename);
+    }
 
     const user = {
-      name: name,
-      email: email,
-      password: password,
+      name,
+      email,
+      password,
       avatar: fileUrl,
     };
 
-    // create activation token
+    // Create activation token
     const createActivationToken = (user) => {
-      // why use create activatetoken?
-      // to create a token for the user to activate their account  after they register
+      if (!process.env.ACTIVATION_SECRET) {
+        throw new Error("ACTIVATION_SECRET is not configured");
+      }
       return jwt.sign(user, process.env.ACTIVATION_SECRET, {
         expiresIn: "5m",
       });
@@ -53,11 +73,14 @@ router.post("/create-user", upload.single("file"), async (req, res, next) => {
 
     const activationToken = createActivationToken(user);
 
-    const activationUrl = `http://localhost:3000/activation/${activationToken}`;
+    // Use dynamic domain for activation URL
+    const domain = process.env.FRONTEND_URL || "http://localhost:3000";
+    const activationUrl = `${domain}/activation/${activationToken}`;
 
-    const message = `Hello ${user.name}, please click on the link to activate your account <a href="${activationUrl}" style="text-decoration: underline; color: blue; font-weight: bold;">ACTIVE</a>`;
+    const message = `Hello ${user.name}, please click on the link to activate your account: <a href="${activationUrl}" style="text-decoration: underline; color: blue; font-weight: bold;">ACTIVATE</a>`;
 
-    // send email to user
+    // Send email to user
+    console.log("Sending activation email to:", user.email);
     try {
       await sendMail({
         email: user.email,
@@ -66,46 +89,69 @@ router.post("/create-user", upload.single("file"), async (req, res, next) => {
       });
       res.status(201).json({
         success: true,
-        message: `please check your email:- ${user.email} to activate your account!`,
+        message: `Please check your email (${user.email}) to activate your account!`,
       });
     } catch (err) {
-      return next(new ErrorHandler(err.message, 500));
+      // Clean up uploaded file if email fails
+      if (req.file) {
+        const filename = req.file.filename;
+        const filePath = `uploads/${filename}`;
+        fs.unlink(filePath, (err) => {
+          if (err) console.error("Error deleting file:", err);
+        });
+      }
+      return next(new ErrorHandler("Failed to send activation email", 500));
     }
-  } catch (err) {
-    return next(new ErrorHandler(err.message, 400));
-  }
-});
+  })
+);
 
 // activate user account
 router.post(
   "/activation",
   catchAsyncErrors(async (req, res, next) => {
+    const { activation_token } = req.body;
+    console.log("Received activation request:", { activation_token });
+
+    if (!activation_token) {
+      return next(new ErrorHandler("Activation token is required", 400));
+    }
+
     try {
-      const { activation_token } = req.body;
+      if (!process.env.ACTIVATION_SECRET) {
+        throw new Error("ACTIVATION_SECRET is not configured");
+      }
 
       const newUser = jwt.verify(
         activation_token,
         process.env.ACTIVATION_SECRET
       );
-      if (!newUser) {
-        return next(new ErrorHandler("Invalid token", 400));
-      }
+      console.log("Decoded token:", newUser);
+
       const { name, email, password, avatar } = newUser;
 
-      let user = await User.findOne({ email });
-
-      if (user) {
+      // Check if user already exists
+      const existingUser = await User.findOne({ email });
+      if (existingUser) {
         return next(new ErrorHandler("User already exists", 400));
       }
-      user = await User.create({
+
+      // Create user
+      console.log("Creating user:", email);
+      const user = await User.create({
         name,
         email,
-        avatar,
-        password,
+        password: password || undefined, // Handle undefined password
+        avatar: avatar || "default-avatar.png", // Default avatar
       });
+
+      console.log("User created:", user.email);
       sendToken(user, 201, res);
-    } catch (error) {
-      return next(new ErrorHandler(error.message, 500));
+    } catch (err) {
+      console.error("Activation error:", err);
+      if (err.name === "TokenExpiredError") {
+        return next(new ErrorHandler("Activation token has expired", 400));
+      }
+      return next(new ErrorHandler("Invalid activation token", 400));
     }
   })
 );
@@ -146,24 +192,24 @@ router.post(
   "/auth/google",
   catchAsyncErrors(async (req, res, next) => {
     try {
-      const client = new OAuth2Client(process.env.CLIENT_ID);
-
+      const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
       const { id_token } = req.body;
 
       if (!id_token) {
+        console.error("No ID token provided");
         return next(new ErrorHandler("ID token is required", 400));
       }
 
-      // Verify Google ID token
       const ticket = await client.verifyIdToken({
         idToken: id_token,
-        audience: process.env.CLIENT_ID,
+        audience: process.env.GOOGLE_CLIENT_ID,
       });
 
       const payload = ticket.getPayload();
       const googleId = payload["sub"];
       const email = payload["email"];
       const name = payload["name"];
+      const picture = payload["picture"]; // Google profile picture
 
       // Check if user exists, or create a new one
       let user = await User.findOne({ googleId });
@@ -173,22 +219,26 @@ router.post(
         if (user) {
           // Link Google ID to existing user
           user.googleId = googleId;
+          if (picture) user.avatar = picture; // Update avatar if available
           await user.save();
         } else {
           // Create new user
+          console.log("Creating new user:", email);
           user = await User.create({
             googleId,
             email,
             name,
-            // Password is not required for Google login
+            avatar: picture || "default-avatar.png", // Default avatar if none provided
           });
         }
       }
 
-      // Send token (same as login-user)
       sendToken(user, 201, res);
     } catch (error) {
-      return next(new ErrorHandler("Google authentication failed", 400));
+      console.error("Google authentication error:", error);
+      return next(
+        new ErrorHandler("Google authentication failed: " + error.message, 400)
+      );
     }
   })
 );
