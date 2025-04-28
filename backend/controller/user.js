@@ -9,6 +9,7 @@ const sendMail = require("../utils/sendMail");
 const catchAsyncErrors = require("../middleware/catchAsyncErrors");
 const sendToken = require("../utils/jwtToken");
 const { isAuthenticated, isAdmin } = require("../middleware/auth");
+const { OAuth2Client } = require("google-auth-library");
 
 const router = express.Router();
 
@@ -41,6 +42,15 @@ router.post("/create-user", upload.single("file"), async (req, res, next) => {
       avatar: fileUrl,
     };
 
+    // create activation token
+    const createActivationToken = (user) => {
+      // why use create activatetoken?
+      // to create a token for the user to activate their account  after they register
+      return jwt.sign(user, process.env.ACTIVATION_SECRET, {
+        expiresIn: "5m",
+      });
+    };
+
     const activationToken = createActivationToken(user);
 
     const activationUrl = `http://localhost:3000/activation/${activationToken}`;
@@ -65,15 +75,6 @@ router.post("/create-user", upload.single("file"), async (req, res, next) => {
     return next(new ErrorHandler(err.message, 400));
   }
 });
-
-// create activation token
-const createActivationToken = (user) => {
-  // why use create activatetoken?
-  // to create a token for the user to activate their account  after they register
-  return jwt.sign(user, process.env.ACTIVATION_SECRET, {
-    expiresIn: "5m",
-  });
-};
 
 // activate user account
 router.post(
@@ -137,6 +138,57 @@ router.post(
       sendToken(user, 201, res);
     } catch (error) {
       return next(new ErrorHandler(error.message, 500));
+    }
+  })
+);
+
+router.post(
+  "/auth/google",
+  catchAsyncErrors(async (req, res, next) => {
+    try {
+      const client = new OAuth2Client(process.env.CLIENT_ID);
+
+      const { id_token } = req.body;
+
+      if (!id_token) {
+        return next(new ErrorHandler("ID token is required", 400));
+      }
+
+      // Verify Google ID token
+      const ticket = await client.verifyIdToken({
+        idToken: id_token,
+        audience: process.env.CLIENT_ID,
+      });
+
+      const payload = ticket.getPayload();
+      const googleId = payload["sub"];
+      const email = payload["email"];
+      const name = payload["name"];
+
+      // Check if user exists, or create a new one
+      let user = await User.findOne({ googleId });
+
+      if (!user) {
+        user = await User.findOne({ email });
+        if (user) {
+          // Link Google ID to existing user
+          user.googleId = googleId;
+          await user.save();
+        } else {
+          // Create new user
+          user = await User.create({
+            googleId,
+            email,
+            name,
+            // Password is not required for Google login
+          });
+        }
+      }
+
+      // Send token (same as login-user)
+      sendToken(user, 201, res);
+    } catch (error) {
+      return next(new ErrorHandler("Google authentication failed", 400));
     }
   })
 );
