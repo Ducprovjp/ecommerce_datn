@@ -42,7 +42,7 @@ const ShipperDashboardHeader = () => {
           </Link>
           <Link to={`/shipper/${shipper._id}`}>
             <img
-              src={`${backend_url}${shipper.avatar}`}
+              src={shipper.avatar}
               alt="Shipper Avatar"
               className="w-[50px] h-[50px] rounded-full object-cover"
             />

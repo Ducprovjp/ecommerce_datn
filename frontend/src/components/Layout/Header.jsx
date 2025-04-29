@@ -109,7 +109,7 @@ const Header = ({ activeHeading }) => {
                       className="group w-full flex items-center py-3 hover:bg-slate-100 hover:border-[#3957db] hover:border-[1px] transition-all duration-300 ease-in-out rounded-lg"
                     >
                       <img
-                        src={`${backend_url}${i.images[0]}`}
+                        src={i.images[0]}
                         alt="img"
                         className="w-[40px] h-[40px] mr-[10px] transition-transform duration-300 ease-in-out"
                       />
@@ -343,7 +343,7 @@ const Header = ({ activeHeading }) => {
                       <Link to={`/product/${i._id}`}>
                         <div className="flex items-center">
                           <img
-                            src={`${backend_url}${i.images[0]}`}
+                            src={i.images[0]}
                             alt="img"
                             className="w-[50px] mr-2"
                           />
@@ -383,7 +383,7 @@ const Header = ({ activeHeading }) => {
                 <div>
                   <Link to="/profile">
                     <img
-                      src={`${backend_url}${user.avatar}`}
+                      src={user.avatar}
                       alt="Profile img"
                       className="w-[60px] h-[60px] rounded-full border-[3px] border-[#0eae88]"
                     />
