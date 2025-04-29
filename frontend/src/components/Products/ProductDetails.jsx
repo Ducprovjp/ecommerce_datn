@@ -229,7 +229,7 @@ const ProductDetails = ({ data }) => {
                 <div className="flex items-center pt-8">
                   <Link to={`/shop/preview/${data?.shop._id}`}>
                     <img
-                      src={`${backend_url}${data?.shop?.avatar}`}
+                      src={data?.shop?.avatar}
                       alt={`${data.shop.name} avatar`}
                       className="w-[50px] h-[50px] rounded-full mr-2"
                     />
@@ -379,7 +379,7 @@ const ProductDetailsInfo = ({
                 <Link to={`/shop/preview/${data.shop._id}`}>
                   <div className="flex items-center">
                     <img
-                      src={`${backend_url}${data?.shop?.avatar}`}
+                      src={data?.shop?.avatar}
                       className="w-[50px] h-[50px] rounded-full"
                       alt=""
                     />

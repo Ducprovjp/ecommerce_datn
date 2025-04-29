@@ -43,6 +43,10 @@ app.get("/test", (req, res) => {
   res.send("Hello World!");
 });
 
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "ok" });
+});
+
 app.use(bodyParser.urlencoded({ extended: true, limit: "50mb" }));
 
 // why bodyparser?
