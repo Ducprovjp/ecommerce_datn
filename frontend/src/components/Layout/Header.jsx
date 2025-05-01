@@ -79,14 +79,22 @@ const Header = ({ activeHeading }) => {
     <>
       <div className={`${styles.section}`}>
         <div className="hidden 800px:h-[50px] 800px:my-[20px] 800px:flex items-center justify-between ">
-          <div>
+          <div className="relative w-40 h-20 rounded-2xl overflow-hidden">
             <Link to="/">
               <img
-                src="https://shopo.quomodothemes.website/assets/images/logo.svg"
+                className="w-full h-full object-cover rounded-2xl"
+                src="https://blog.logrocket.com/wp-content/uploads/2023/03/How-NestJS-middleware-works.png"
                 alt=""
+                style={{
+                  WebkitMaskImage:
+                    "radial-gradient(circle at center, rgba(0,0,0,1) 40%, rgba(0,0,0,0.2) 70%, rgba(0,0,0,0) 100%)",
+                  WebkitMaskRepeat: "no-repeat",
+                  WebkitMaskSize: "cover",
+                }}
               />
             </Link>
           </div>
+
           {/*Search box  */}
           <div className="w-[50%] relative" ref={searchRef}>
             <input
