@@ -1,6 +1,7 @@
 const express = require("express");
 const path = require("path");
 const User = require("../model/user");
+const cloudinary = require("../cloudinary");
 const { upload } = require("../multer");
 const ErrorHandler = require("../utils/ErrorHandler");
 const fs = require("fs");
@@ -336,28 +337,50 @@ router.put(
   upload.single("image"),
   catchAsyncErrors(async (req, res, next) => {
     try {
-      const existsUser = await User.findById(req.user.id);
+      console.log("Update avatar request received for user:", req.user?.id);
+      const user = await User.findById(req.user.id);
+      if (!user) {
+        console.log("User not found:", req.user.id);
+        return next(new ErrorHandler("User not found", 404));
+      }
 
-      const existAvatarPath = `uploads/${existsUser.avatar}`;
+      if (!req.file) {
+        console.log("No image provided in request");
+        return next(new ErrorHandler("No image provided", 400));
+      }
 
-      fs.unlinkSync(existAvatarPath); // Delete Priviuse Image
+      console.log("Cloudinary file details:", req.file);
 
-      const fileUrl = path.join(req.file.filename); // new image
+      if (user.avatar && user.avatar !== "default-avatar.png") {
+        try {
+          const publicId = user.avatar.split("/").pop().split(".")[0];
+          await cloudinary.uploader.destroy(`avatars/${publicId}`);
+          console.log("Deleted old avatar from Cloudinary:", publicId);
+        } catch (err) {
+          console.error("Error deleting old avatar from Cloudinary:", err);
+        }
+      }
 
-      /* The code `const user = await User.findByIdAndUpdate(req.user.id, { avatar: fileUrl });` is
-        updating the avatar field of the user with the specified `req.user.id`. It uses the
-        `User.findByIdAndUpdate()` method to find the user by their id and update the avatar field
-        with the new `fileUrl` value. The updated user object is then stored in the `user` variable. */
-      const user = await User.findByIdAndUpdate(req.user.id, {
-        avatar: fileUrl,
-      });
+      const fileUrl = req.file.path;
+      console.log("New avatar uploaded to Cloudinary:", fileUrl);
+
+      const updatedUser = await User.findByIdAndUpdate(
+        req.user.id,
+        { avatar: fileUrl },
+        { new: true }
+      );
+
+      console.log("Avatar updated for user:", updatedUser.email);
 
       res.status(200).json({
         success: true,
-        user,
+        user: updatedUser,
       });
     } catch (error) {
-      return next(new ErrorHandler(error.message, 500));
+      console.error("Update avatar error:", error);
+      return next(
+        new ErrorHandler(error.message || "Failed to update avatar", 500)
+      );
     }
   })
 );

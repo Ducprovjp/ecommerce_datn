@@ -13,8 +13,7 @@ import {
 } from "react-icons/ai";
 import { TfiGallery } from "react-icons/tfi";
 import styles from "../../styles/styles";
-const ENDPOINT = "http://localhost:4000/";
-const socketId = socketIO(ENDPOINT, { transports: ["websocket"] });
+const socketId = socketIO(process.env.ENDPOINT, { transports: ["websocket"] });
 
 const UserInbox = () => {
   const { user } = useSelector((state) => state.user);
