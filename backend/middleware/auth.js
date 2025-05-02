@@ -8,21 +8,15 @@ const Shipper = require("../model/shipper");
 // Check if user is authenticated or not
 exports.isAuthenticated = catchAsyncErrors(async (req, res, next) => {
   const { token } = req.cookies;
-  console.log("Token received:", token);
   if (!token) {
-    console.log("No token provided");
     return next(new ErrorHandler("Please login to continue", 401));
   }
   const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
-  console.log("Decoded token:", decoded);
+
   req.user = await User.findById(decoded.id);
-  if (!req.user) {
-    console.log("User not found:", decoded.id);
-    return next(new ErrorHandler("User not found", 401));
-  }
-  console.log("Authenticated user:", req.user.id);
   next();
 });
+
 exports.isSeller = catchAsyncErrors(async (req, res, next) => {
   const { seller_token } = req.cookies;
   if (!seller_token) {

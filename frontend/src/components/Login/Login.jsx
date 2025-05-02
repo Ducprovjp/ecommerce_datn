@@ -37,7 +37,7 @@ const Login = () => {
   const handleGoogleSignIn = async (response) => {
     console.log("Google Sign-In response:", response);
     try {
-      const res = await axios.post(
+      await axios.post(
         `${server}/user/auth/google`,
         { id_token: response.credential },
         { withCredentials: true }

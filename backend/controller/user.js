@@ -189,6 +189,7 @@ router.post(
   })
 );
 
+//login with google
 router.post(
   "/auth/google",
   catchAsyncErrors(async (req, res, next) => {

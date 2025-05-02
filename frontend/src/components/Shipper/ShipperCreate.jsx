@@ -184,7 +184,7 @@ const ShipperCreate = () => {
               </button>
             </div>
 
-            <div className={`${styles.normalFlex} w-full`}>
+            <div className={`${styles.normalFlex} w-full flex`}>
               <h4>Already have an account?</h4>
               <Link to="/shipper-login" className="text-blue-600 pl-2">
                 Sign In

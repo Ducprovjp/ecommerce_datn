@@ -14,7 +14,7 @@ const Events = () => {
             <h1>Popular Events</h1>
           </div>
 
-          <div className="w-full grid">
+          <div className={`${styles.section} w-full grid`}>
             {allEvents.length !== 0 && (
               <EventCard data={allEvents && allEvents[0]} />
             )}

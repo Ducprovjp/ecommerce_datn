@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import styles from "../../styles/styles";
 import { Link, useNavigate } from "react-router-dom";
@@ -32,6 +32,51 @@ const ShipperLogin = () => {
         toast.error(err.response.data.message);
       });
   };
+
+  const handleGoogleSignIn = async (response) => {
+    console.log("Google Sign-In response:", response);
+    try {
+      await axios.post(
+        `${server}/shipper/auth/google`,
+        { id_token: response.credential },
+        { withCredentials: true }
+      );
+      toast.success("Google Login Success!");
+      navigate("/shipper-dashboard");
+      window.location.reload(true);
+    } catch (err) {
+      console.error("Google login error:", err.response?.data);
+      toast.error(err.response?.data?.message || "Google Login Failed");
+    }
+  };
+
+  useEffect(() => {
+    const initializeGoogleSignIn = () => {
+      if (window.google?.accounts?.id) {
+        window.google.accounts.id.initialize({
+          client_id: process.env.REACT_APP_GOOGLE_CLIENT_ID,
+          callback: handleGoogleSignIn,
+        });
+        const buttonDiv = document.getElementById("googleSignInButton");
+        if (buttonDiv) {
+          window.google.accounts.id.renderButton(buttonDiv, {
+            theme: "outline",
+            size: "large",
+            text: "sign_in_with",
+            shape: "rectangular",
+            logo_alignment: "left",
+          });
+        } else {
+          console.error("Google Sign-In button div not found");
+        }
+      } else {
+        console.log("Google SDK not ready, retrying...");
+        setTimeout(initializeGoogleSignIn, 100);
+      }
+    };
+
+    initializeGoogleSignIn();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
@@ -131,6 +176,15 @@ const ShipperLogin = () => {
               >
                 Submit
               </button>
+            </div>
+
+            {/* Google Sign-In Button */}
+            <div className="w-full mt-4">
+              <div
+                id="googleSignInButton"
+                className="flex justify-center"
+                style={{ minHeight: "40px" }}
+              ></div>
             </div>
 
             {/* Sign Up Link */}

@@ -8,6 +8,7 @@ const Shop = require("../model/shop");
 const { upload } = require("../multer");
 const ErrorHandler = require("../utils/ErrorHandler");
 const fs = require("fs");
+const cloudinary = require("../cloudinary");
 
 // upload image
 router.post(
@@ -40,7 +41,12 @@ router.post(
       }
 
       const files = req.files;
-      const imageUrls = files.map((file) => file.path); // dùng .path để lấy URL trên cloudinary
+      if (!files || files.length === 0) {
+        return next(new ErrorHandler("No images uploaded!", 400));
+      }
+
+      // Lấy URL ảnh từ Multer (đã upload lên Cloudinary)
+      const imageUrls = files.map((file) => file.path);
 
       const productData = req.body;
       productData.images = imageUrls;
@@ -53,7 +59,7 @@ router.post(
         product,
       });
     } catch (error) {
-      return next(new ErrorHandler(error, 400));
+      return next(new ErrorHandler(error.message, 400));
     }
   })
 );
@@ -90,7 +96,6 @@ router.post(
 // update product
 router.put(
   "/update-product/:id",
-  isSeller,
   upload.array("images"),
   catchAsyncErrors(async (req, res, next) => {
     try {

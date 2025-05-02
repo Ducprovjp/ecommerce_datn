@@ -7,9 +7,11 @@ const sendMail = require("../utils/sendMail");
 const Shop = require("../model/shop");
 const { isAuthenticated, isSeller, isAdmin } = require("../middleware/auth");
 const { upload } = require("../multer");
+const cloudinary = require("../cloudinary");
 const catchAsyncErrors = require("../middleware/catchAsyncErrors");
 const ErrorHandler = require("../utils/ErrorHandler");
 const sendShopToken = require("../utils/shopToken");
+const { OAuth2Client } = require("google-auth-library");
 
 // create shop
 router.post("/create-shop", upload.single("file"), async (req, res, next) => {
@@ -144,6 +146,62 @@ router.post(
   })
 );
 
+// login with google
+router.post(
+  "/auth/google",
+  catchAsyncErrors(async (req, res, next) => {
+    try {
+      const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+      const { id_token } = req.body;
+
+      if (!id_token) {
+        console.error("No ID token provided");
+        return next(new ErrorHandler("ID token is required", 400));
+      }
+
+      const ticket = await client.verifyIdToken({
+        idToken: id_token,
+        audience: process.env.GOOGLE_CLIENT_ID,
+      });
+
+      const payload = ticket.getPayload();
+      const googleId = payload["sub"];
+      const email = payload["email"];
+      const name = payload["name"];
+      const picture = payload["picture"]; // Google profile picture
+
+      // Check if seller exists, or create a new one
+      let seller = await Shop.findOne({ googleId });
+
+      if (!seller) {
+        seller = await Shop.findOne({ email });
+        if (seller) {
+          // Link Google ID to existing seller
+          seller.googleId = googleId;
+          if (picture) seller.avatar = picture; // Update avatar if available
+          await seller.save();
+        } else {
+          // Create new seller
+          console.log("Creating new seller:", email);
+          seller = await seller.create({
+            googleId,
+            email,
+            name,
+            avatar: picture || "default-avatar.png", // Default avatar if none provided
+          });
+        }
+      }
+
+      sendShopToken(seller, 201, res);
+    } catch (error) {
+      console.error("Google authentication error:", error);
+      return next(
+        new ErrorHandler("Google authentication failed: " + error.message, 400)
+      );
+    }
+  })
+);
+
 // load shop
 router.get(
   "/getSeller",
@@ -206,29 +264,55 @@ router.get(
 
 // update shop profile picture
 router.put(
-  "/update-shop-avatar",
+  "/update-avatar",
   isSeller,
   upload.single("image"),
   catchAsyncErrors(async (req, res, next) => {
     try {
-      const existsUser = await Shop.findById(req.seller._id);
+      console.log("Update avatar request received for seller:", req.seller?.id);
+      const seller = await Shop.findById(req.seller.id);
+      if (!seller) {
+        console.log("Seller not found:", req.seller.id);
+        return next(new ErrorHandler("Seller not found", 404));
+      }
 
-      const existAvatarPath = `uploads/${existsUser.avatar}`;
+      if (!req.file) {
+        console.log("No image provided in request");
+        return next(new ErrorHandler("No image provided", 400));
+      }
 
-      fs.unlinkSync(existAvatarPath);
+      console.log("Cloudinary file details:", req.file);
 
-      const fileUrl = path.join(req.file.filename);
+      if (seller.avatar && seller.avatar !== "default-avatar.png") {
+        try {
+          const publicId = seller.avatar.split("/").pop().split(".")[0];
+          await cloudinary.uploader.destroy(`avatars/${publicId}`);
+          console.log("Deleted old avatar from Cloudinary:", publicId);
+        } catch (err) {
+          console.error("Error deleting old avatar from Cloudinary:", err);
+        }
+      }
 
-      const seller = await Shop.findByIdAndUpdate(req.seller._id, {
-        avatar: fileUrl,
-      });
+      const fileUrl = req.file.path;
+      console.log("New avatar uploaded to Cloudinary:", fileUrl);
+
+      const updatedSeller = await Shop.findByIdAndUpdate(
+        req.seller.id,
+        { avatar: fileUrl },
+        { new: true }
+      );
+
+      console.log("Avatar updated for seller:", updatedSeller.email);
 
       res.status(200).json({
         success: true,
-        seller,
+        seller: updatedSeller,
       });
     } catch (error) {
-      return next(new ErrorHandler(error.message, 500));
+      console.error("Update avatar error:", error);
+      return next(
+        new ErrorHandler(error.message || "Failed to update avatar", 500)
+      );
     }
   })
 );
