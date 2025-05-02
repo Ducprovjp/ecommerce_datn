@@ -77,11 +77,7 @@ const ShipperSettings = () => {
         <div className="w-full flex items-center justify-center">
           <div className="relative">
             <img
-              src={
-                avatar
-                  ? URL.createObjectURL(avatar)
-                  : `${backend_url}/${shipper.avatar}`
-              }
+              src={avatar ? URL.createObjectURL(avatar) : shipper.avatar}
               alt=""
               className="w-[200px] h-[200px] rounded-full cursor-pointer"
             />
