@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { backend_url, server } from "../../server";
 import { AiOutlineCamera } from "react-icons/ai";
 import styles from "../../styles/styles";
 import axios from "axios";
@@ -32,7 +31,7 @@ const ShipperSettings = () => {
     formData.append("image", e.target.files[0]);
 
     await axios
-      .put(`${server}/shipper/update-shipper-avatar`, formData, {
+      .put(`${process.env.REACT_APP_SERVER}/shipper/update-shipper-avatar`, formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
@@ -52,7 +51,7 @@ const ShipperSettings = () => {
 
     await axios
       .put(
-        `${server}/shipper/update-shipper-info`,
+        `${process.env.REACT_APP_SERVER}/shipper/update-shipper-info`,
         {
           name,
           address,

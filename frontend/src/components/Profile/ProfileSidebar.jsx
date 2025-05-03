@@ -10,7 +10,6 @@ import {
 } from "react-icons/md";
 import { TbAddressBook } from "react-icons/tb";
 import axios from "axios";
-import { server } from "../../server";
 import { toast } from "react-toastify";
 import { useSelector } from "react-redux";
 
@@ -20,7 +19,7 @@ const ProfileSidebar = ({ active, setActive }) => {
 
   const logoutHandler = () => {
     axios
-      .get(`${server}/user/logout`, { withCredentials: true })
+      .get(`${process.env.REACT_APP_SERVER}/user/logout`, { withCredentials: true })
       .then((res) => {
         toast.success(res.data.message);
         window.location.reload(true);

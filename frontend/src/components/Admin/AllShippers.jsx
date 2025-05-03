@@ -6,7 +6,6 @@ import { Button } from "@material-ui/core";
 import styles from "../../styles/styles";
 import { RxCross1 } from "react-icons/rx";
 import axios from "axios";
-import { server } from "../../server";
 import { toast } from "react-toastify";
 import { getAllShippers } from "../../redux/actions/shippers";
 import { Link } from "react-router-dom";
@@ -23,7 +22,7 @@ const AllShippers = () => {
 
   const handleDelete = async (id) => {
     await axios
-      .delete(`${server}/shipper/delete-shipper/${id}`, {
+      .delete(`${process.env.REACT_APP_SERVER}/shipper/delete-shipper/${id}`, {
         withCredentials: true,
       })
       .then((res) => {

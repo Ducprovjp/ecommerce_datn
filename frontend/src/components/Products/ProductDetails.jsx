@@ -9,7 +9,6 @@ import {
 } from "react-icons/ai";
 import { useDispatch, useSelector } from "react-redux";
 import { getAllProductsShop } from "../../redux/actions/product";
-import { backend_url, server } from "../../server";
 import {
   addToWishlist,
   removeFromWishlist,
@@ -101,7 +100,7 @@ const ProductDetails = ({ data }) => {
       const userId = user._id;
       const sellerId = data.shop._id;
       await axios
-        .post(`${server}/conversation/create-new-conversation`, {
+        .post(`${process.env.REACT_APP_SERVER}/conversation/create-new-conversation`, {
           groupTitle,
           userId,
           sellerId,
@@ -349,7 +348,7 @@ const ProductDetailsInfo = ({
             data.reviews.map((item, index) => (
               <div className="w-full flex my-2">
                 <img
-                  src={`${backend_url}/${item.user.avatar}`}
+                  src={`${process.env.REACT_APP_BACKEND_URL}/${item.user.avatar}`}
                   alt=""
                   className="w-[50px] h-[50px] rounded-full"
                 />

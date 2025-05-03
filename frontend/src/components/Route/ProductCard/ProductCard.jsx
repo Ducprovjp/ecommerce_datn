@@ -3,13 +3,10 @@ import { Link } from "react-router-dom";
 import styles from "../../../styles/styles";
 import {
   AiFillHeart,
-  AiFillStar,
   AiOutlineEye,
   AiOutlineHeart,
   AiOutlineShoppingCart,
-  AiOutlineStar,
 } from "react-icons/ai";
-import { backend_url } from "../../../server";
 import ProductDetailsCard from "../ProductDetailsCard/ProductDetailsCard.jsx";
 import { useDispatch, useSelector } from "react-redux";
 import {

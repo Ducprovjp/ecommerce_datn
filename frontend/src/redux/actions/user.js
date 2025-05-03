@@ -1,5 +1,4 @@
 import axios from "axios";
-import { server } from "../../server";
 
 // load user
 export const loadUser = () => async (dispatch) => {
@@ -7,7 +6,7 @@ export const loadUser = () => async (dispatch) => {
     dispatch({
       type: "LoadUserRequest",
     });
-    const { data } = await axios.get(`${server}/user/getuser`, {
+    const { data } = await axios.get(`${process.env.REACT_APP_SERVER}/user/getuser`, {
       withCredentials: true,
     });
     dispatch({
@@ -28,7 +27,7 @@ export const loadSeller = () => async (dispatch) => {
     dispatch({
       type: "LoadSellerRequest",
     });
-    const { data } = await axios.get(`${server}/shop/getSeller`, {
+    const { data } = await axios.get(`${process.env.REACT_APP_SERVER}/shop/getSeller`, {
       withCredentials: true,
     });
     dispatch({
@@ -49,7 +48,7 @@ export const loadShipper = () => async (dispatch) => {
     dispatch({
       type: "LoadShipperRequest",
     });
-    const { data } = await axios.get(`${server}/shipper/getShipper`, {
+    const { data } = await axios.get(`${process.env.REACT_APP_SERVER}/shipper/getShipper`, {
       withCredentials: true,
     });
     dispatch({
@@ -73,7 +72,7 @@ export const updateUserInformation =
       });
 
       const { data } = await axios.put(
-        `${server}/user/update-user-info`,
+        `${process.env.REACT_APP_SERVER}/user/update-user-info`,
         {
           name,
           email,
@@ -105,7 +104,7 @@ export const updateUserAddress =
       });
 
       const { data } = await axios.put(
-        `${server}/user/update-user-addresses`,
+        `${process.env.REACT_APP_SERVER}/user/update-user-addresses`,
         {
           province,
           district,
@@ -139,7 +138,7 @@ export const deleteUserAddress = (id) => async (dispatch) => {
     });
 
     const { data } = await axios.delete(
-      `${server}/user/delete-user-address/${id}`,
+      `${process.env.REACT_APP_SERVER}/user/delete-user-address/${id}`,
       { withCredentials: true }
     );
 
@@ -165,7 +164,7 @@ export const getAllUsers = () => async (dispatch) => {
       type: "getAllUsersRequest",
     });
 
-    const { data } = await axios.get(`${server}/user/admin-all-users`, {
+    const { data } = await axios.get(`${process.env.REACT_APP_SERVER}/user/admin-all-users`, {
       withCredentials: true,
     });
 

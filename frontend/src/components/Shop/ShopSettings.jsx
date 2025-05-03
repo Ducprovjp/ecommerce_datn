@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { backend_url, server } from "../../server";
 import { AiOutlineCamera } from "react-icons/ai";
 import styles from "../../styles/styles";
 import axios from "axios";
@@ -31,7 +30,7 @@ const ShopSettings = () => {
     formData.append("image", e.target.files[0]);
 
     await axios
-      .put(`${server}/shop/update-shop-avatar`, formData, {
+      .put(`${process.env.REACT_APP_SERVER}/shop/update-shop-avatar`, formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
@@ -51,7 +50,7 @@ const ShopSettings = () => {
 
     await axios
       .put(
-        `${server}/shop/update-seller-info`,
+        `${process.env.REACT_APP_SERVER}/shop/update-seller-info`,
         {
           name,
           address,

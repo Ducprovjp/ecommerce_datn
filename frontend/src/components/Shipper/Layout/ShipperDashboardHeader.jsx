@@ -4,7 +4,6 @@ import { BiMessageSquareDetail } from "react-icons/bi";
 import { TbTruckDelivery } from "react-icons/tb";
 import { useSelector } from "react-redux";
 import { Link } from "react-router-dom";
-import { backend_url } from "../../../server";
 
 const ShipperDashboardHeader = () => {
   const { shipper } = useSelector((state) => state.shipper);

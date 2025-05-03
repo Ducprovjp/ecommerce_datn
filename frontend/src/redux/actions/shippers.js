@@ -1,5 +1,4 @@
 import axios from "axios";
-import { server } from "../../server";
 
 // get all shippers --- admin
 export const getAllShippers = () => async (dispatch) => {
@@ -8,7 +7,7 @@ export const getAllShippers = () => async (dispatch) => {
       type: "getAllShippersRequest",
     });
 
-    const { data } = await axios.get(`${server}/shipper/admin-all-shippers`, {
+    const { data } = await axios.get(`${process.env.REACT_APP_SERVER}/shipper/admin-all-shippers`, {
       withCredentials: true,
     });
 
@@ -33,7 +32,7 @@ export const updateShipperDeliveredArea =
       });
 
       const { data } = await axios.post(
-        `${server}/shipper/update-shipper-delivered-area`,
+        `${process.env.REACT_APP_SERVER}/shipper/update-shipper-delivered-area`,
         {
           province,
           district,
@@ -65,7 +64,7 @@ export const deleteShipperDeliveredArea = (id) => async (dispatch) => {
     });
 
     const { data } = await axios.delete(
-      `${server}/shipper/delete-shipper-delivered-area/${id}`,
+      `${process.env.REACT_APP_SERVER}/shipper/delete-shipper-delivered-area/${id}`,
       { withCredentials: true }
     );
 

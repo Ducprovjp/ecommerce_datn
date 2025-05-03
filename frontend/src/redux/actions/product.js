@@ -1,5 +1,4 @@
 import axios from "axios";
-import { server } from "../../server";
 
 // create product
 export const createProduct = (newForm) => async (dispatch) => {
@@ -11,7 +10,7 @@ export const createProduct = (newForm) => async (dispatch) => {
     const config = { headers: { "Content-Type": "multipart/form-data" } };
 
     const { data } = await axios.post(
-      `${server}/product/create-product`,
+      `${process.env.REACT_APP_SERVER}/product/create-product`,
       newForm,
       config
     );
@@ -40,7 +39,7 @@ export const updateProduct = (id, updatedFormData) => async (dispatch) => {
     };
 
     const { data } = await axios.put(
-      `${server}/product/update-product/${id}`,
+      `${process.env.REACT_APP_SERVER}/product/update-product/${id}`,
       updatedFormData,
       config
     );
@@ -65,7 +64,7 @@ export const getAllProductsShop = (id) => async (dispatch) => {
     });
 
     const { data } = await axios.get(
-      `${server}/product/get-all-products-shop/${id}`
+      `${process.env.REACT_APP_SERVER}/product/get-all-products-shop/${id}`
     );
     dispatch({
       type: "getAllProductsShopSuccess",
@@ -87,7 +86,7 @@ export const deleteProduct = (id) => async (dispatch) => {
     });
 
     const { data } = await axios.delete(
-      `${server}/product/delete-shop-product/${id}`,
+      `${process.env.REACT_APP_SERVER}/product/delete-shop-product/${id}`,
       {
         withCredentials: true,
       }
@@ -112,7 +111,7 @@ export const getAllProducts = () => async (dispatch) => {
       type: "getAllProductsRequest",
     });
 
-    const { data } = await axios.get(`${server}/product/get-all-products`);
+    const { data } = await axios.get(`${process.env.REACT_APP_SERVER}/product/get-all-products`);
     dispatch({
       type: "getAllProductsSuccess",
       payload: data.products,

@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { useSearchParams } from "react-router-dom";
 import axios from "axios";
-import { server } from "../../server";
 import Footer from "../../components/Layout/Footer";
 import Header from "../../components/Layout/Header";
 import Loader from "../../components/Layout/Loader";
@@ -57,7 +56,7 @@ const ProductsPage = () => {
         }
         if (sortOption) params.sort = sortOption;
 
-        const response = await axios.get(`${server}/product/get-all-products`, {
+        const response = await axios.get(`${process.env.REACT_APP_SERVER}/product/get-all-products`, {
           params,
           withCredentials: true,
         });
@@ -128,7 +127,7 @@ const ProductsPage = () => {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await axios.get(`${server}/product/get-all-products`, {
+        const response = await axios.get(`${process.env.REACT_APP_SERVER}/product/get-all-products`, {
           withCredentials: true,
         });
         const uniqueCategories = [

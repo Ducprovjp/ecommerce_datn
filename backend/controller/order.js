@@ -313,9 +313,9 @@ router.put(
       }
 
       if (req.body.status === "Transferred to delivery partner") {
-        for (const o of order.cart) {
-          await updateOrder(o._id, o.qty);
-        }
+        // for (const o of order.cart) {
+        //   await updateOrder(o._id, o.qty);
+        // }
 
         // Tìm shipper phù hợp dựa trên ward
         const shipper = await Shipper.findOne({
@@ -347,12 +347,12 @@ router.put(
         order,
       });
 
-      async function updateOrder(id, qty) {
-        const product = await Product.findById(id);
-        product.stock -= qty;
-        product.sold_out += qty;
-        await product.save({ validateBeforeSave: false });
-      }
+      // async function updateOrder(id, qty) {
+      //   const product = await Product.findById(id);
+      //   product.stock -= qty;
+      //   product.sold_out += qty;
+      //   await product.save({ validateBeforeSave: false });
+      // }
 
       async function updateSellerInfo(amount) {
         const seller = await Shop.findById(req.seller.id);

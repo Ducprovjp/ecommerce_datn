@@ -4,7 +4,6 @@ import { BsFillBagFill } from "react-icons/bs";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import axios from "axios";
-import { backend_url, server } from "../server";
 import { RxCross1 } from "react-icons/rx";
 import { getAllOrdersOfUser } from "../redux/actions/order";
 import { useDispatch, useSelector } from "react-redux";
@@ -40,7 +39,7 @@ const UserOrderDetails = () => {
           : "/event/create-new-review-event";
 
       const res = await axios.put(
-        `${server}${endpoint}`,
+        `${process.env.REACT_APP_SERVER}${endpoint}`,
         {
           user,
           rating,
@@ -72,7 +71,7 @@ const UserOrderDetails = () => {
   // Refund
   const refundHandler = async () => {
     await axios
-      .put(`${server}/order/order-refund/${id}`, {
+      .put(`${process.env.REACT_APP_SERVER}/order/order-refund/${id}`, {
         status: "Processing refund",
       })
       .then((res) => {
@@ -117,7 +116,7 @@ const UserOrderDetails = () => {
           return (
             <div className="w-full flex items-start mb-5">
               <img
-                src={`${backend_url}/${item.images[0]}`}
+                src={`${process.env.REACT_APP_BACKEND_URL}/${item.images[0]}`}
                 alt="Product item order img"
                 className="w-[80x] h-[80px]"
               />
@@ -157,7 +156,7 @@ const UserOrderDetails = () => {
             <br />
             <div className="w-full flex">
               <img
-                src={`${backend_url}/${selectedItem?.images[0]}`}
+                src={`${process.env.REACT_APP_BACKEND_URL}/${selectedItem?.images[0]}`}
                 alt=""
                 className="w-[80px] h-[80px]"
               />
