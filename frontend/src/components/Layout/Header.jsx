@@ -13,7 +13,6 @@ import { CgProfile } from "react-icons/cg";
 import DropDown from "./DropDown";
 import Navbar from "./Navbar";
 import { useSelector } from "react-redux";
-import { backend_url } from "../../server";
 import Cart from "../cart/Cart";
 import Wishlist from "../Wishlist/Wishlist";
 import { RxCross1 } from "react-icons/rx";
@@ -137,7 +136,7 @@ const Header = ({ activeHeading }) => {
             <div className="flex flex-col md:flex-row md:space-x-2 space-y-4 md:space-y-0 items-center">
               {/* Become a Shipper */}
               <div className={`${styles.button}`}>
-                <Link to={`${isShipper ? "/dashboard" : "/shipper-create"}`}>
+                <Link to={`${isShipper ? "/shipper-dashboard" : "/shipper-create"}`}>
                   <h1 className="text-[#fff] flex items-center">
                     {isShipper ? "Go Dashboard" : "Become Shipper"}{" "}
                     <IoIosArrowForward className="ml-1" />
@@ -148,7 +147,7 @@ const Header = ({ activeHeading }) => {
               {/* Become a Seller */}
               <div className={`${styles.button}`}>
                 <Link
-                  to={`${isSeller ? "/shipper-dashboard" : "/shop-create"}`}
+                  to={`${isSeller ? "/dashboard" : "/shop-create"}`}
                 >
                   <h1 className="text-[#fff] flex items-center">
                     {isSeller ? "Go Dashboard" : "Become Seller"}{" "}

@@ -7,14 +7,14 @@ const Navbar = ({ active }) => {
   return (
     <div className={`block 800px:${styles.noramlFlex}`}>
       {navItems.map((i, index) => (
-        <div className="flex h-full" key={index}>
+        <div className="flex h-full ml-3" key={index}>
           <Link
             to={i.url}
             className={`relative w-full px-6 py-3 flex items-center justify-start 800px:justify-center font-[500] rounded-md cursor-pointer group transition-all duration-300 ease-in-out
     ${
       active === index + 1
-        ? "text-[#17dd1f] bg-gray-100 800px:bg-transparent shadow-md scale-[1.02]"
-        : "text-black 800px:text-white"
+        ? "text-[#17dd1f] bg-gray-100  800px:bg-white shadow-md scale-[1.02]"
+        : "text-black 800px:text-white "
     }
     hover:bg-white hover:text-black hover:shadow-lg hover:scale-[1.03]`}
           >

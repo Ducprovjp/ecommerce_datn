@@ -4,7 +4,6 @@ import { BsFillBagFill } from "react-icons/bs";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import axios from "axios";
-import { backend_url, server } from "../../server";
 import { getAllOrdersOfShop } from "../../redux/actions/order";
 import { useDispatch, useSelector } from "react-redux";
 import { Button } from "@material-ui/core";
@@ -28,7 +27,7 @@ const OrderStatus = () => {
 
   const orderCancelHandler = async () => {
     await axios
-      .put(`${server}/order/delete-order/${id}`, { withCredentials: true })
+      .put(`${process.env.REACT_APP_SERVER}/order/delete-order/${id}`, { withCredentials: true })
       .then((res) => {
         toast.success("Order canceled!");
         navigate("/dashboard-orders");
@@ -41,7 +40,7 @@ const OrderStatus = () => {
   const orderUpdateHandler = async () => {
     try {
       await axios.put(
-        `${server}/order/update-order-status/${id}`,
+        `${process.env.REACT_APP_SERVER}/order/update-order-status/${id}`,
         {
           status: selectedStatus,
         },
@@ -58,7 +57,7 @@ const OrderStatus = () => {
   const refundOrderUpdateHandler = async () => {
     try {
       await axios.put(
-        `${server}/order/order-refund-success/${id}`,
+        `${process.env.REACT_APP_SERVER}/order/order-refund-success/${id}`,
         {
           status: selectedStatus,
         },
@@ -113,7 +112,7 @@ const OrderStatus = () => {
           data?.cart.map((item, index) => (
             <div className="w-full flex items-start mb-5" key={index}>
               <img
-                src={`${backend_url}/${item.images[0]}`}
+                src={`${process.env.REACT_APP_BACKEND_URL}/${item.images[0]}`}
                 alt="Product item order img"
                 className="w-[80px] h-[80px]"
               />

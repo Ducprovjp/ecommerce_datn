@@ -30,8 +30,7 @@ app.use(cookieParser());
 app.use(
   cors({
     origin: [
-      process.env.REACT_APP_LOCAL_URL,
-      process.env.REACT_APP_PRODUCTION_URL,
+      process.env.REACT_APP_FRONT_END_URL,
     ],
     credentials: true,
   })

@@ -3,7 +3,6 @@ import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link, useParams } from "react-router-dom";
 import { getAllOrdersShipper } from "../../redux/actions/order";
-import { backend_url, server } from "../../server";
 import styles from "../../styles/styles";
 import Loader from "../Layout/Loader";
 
@@ -17,7 +16,7 @@ const ShipperInfo = ({ isOwner }) => {
   useEffect(() => {
     setIsLoading(true);
     axios
-      .get(`${server}/shipper/get-shipper-info/${id}`)
+      .get(`${process.env.REACT_APP_SERVER}/shipper/get-shipper-info/${id}`)
       .then((res) => {
         setData(res.data.shipper);
         setIsLoading(false);
@@ -29,7 +28,7 @@ const ShipperInfo = ({ isOwner }) => {
   }, []);
 
   const logoutHandler = async () => {
-    axios.get(`${server}/shipper/logout`, {
+    axios.get(`${process.env.REACT_APP_SERVER}/shipper/logout`, {
       withCredentials: true,
     });
     window.location.reload();

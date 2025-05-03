@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { backend_url, server } from "../../server";
 import { useDispatch, useSelector } from "react-redux";
 import {
   deleteUserAddress,
@@ -58,7 +57,7 @@ const ProfileContent = ({ active }) => {
     formData.append("image", e.target.files[0]);
 
     await axios
-      .put(`${server}/user/update-avatar`, formData, {
+      .put(`${process.env.REACT_APP_SERVER}/user/update-avatar`, formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
@@ -530,7 +529,7 @@ const ChangePassword = () => {
 
     await axios
       .put(
-        `${server}/user/update-user-password`,
+        `${process.env.REACT_APP_SERVER}/user/update-user-password`,
         { oldPassword, newPassword, confirmPassword },
         { withCredentials: true }
       )

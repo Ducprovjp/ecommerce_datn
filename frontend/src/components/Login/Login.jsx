@@ -3,7 +3,6 @@ import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import styles from "../../styles/styles";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
-import { server } from "../../server";
 import { toast } from "react-toastify";
 
 const Login = () => {
@@ -17,7 +16,7 @@ const Login = () => {
 
     await axios
       .post(
-        `${server}/user/login-user`,
+        `${process.env.REACT_APP_SERVER}/user/login-user`,
         {
           email,
           password,
@@ -38,7 +37,7 @@ const Login = () => {
     console.log("Google Sign-In response:", response);
     try {
       await axios.post(
-        `${server}/user/auth/google`,
+        `${process.env.REACT_APP_SERVER}/user/auth/google`,
         { id_token: response.credential },
         { withCredentials: true }
       );

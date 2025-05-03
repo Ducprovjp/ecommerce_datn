@@ -11,7 +11,6 @@ import {
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import { useSelector } from "react-redux";
 import axios from "axios";
-import { server } from "../../server";
 import { toast } from "react-toastify";
 import { RxCross1 } from "react-icons/rx";
 
@@ -88,7 +87,7 @@ const Payment = () => {
     };
 
     await axios
-      .post(`${server}/order/create-order`, order, config)
+      .post(`${process.env.REACT_APP_SERVER}/order/create-order`, order, config)
       .then((res) => {
         setOpen(false);
         navigate("/order/success");
@@ -113,7 +112,7 @@ const Payment = () => {
       };
 
       const { data } = await axios.post(
-        `${server}/payment/process`,
+        `${process.env.REACT_APP_SERVER}/payment/process`,
         paymentData,
         config
       );
@@ -138,7 +137,7 @@ const Payment = () => {
           };
 
           await axios
-            .post(`${server}/order/create-order`, order, config)
+            .post(`${process.env.REACT_APP_SERVER}/order/create-order`, order, config)
             .then((res) => {
               setOpen(false);
               navigate("/order/success");
@@ -163,7 +162,7 @@ const Payment = () => {
         },
       };
       const response = await axios.post(
-        `${server}/payment/vnpay`,
+        `${process.env.REACT_APP_SERVER}/payment/vnpay`,
         order,
         config
       );
@@ -198,7 +197,7 @@ const Payment = () => {
     };
 
     await axios
-      .post(`${server}/order/create-order`, order, config)
+      .post(`${process.env.REACT_APP_SERVER}/order/create-order`, order, config)
       .then((res) => {
         setOpen(false);
         navigate("/order/success");

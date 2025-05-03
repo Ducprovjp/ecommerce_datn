@@ -4,7 +4,6 @@ import { Country, State } from "country-state-city";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import axios from "axios";
-import { server } from "../../server";
 import { toast } from "react-toastify";
 
 const Checkout = () => {
@@ -31,7 +30,7 @@ const Checkout = () => {
     setIsLoadingCoupons(true);
     try {
       const response = await axios.get(
-        `${server}/coupon/get-all-available-coupons`
+        `${process.env.REACT_APP_SERVER}/coupon/get-all-available-coupons`
       );
       setAvailableCoupons(response.data.couponCodes);
     } catch (error) {

@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import axios from "axios";
-import { server } from "../../server";
 
 const ChatbotComponent = () => {
   const [messages, setMessages] = useState([
@@ -18,7 +17,7 @@ const ChatbotComponent = () => {
     setMessages([...messages, userMessage]);
     try {
       const res = await axios.post(
-        `${server}/chatbot/dialogflow`,
+        `${process.env.REACT_APP_SERVER}/chatbot/dialogflow`,
         { message: input },
         { withCredentials: true }
       );

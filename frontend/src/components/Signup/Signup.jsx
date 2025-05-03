@@ -4,7 +4,6 @@ import styles from "../../styles/styles";
 import { Link, useNavigate } from "react-router-dom";
 import { RxAvatar } from "react-icons/rx";
 import axios from "axios";
-import { server } from "../../server";
 import { toast } from "react-toastify";
 
 const Signup = () => {
@@ -51,7 +50,7 @@ const Signup = () => {
 
     try {
       const res = await axios.post(
-        `${server}/user/create-user`,
+        `${process.env.REACT_APP_SERVER}/user/create-user`,
         newForm,
         config
       );

@@ -1,5 +1,4 @@
 import axios from "axios";
-import { server } from "../../server";
 
 // create event
 export const createevent = (newForm) => async (dispatch) => {
@@ -11,7 +10,7 @@ export const createevent = (newForm) => async (dispatch) => {
     const config = { headers: { "Content-Type": "multipart/form-data" } };
 
     const { data } = await axios.post(
-      `${server}/event/create-event`,
+      `${process.env.REACT_APP_SERVER}/event/create-event`,
       newForm,
       config
     );
@@ -34,7 +33,7 @@ export const getAllEventsShop = (id) => async (dispatch) => {
       type: "getAlleventsShopRequest",
     });
 
-    const { data } = await axios.get(`${server}/event/get-all-events/${id}`);
+    const { data } = await axios.get(`${process.env.REACT_APP_SERVER}/event/get-all-events/${id}`);
     dispatch({
       type: "getAlleventsShopSuccess",
       payload: data.events,
@@ -55,7 +54,7 @@ export const deleteEvent = (id) => async (dispatch) => {
     });
 
     const { data } = await axios.delete(
-      `${server}/event/delete-shop-event/${id}`,
+      `${process.env.REACT_APP_SERVER}/event/delete-shop-event/${id}`,
       {
         withCredentials: true,
       }
@@ -80,7 +79,7 @@ export const getAllEvents = () => async (dispatch) => {
       type: "getAlleventsRequest",
     });
 
-    const { data } = await axios.get(`${server}/event/get-all-events`);
+    const { data } = await axios.get(`${process.env.REACT_APP_SERVER}/event/get-all-events`);
     dispatch({
       type: "getAlleventsSuccess",
       payload: data.events,

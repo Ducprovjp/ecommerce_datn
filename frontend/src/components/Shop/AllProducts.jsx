@@ -24,7 +24,6 @@ import {
 } from "../../redux/actions/product";
 import Loader from "../Layout/Loader";
 import axios from "axios";
-import { server } from "../../server";
 import { categoriesData } from "../../static/data";
 
 const AllProducts = () => {
@@ -106,7 +105,7 @@ const AllProducts = () => {
 
     try {
       const res = await axios.post(
-        `${server}/product/upload-image`,
+        `${process.env.REACT_APP_SERVER}/product/upload-image`,
         uploadFormData,
         {
           headers: {
