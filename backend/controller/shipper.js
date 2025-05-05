@@ -45,7 +45,7 @@ router.post(
       };
 
       const activationToken = createActivationToken(shipper);
-      const activationUrl = `http://localhost:3000/shipper/activation/${activationToken}`;
+      const activationUrl = `${process.env.REACT_APP_FRONT_END_URL}/shipper/activation/${activationToken}`;
 
       try {
         await sendMail({
