@@ -9,6 +9,7 @@ import FAQPage from "../pages/User/FAQPage";
 import CheckoutPage from "../pages/User/CheckoutPage";
 import PaymentPage from "../pages/User/PaymentPage";
 import OrderSuccessPage from "../pages/User/OrderSuccessPage";
+import OrderFailurePage from "../pages/User/OrderFailurePage";
 import ProductDetailsPage from "../pages/User/ProductDetailsPage";
 import ProfilePage from "../pages/User/ProfilePage";
 import OrderDetailsPage from "../pages/User/OrderDetailsPage";
@@ -27,6 +28,7 @@ export {
   CheckoutPage,
   PaymentPage,
   OrderSuccessPage,
+  OrderFailurePage,
   ProductDetailsPage,
   ProfilePage,
   OrderDetailsPage,

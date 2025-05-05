@@ -116,7 +116,7 @@ const UserOrderDetails = () => {
           return (
             <div className="w-full flex items-start mb-5">
               <img
-                src={`${process.env.REACT_APP_BACKEND_URL}/${item.images[0]}`}
+                src={item.images[0]}
                 alt="Product item order img"
                 className="w-[80x] h-[80px]"
               />

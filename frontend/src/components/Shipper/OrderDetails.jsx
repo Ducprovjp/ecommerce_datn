@@ -76,7 +76,7 @@ const OrderDetails = () => {
         </div>
         <Link to="/shipper-dashboard-orders">
           <div
-            className={`${styles.button} !bg-[#fce1e6] !rounded-[4px] text-[#e94560] font-[600] !h-[45px] text-[18px]`}
+            className={`${styles.button} !bg-[#f63b60] !rounded-[4px] text-[#e94560] font-[600] !h-[45px] text-[18px]`}
           >
             Order List
           </div>
@@ -161,16 +161,12 @@ const OrderDetails = () => {
             >
               {[
                 "Transferred to delivery partner",
-                "Shipping",
-                "The shipper has received the order from the store.",
                 "On the way",
                 "Delivered",
               ]
                 .slice(
                   [
                     "Transferred to delivery partner",
-                    "The shipper has received the order from the store.",
-                    "Shipping",
                     "On the way",
                     "Delivered",
                   ].indexOf(data?.status)
@@ -203,7 +199,7 @@ const OrderDetails = () => {
         ) : null}
 
         <div
-          className={`${styles.button} mt-5 !bg-[#c7e9cc] !rounded-[4px] text-[#E94560] font-[600] !h-[45px] text-[18px]`}
+          className={`${styles.button} mt-5 !bg-[#16b12e] !rounded-[4px] text-[#E94560] font-[600] !h-[45px] text-[18px]`}
           onClick={
             data?.status !== "Processing refund"
               ? orderUpdateHandler

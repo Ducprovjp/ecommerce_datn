@@ -75,7 +75,7 @@ router.post(
     const activationToken = createActivationToken(user);
 
     // Use dynamic domain for activation URL
-    const domain = process.env.FRONTEND_URL || "http://localhost:3000";
+    const domain = process.env.REACT_APP_FRONT_END_URL;
     const activationUrl = `${domain}/activation/${activationToken}`;
 
     const message = `Hello ${user.name}, please click on the link to activate your account: <a href="${activationUrl}" style="text-decoration: underline; color: blue; font-weight: bold;">ACTIVATE</a>`;

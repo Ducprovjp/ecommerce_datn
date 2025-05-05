@@ -14,6 +14,7 @@ import {
   CheckoutPage,
   PaymentPage,
   OrderSuccessPage,
+  OrderFailurePage,
   ProductDetailsPage,
   ProfilePage,
   OrderDetailsPage,
@@ -144,6 +145,8 @@ const App = () => {
         />
 
         <Route path="/order/success" element={<OrderSuccessPage />} />
+        <Route path="/order/failure" element={<OrderFailurePage />} />
+        
         <Route
           path="/profile"
           element={

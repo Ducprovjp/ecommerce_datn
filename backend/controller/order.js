@@ -1,4 +1,5 @@
 const express = require("express");
+const mongoose = require("mongoose");
 const crypto = require("crypto");
 const router = express.Router();
 const ErrorHandler = require("../utils/ErrorHandler");
@@ -17,14 +18,49 @@ const Shipper = require("../model/shipper");
 // create new order
 router.post(
   "/create-order",
+  // isAuthenticated,
   catchAsyncErrors(async (req, res, next) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
     try {
       const { cart, shippingAddress, user, totalPrice, paymentInfo } = req.body;
 
-      //   group cart items by shopId
-      const shopItemsMap = new Map();
+      // 1. Kiểm tra dữ liệu đầu vào
+      if (!cart || !shippingAddress || !user || !totalPrice || !paymentInfo) {
+        await session.abortTransaction();
+        session.endSession();
+        return next(new ErrorHandler("Missing required fields", 400));
+      }
 
+      if (!Array.isArray(cart) || cart.length === 0) {
+        await session.abortTransaction();
+        session.endSession();
+        return next(new ErrorHandler("Cart is empty", 400));
+      }
+
+      // Log dữ liệu đầu vào để debug
+      console.log("Request body:", JSON.stringify(req.body, null, 2));
+
+      // 2. Nhóm sản phẩm theo shopId và kiểm tra dữ liệu
+      const shopItemsMap = new Map();
       for (const item of cart) {
+        if (
+          !item._id ||
+          !item.shopId ||
+          typeof item.qty !== "number" ||
+          item.qty <= 0 ||
+          typeof item.discountPrice !== "number" ||
+          item.discountPrice <= 0
+        ) {
+          await session.abortTransaction();
+          session.endSession();
+          return next(
+            new ErrorHandler(
+              `Invalid cart item: ${JSON.stringify(item)}`,
+              400
+            )
+          );
+        }
         const shopId = item.shopId;
         if (!shopItemsMap.has(shopId)) {
           shopItemsMap.set(shopId, []);
@@ -32,25 +68,99 @@ router.post(
         shopItemsMap.get(shopId).push(item);
       }
 
-      // create an order for each shop
-      const orders = [];
-
+      // 3. Kiểm tra và cập nhật tồn kho
+      const productUpdates = [];
+      let calculatedSubTotalPrice = 0;
       for (const [shopId, items] of shopItemsMap) {
-        const order = await Order.create({
+        for (const item of items) {
+          const product = await Product.findById(item._id).session(session);
+          if (!product) {
+            await session.abortTransaction();
+            session.endSession();
+            return next(
+              new ErrorHandler(`Product not found: ${item._id}`, 400)
+            );
+          }
+          if (product.stock < item.qty) {
+            await session.abortTransaction();
+            session.endSession();
+            return next(
+              new ErrorHandler(
+                `Insufficient stock for product: ${product.name}`,
+                400
+              )
+            );
+          }
+          productUpdates.push({
+            productId: item._id,
+            qty: item.qty,
+          });
+          calculatedSubTotalPrice += item.discountPrice * item.qty;
+        }
+      }
+
+      // 5. Cập nhật tồn kho
+      for (const update of productUpdates) {
+        await Product.findByIdAndUpdate(
+          update.productId,
+          {
+            $inc: { stock: -update.qty, sold_out: update.qty },
+          },
+          { session, validateBeforeSave: false }
+        );
+      }
+
+      // 6. Tạo đơn hàng cho từng shop
+      const orders = [];
+      for (const [shopId, items] of shopItemsMap) {
+        // Tính giá sản phẩm cho shop
+        const shopProductPrice = items.reduce(
+          (total, item) => total + item.discountPrice * item.qty,
+          0
+        );
+
+        // Tổng giá cho shop (sử dụng totalPrice từ client)
+        const shopTotalPrice = shopProductPrice;
+
+        // Làm tròn đến 2 chữ số thập phân
+        const roundedShopTotalPrice = Math.round(shopTotalPrice * 100) / 100;
+
+        // Kiểm tra shopTotalPrice
+        if (isNaN(roundedShopTotalPrice) || roundedShopTotalPrice <= 0) {
+          await session.abortTransaction();
+          session.endSession();
+          return next(
+            new ErrorHandler(
+              `Invalid total price for shop ${shopId}: ${roundedShopTotalPrice}`,
+              400
+            )
+          );
+        }
+
+        const order = new Order({
           cart: items,
           shippingAddress,
           user,
-          totalPrice,
+          totalPrice: totalPrice, // Sử dụng totalPrice từ client
           paymentInfo,
+          status: "Processing",
         });
+
+        await order.save({ session });
         orders.push(order);
       }
+
+      // 7. Commit transaction
+      await session.commitTransaction();
+      session.endSession();
 
       res.status(201).json({
         success: true,
         orders,
       });
     } catch (error) {
+      await session.abortTransaction();
+      session.endSession();
       return next(new ErrorHandler(error.message, 500));
     }
   })
@@ -100,48 +210,103 @@ router.get("/vnpay-success", async (req, res) => {
   if (secureHash === calculatedHash) {
     const orderId = vnp_Params["vnp_TxnRef"];
 
-    if (vnp_Params["vnp_ResponseCode"] === "00") {
-      // Thanh toán thành công
-      try {
-        const updatedOrder = await Order.findOneAndUpdate(
-          { "paymentInfo.orderId": orderId }, // Tìm theo paymentInfo.orderId
-          {
-            "paymentInfo.id": vnp_Params["vnp_TransactionNo"],
-            "paymentInfo.status": "Paid",
-            paidAt: new Date(),
-          },
-          { new: true }
-        );
+    // Bắt đầu transaction
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
-        if (!updatedOrder) {
+    try {
+      if (vnp_Params["vnp_ResponseCode"] === "00") {
+        // Thanh toán thành công
+        const order = await Order.findOne({
+          "paymentInfo.orderId": orderId,
+        }).session(session);
+
+        if (!order) {
+          await session.abortTransaction();
+          session.endSession();
           console.error("Order not found for orderId:", orderId);
-          return res.redirect("http://localhost:3000/order/failure");
+          return res.redirect(
+            `${process.env.REACT_APP_FRONT_END_URL}/order/failure`
+          );
         }
 
-        console.log("Order updated:", updatedOrder);
+        // Kiểm tra và giảm tồn kho
+        const productUpdates = [];
+        for (const item of order.cart) {
+          const product = await Product.findById(item._id).session(session);
+          if (!product) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.redirect(
+              `${process.env.REACT_APP_FRONT_END_URL}/order/failure`
+            );
+          }
+          if (product.stock < item.qty) {
+            await session.abortTransaction();
+            session.endSession();
+            console.error(
+              `Insufficient stock for product: ${product.name}, orderId: ${orderId}`
+            );
+            return res.redirect(
+              `${process.env.REACT_APP_FRONT_END_URL}/order/failure`
+            );
+          }
+          productUpdates.push({
+            productId: item._id,
+            qty: item.qty,
+          });
+        }
+
+        // Cập nhật tồn kho
+        for (const update of productUpdates) {
+          await Product.findByIdAndUpdate(
+            update.productId,
+            {
+              $inc: { stock: -update.qty, sold_out: update.qty },
+            },
+            { session, validateBeforeSave: false }
+          );
+        }
+
+        // Cập nhật đơn hàng
+        order.paymentInfo.id = vnp_Params["vnp_TransactionNo"];
+        order.paymentInfo.status = "Paid";
+        order.paidAt = new Date();
+        await order.save({ session });
+
+        console.log("Order updated:", order);
+
+        // Commit transaction
+        await session.commitTransaction();
+        session.endSession();
+
+        const redirectUrl = `${process.env.REACT_APP_FRONT_END_URL}/order/success`;
         res.send(`
           <script>
             localStorage.setItem("cartItems", JSON.stringify([]));
-            window.location.href = "http://localhost:3000/order/success";
+            window.location.href = "${redirectUrl}";
           </script>
         `);
-      } catch (error) {
-        console.error("Error updating order:", error);
-        res.redirect("http://localhost:3000/order/failure");
-      }
-    } else {
-      // Thanh toán thất bại
-      try {
+      } else {
+        // Thanh toán thất bại
         await Order.findOneAndUpdate(
           { "paymentInfo.orderId": orderId },
           {
             "paymentInfo.status": "Failed",
-          }
+          },
+          { session }
         );
-      } catch (error) {
-        console.error("Error updating failed order:", error);
+
+        await session.commitTransaction();
+        session.endSession();
+
+        res.redirect(`${process.env.REACT_APP_FRONT_END_URL}/order/failure`);
       }
-      res.redirect("http://localhost:3000/order/failure");
+    } catch (error) {
+      await session.abortTransaction();
+      session.endSession();
+      console.error("Error processing VNPay callback:", error);
+      res.redirect(`${process.env.REACT_APP_FRONT_END_URL}/order/failure`);
     }
   } else {
     res.send("Xác minh chữ ký thất bại");
@@ -203,13 +368,12 @@ router.get(
       const deliveredWards = shipper.deliveredArea.map((area) => area.ward);
 
       // Tìm các đơn hàng có shippingAddress.ward nằm trong danh sách deliveredWards
-      // và trạng thái là "Transferred to delivery partner", "Shipping", "On the way", hoặc "Delivered"
+      // và trạng thái là "Transferred to delivery partner", "On the way", hoặc "Delivered"
       const orders = await Order.find({
         "shippingAddress.ward": { $in: deliveredWards },
         status: {
           $in: [
             "Transferred to delivery partner",
-            "Shipping",
             "On the way",
             "Delivered",
           ],
