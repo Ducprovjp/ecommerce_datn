@@ -5,13 +5,13 @@ import { useNavigate } from "react-router-dom";
 
 const LoginPage = () => {
   const navigate = useNavigate();
-  const { isAuthenticated } = useSelector((state) => state.user);
+  const { isAuthenticated, isLoading } = useSelector((state) => state.user);
   // if user is login then redirect to home page
   useEffect(() => {
     if (isAuthenticated) {
       navigate("/");
     }
-  });
+  }, [isLoading, isAuthenticated]);
   return (
     <div>
       <Login />

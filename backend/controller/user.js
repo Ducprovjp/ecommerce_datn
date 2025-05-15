@@ -171,7 +171,7 @@ router.post(
       // +password is used to select the password field from the database
 
       if (!user) {
-        return next(new ErrorHandler("user doesn't exits", 400));
+        return next(new ErrorHandler("User doesn't exits", 400));
       }
 
       // compore password with database password
