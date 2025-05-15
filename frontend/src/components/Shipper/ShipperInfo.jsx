@@ -1,14 +1,15 @@
 import axios from "axios";
 import React, { useEffect, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { Link, useParams } from "react-router-dom";
-import { getAllOrdersShipper } from "../../redux/actions/order";
+import { useDispatch } from "react-redux";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import styles from "../../styles/styles";
 import Loader from "../Layout/Loader";
+import { toast } from "react-toastify";
 
 const ShipperInfo = ({ isOwner }) => {
   const [data, setData] = useState({});
   const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
 
   const { id } = useParams();
   const dispatch = useDispatch();
@@ -30,8 +31,15 @@ const ShipperInfo = ({ isOwner }) => {
   const logoutHandler = async () => {
     axios.get(`${process.env.REACT_APP_SERVER}/shipper/logout`, {
       withCredentials: true,
+    })
+    .then((res) => {
+      toast.success("Logout Success!");
+      navigate("/shipper-login");
+      window.location.reload(true);
+    })
+    .catch((error) => {
+      console.log(error.response.data.message);
     });
-    window.location.reload();
   };
 
   return (
