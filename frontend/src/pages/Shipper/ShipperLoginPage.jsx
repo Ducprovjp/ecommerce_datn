@@ -9,7 +9,7 @@ const ShipperLoginPage = () => {
 
   useEffect(() => {
     if (isShipper === true) {
-      navigate(`/dashboard`);
+      navigate(`/shipper-dashboard`);
     }
   }, [isLoading, isShipper, navigate]);
 
