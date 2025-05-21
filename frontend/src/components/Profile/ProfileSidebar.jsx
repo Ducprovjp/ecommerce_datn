@@ -19,7 +19,7 @@ const ProfileSidebar = ({ active, setActive }) => {
 
   const logoutHandler = () => {
     axios
-      .get(`${process.env.REACT_APP_SERVER}/user/logout`, { withCredentials: true })
+      .post(`${process.env.REACT_APP_SERVER}/user/logout`, {}, { withCredentials: true })
       .then((res) => {
         toast.success(res.data.message);
         window.location.reload(true);

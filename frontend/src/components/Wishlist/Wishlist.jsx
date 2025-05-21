@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { RxCross1 } from "react-icons/rx";
 import styles from "../../styles/styles";
 import { Link } from "react-router-dom";
@@ -9,6 +9,7 @@ import { removeFromWishlist } from "../../redux/actions/wishlist";
 import { addTocart } from "../../redux/actions/cart";
 
 const Wishlist = ({ setOpenWishlist }) => {
+  const [isVisible, setIsVisible] = useState(false);
   const { wishlist } = useSelector((state) => state.wishlist);
   const dispatch = useDispatch();
 
@@ -22,15 +23,32 @@ const Wishlist = ({ setOpenWishlist }) => {
     setOpenWishlist(false);
   };
 
+  useEffect(() => {
+    // Kích hoạt animation sau khi component mount
+    const timer = setTimeout(() => {
+      setIsVisible(true);
+    }, 10); // Delay nhỏ để đảm bảo component đã mount trước khi chuyển class
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleClose = () => {
+    setIsVisible(false); // Trượt ra
+    setTimeout(() => {
+      setOpenWishlist(false); // Sau khi animation kết thúc, đóng component
+    }, 300); // Khớp với duration: 300ms
+  };
+  
+
   return (
     <div className="fixed top-0 left-0 w-full bg-[#0000004b] h-screen z-10">
-      <div className="fixed top-0 right-0 h-full w-[80%] overflow-y-scroll 800px:w-[25%] bg-white flex flex-col justify-between shadow-sm">
+      <div className={`fixed top-0 right-0 h-full w-[80%] 800px:w-[25%] bg-white flex flex-col justify-between shadow-sm transform transition-transform duration-300 overflow-y-scroll ${isVisible ? "translate-x-0" : "translate-x-full"}`}>
         {wishlist && wishlist.length === 0 ? (
           <div className="w-full h-screen flex items-center justify-center">
             <div className="flex w-full justify-end pt-5 pr-5 fixed top-3 right-3">
               <RxCross1
                 className="cursor-pointer"
-                onClick={() => setOpenWishlist(false)}
+                onClick={handleClose}
               />
             </div>
             <h5>Wish items is empty!</h5>
@@ -42,7 +60,7 @@ const Wishlist = ({ setOpenWishlist }) => {
                 <RxCross1
                   size={25}
                   className="cursor-pointer"
-                  onClick={() => setOpenWishlist(false)}
+                  onClick={handleClose}
                 />
               </div>
               {/* item length */}
