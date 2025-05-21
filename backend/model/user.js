@@ -54,6 +54,10 @@ const userSchema = new mongoose.Schema({
   },
   resetPasswordToken: String,
   resetPasswordTime: Date,
+  refreshToken: {
+    type: String,
+    default: null,
+  },
 });
 
 //  Hash password
@@ -68,7 +72,14 @@ userSchema.pre("save", async function (next) {
 // jwt token
 userSchema.methods.getJwtToken = function () {
   return jwt.sign({ id: this._id }, process.env.JWT_SECRET_KEY, {
-    expiresIn: process.env.JWT_EXPIRES,
+    expiresIn: process.env.JWT_ACCESS_TOKEN_EXPIRES,
+  });
+};
+
+// JWT refresh token
+userSchema.methods.getRefreshToken = function () {
+  return jwt.sign({ id: this._id }, process.env.JWT_REFRESH_SECRET_KEY, {
+    expiresIn: process.env.JWT_REFRESH_TOKEN_EXPIRES, 
   });
 };
 

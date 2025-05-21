@@ -10,7 +10,8 @@ import styles from "../../styles/styles";
 
 const ProductsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const categoryData = searchParams.get("category");
+  const categoryData = searchParams.get("category") || "";
+  const search = searchParams.get("search") || "";
   const pageParam = searchParams.get("page");
   const { isLoading } = useSelector((state) => state.products);
   const [data, setData] = useState([]);
@@ -18,12 +19,12 @@ const ProductsPage = () => {
   const [totalPages, setTotalPages] = useState(1);
   const productsPerPage = 10;
   const [filters, setFilters] = useState({
-    category: categoryData || "",
+    category: categoryData,
     minPrice: "",
     maxPrice: "",
   });
   const [tempFilters, setTempFilters] = useState({
-    category: categoryData || "",
+    category: categoryData,
     minPrice: "",
     maxPrice: "",
   });
@@ -54,13 +55,14 @@ const ProductsPage = () => {
         if (filters.maxPrice !== "" && !isNaN(filters.maxPrice)) {
           params.maxPrice = parseFloat(filters.maxPrice);
         }
+        if (search) params.search = search;
         if (sortOption) params.sort = sortOption;
 
         const response = await axios.get(`${process.env.REACT_APP_SERVER}/product/get-all-products`, {
           params,
           withCredentials: true,
         });
-        setData(response.data.products);
+        setData(response.data.products || []);
         setTotalPages(response.data.totalPages || 1);
       } catch (error) {
         console.error("Error fetching products:", error);
@@ -70,7 +72,7 @@ const ProductsPage = () => {
     };
 
     fetchProducts();
-  }, [filters, sortOption, currentPage]);
+  }, [filters, sortOption, currentPage, search]);
 
   // Xử lý khi chuyển trang
   const handlePageChange = (pageNumber) => {

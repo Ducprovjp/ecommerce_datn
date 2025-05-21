@@ -7,13 +7,16 @@ const Shipper = require("../model/shipper");
 
 // Check if user is authenticated or not
 exports.isAuthenticated = catchAsyncErrors(async (req, res, next) => {
-  const { token } = req.cookies;
-  if (!token) {
+  const { accessToken } = req.cookies;
+  if (!accessToken) {
     return next(new ErrorHandler("Please login to continue", 401));
   }
-  const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
+  const decoded = jwt.verify(accessToken, process.env.JWT_SECRET_KEY);
 
   req.user = await User.findById(decoded.id);
+  if (!req.user) {
+    return next(new ErrorHandler("User not found", 401));
+  }
   next();
 });
 

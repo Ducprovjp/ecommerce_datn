@@ -245,6 +245,143 @@ router.post(
   })
 );
 
+// Refresh token
+router.post(
+  "/refresh-token",
+  catchAsyncErrors(async (req, res, next) => {
+    const { refreshToken } = req.cookies;
+
+    if (!refreshToken) {
+      return next(new ErrorHandler("Refresh token not found", 401));
+    }
+
+    try {
+      const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+      const user = await User.findById(decoded.id);
+
+      if (!user || user.refreshToken !== refreshToken) {
+        return next(new ErrorHandler("Invalid refresh token", 401));
+      }
+
+      // Tạo access token mới
+      sendToken(user, 200, res);
+    } catch (error) {
+      return next(new ErrorHandler("Invalid or expired refresh token", 401));
+    }
+  })
+);
+
+
+// Forgot password
+router.post(
+  "/forgot-password",
+  catchAsyncErrors(async (req, res, next) => {
+    try {
+      const { email } = req.body;
+
+      if (!email) {
+        return next(new ErrorHandler("Please provide an email", 400));
+      }
+
+      const user = await User.findOne({ email });
+      if (!user) {
+        return next(new ErrorHandler("User not found", 404));
+      }
+
+      // Create reset password token
+      const resetToken = jwt.sign(
+        { id: user._id },
+        process.env.JWT_RESET_PASSWORD_SECRET,
+        { expiresIn: "10m" }
+      );
+
+      // Save token and expiry to user
+      user.resetPasswordToken = resetToken;
+      user.resetPasswordTime = Date.now() + 10 * 60 * 1000; // 10 minutes
+      await user.save({ validateBeforeSave: false });
+
+      // Send reset password email
+      const domain = process.env.REACT_APP_FRONT_END_URL;
+      const resetUrl = `${domain}/reset-password/${resetToken}`;
+      const message = `Hello ${user.name}, please click on the link to reset your password: <a href="${resetUrl}" style="text-decoration: underline; color: blue; font-weight: bold;">RESET PASSWORD</a>`;
+
+      try {
+        await sendMail({
+          email: user.email,
+          subject: "Reset your password",
+          html: message,
+        });
+        res.status(200).json({
+          success: true,
+          message: `Please check your email (${user.email}) to reset your password!`,
+        });
+      } catch (error) {
+        // Clear token if email fails
+        user.resetPasswordToken = undefined;
+        user.resetPasswordTime = undefined;
+        await user.save({ validateBeforeSave: false });
+        return next(new ErrorHandler("Failed to send reset email", 500));
+      }
+    } catch (error) {
+      return next(new ErrorHandler(error.message, 500));
+    }
+  })
+);
+
+// Reset password
+router.post(
+  "/reset-password",
+  catchAsyncErrors(async (req, res, next) => {
+    try {
+      const { reset_token, newPassword } = req.body;
+
+      if (!reset_token) {
+        return next(new ErrorHandler("Reset token is required", 400));
+      }
+      if (!newPassword) {
+        return next(new ErrorHandler("New password is required", 400));
+      }
+      if (newPassword.length < 4) {
+        return next(
+          new ErrorHandler("Password must be at least 4 characters", 400)
+        );
+      }
+
+      // Verify reset token
+      const decoded = jwt.verify(reset_token, process.env.JWT_RESET_PASSWORD_SECRET);
+      const user = await User.findById(decoded.id);
+
+      if (!user) {
+        return next(new ErrorHandler("User not found", 404));
+      }
+
+      // Check token validity and expiry
+      if (
+        user.resetPasswordToken !== reset_token ||
+        user.resetPasswordTime < Date.now()
+      ) {
+        return next(new ErrorHandler("Invalid or expired reset token", 400));
+      }
+
+      // Update password
+      user.password = newPassword;
+      user.resetPasswordToken = undefined;
+      user.resetPasswordTime = undefined;
+      await user.save();
+
+      res.status(200).json({
+        success: true,
+        message: "Password reset successfully",
+      });
+    } catch (error) {
+      if (error.name === "TokenExpiredError") {
+        return next(new ErrorHandler("Reset token has expired", 400));
+      }
+      return next(new ErrorHandler("Invalid reset token", 400));
+    }
+  })
+);
+
 // load user
 router.get(
   "/getuser",
@@ -266,22 +403,46 @@ router.get(
   })
 );
 
-// log out user
-router.get(
+// Logout user
+router.post(
   "/logout",
   catchAsyncErrors(async (req, res, next) => {
     try {
-      res.cookie("token", null, {
-        expires: new Date(Date.now()),
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "PRODUCTION", // HTTPS trong PRODUCTION
-        sameSite: process.env.NODE_ENV === "PRODUCTION" ? "none" : "lax", // Cross-origin trong production
-        path: "/", // Áp dụng cho toàn bộ domain
-      });
-      res.status(201).json({
-        success: true,
-        message: "Logout successful!",
-      });
+      const { refreshToken } = req.cookies;
+
+      // Xóa refresh token trong database nếu tồn tại
+      if (refreshToken) {
+        try {
+          const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+          const user = await User.findById(decoded.id);
+          if (user && user.refreshToken === refreshToken) {
+            user.refreshToken = null;
+            await user.save({ validateBeforeSave: false });
+          }
+        } catch (error) {
+          // Nếu refresh token không hợp lệ, không cần làm gì thêm
+        }
+      }
+
+      // Xóa cookie accessToken và refreshToken
+      res
+        .clearCookie("accessToken", {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "PRODUCTION",
+          sameSite: process.env.NODE_ENV === "PRODUCTION" ? "none" : "lax",
+          path: "/",
+        })
+        .clearCookie("refreshToken", {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "PRODUCTION",
+          sameSite: process.env.NODE_ENV === "PRODUCTION" ? "none" : "lax",
+          path: "/",
+        })
+        .status(200)
+        .json({
+          success: true,
+          message: "Logged out successfully",
+        });
     } catch (error) {
       return next(new ErrorHandler(error.message, 500));
     }
