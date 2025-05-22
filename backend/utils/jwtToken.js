@@ -8,8 +8,8 @@ const sendToken = async (user, statusCode, res) => {
 
   // Options cho access token cookie
   const accessTokenOptions = {
-    expires: new Date(Date.now() + 30 * 60 * 1000), // 15 phút
-    // httpOnly: true,
+    expires: new Date(Date.now() + 30 * 60 * 1000), // 30 phút
+    httpOnly: true,
     sameSite: "none",
     secure: true,
   };
@@ -17,7 +17,7 @@ const sendToken = async (user, statusCode, res) => {
   // Options cho refresh token cookie
   const refreshTokenOptions = {
     expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 ngày
-    // httpOnly: true,
+    httpOnly: true,
     sameSite: "none",
     secure: true,
   };

@@ -26,12 +26,12 @@ router.post(
     });
 
     // Validate required fields
-    if (!name) return next(new ErrorHandler("Name is required", 400));
-    if (!email) return next(new ErrorHandler("Email is required", 400));
-    if (!password) return next(new ErrorHandler("Password is required", 400));
+    if (!name) return next(new ErrorHandler("Tên là bắt buộc", 400));
+    if (!email) return next(new ErrorHandler("Email là bắt buộc", 400));
+    if (!password) return next(new ErrorHandler("Mật khẩu là bắt buộc", 400));
     if (password.length < 4) {
       return next(
-        new ErrorHandler("Password must be at least 4 characters", 400)
+        new ErrorHandler("Mật khẩu phải dài ít nhất 4 ký tự", 400)
       );
     }
 
@@ -39,20 +39,22 @@ router.post(
     const userEmail = await User.findOne({ email });
     if (userEmail) {
       if (req.file) {
-        const filename = req.file.filename;
-        const filePath = `uploads/${filename}`;
-        fs.unlink(filePath, (err) => {
-          if (err) console.error("Error deleting file:", err);
-        });
+        // Xóa ảnh trên Cloudinary nếu email đã tồn tại
+        try {
+          await cloudinary.uploader.destroy(req.file.filename);
+        } catch (err) {
+          console.error("Lỗi xóa ảnh trên Cloudinary:", err);
+        }
       }
-      return next(new ErrorHandler("User already exists", 400));
+      return next(new ErrorHandler("Người dùng đã tồn tại", 400));
     }
 
     // Handle avatar
     let fileUrl = "default-avatar.png";
     if (req.file) {
-      const filename = req.file.filename;
-      fileUrl = path.join(filename);
+      // Lấy URL công khai từ Cloudinary
+      fileUrl = req.file.path; // URL đầy đủ từ Cloudinary
+      console.log("Uploaded file URL:", fileUrl);
     }
 
     const user = {
@@ -65,7 +67,7 @@ router.post(
     // Create activation token
     const createActivationToken = (user) => {
       if (!process.env.ACTIVATION_SECRET) {
-        throw new Error("ACTIVATION_SECRET is not configured");
+        throw new Error("ACTIVATION_SECRET chưa được cấu hình");
       }
       return jwt.sign(user, process.env.ACTIVATION_SECRET, {
         expiresIn: "5m",
@@ -78,35 +80,35 @@ router.post(
     const domain = process.env.REACT_APP_FRONT_END_URL;
     const activationUrl = `${domain}/activation/${activationToken}`;
 
-    const message = `Hello ${user.name}, please click on the link to activate your account: <a href="${activationUrl}" style="text-decoration: underline; color: blue; font-weight: bold;">ACTIVATE</a>`;
+    const message = `Xin chào ${user.name}, vui lòng nhấp vào liên kết để kích hoạt tài khoản của bạn: <a href="${activationUrl}" style="text-decoration: underline; color: blue; font-weight: bold;">KÍCH HOẠT</a>`;
 
     // Send email to user
-    console.log("Sending activation email to:", user.email);
+    console.log("Gửi email kích hoạt đến:", user.email);
     try {
       await sendMail({
         email: user.email,
-        subject: "Activate your account",
+        subject: "Kích hoạt tài khoản của bạn",
         html: message,
       });
       res.status(201).json({
         success: true,
-        message: `Please check your email (${user.email}) to activate your account!`,
+        message: `Vui lòng kiểm tra email (${user.email}) để kích hoạt tài khoản của bạn!`,
       });
     } catch (err) {
-      // Clean up uploaded file if email fails
+      // Clean up uploaded file on Cloudinary if email fails
       if (req.file) {
-        const filename = req.file.filename;
-        const filePath = `uploads/${filename}`;
-        fs.unlink(filePath, (err) => {
-          if (err) console.error("Error deleting file:", err);
-        });
+        try {
+          await cloudinary.uploader.destroy(req.file.filename);
+        } catch (err) {
+          console.error("Lỗi xóa ảnh trên Cloudinary:", err);
+        }
       }
-      return next(new ErrorHandler("Failed to send activation email", 500));
+      return next(new ErrorHandler("Không thể gửi email kích hoạt", 500));
     }
   })
 );
 
-// activate user account
+// Kích hoạt tài khoản người dùng (giữ nguyên từ file gốc)
 router.post(
   "/activation",
   catchAsyncErrors(async (req, res, next) => {
@@ -114,12 +116,12 @@ router.post(
     console.log("Received activation request:", { activation_token });
 
     if (!activation_token) {
-      return next(new ErrorHandler("Activation token is required", 400));
+      return next(new ErrorHandler("Token kích hoạt là bắt buộc", 400));
     }
 
     try {
       if (!process.env.ACTIVATION_SECRET) {
-        throw new Error("ACTIVATION_SECRET is not configured");
+        throw new Error("ACTIVATION_SECRET chưa được cấu hình");
       }
 
       const newUser = jwt.verify(
@@ -133,11 +135,11 @@ router.post(
       // Check if user already exists
       const existingUser = await User.findOne({ email });
       if (existingUser) {
-        return next(new ErrorHandler("User already exists", 400));
+        return next(new ErrorHandler("Người dùng đã tồn tại", 400));
       }
 
       // Create user
-      console.log("Creating user:", email);
+      console.log("Tạo người dùng:", email);
       const user = await User.create({
         name,
         email,
@@ -145,14 +147,14 @@ router.post(
         avatar: avatar || "default-avatar.png", // Default avatar
       });
 
-      console.log("User created:", user.email);
+      console.log("Người dùng đã được tạo:", user.email);
       sendToken(user, 201, res);
     } catch (err) {
-      console.error("Activation error:", err);
+      console.error("Lỗi kích hoạt:", err);
       if (err.name === "TokenExpiredError") {
-        return next(new ErrorHandler("Activation token has expired", 400));
+        return next(new ErrorHandler("Token kích hoạt đã hết hạn", 400));
       }
-      return next(new ErrorHandler("Invalid activation token", 400));
+      return next(new ErrorHandler("Token kích hoạt không hợp lệ", 400));
     }
   })
 );

@@ -21,12 +21,12 @@ exports.isAuthenticated = catchAsyncErrors(async (req, res, next) => {
 });
 
 exports.isSeller = catchAsyncErrors(async (req, res, next) => {
-  const { seller_token } = req.cookies;
-  if (!seller_token) {
+  const { seller_accessToken } = req.cookies;
+  if (!seller_accessToken) {
     return next(new ErrorHandler("Please login to continue", 401));
   }
 
-  const decoded = jwt.verify(seller_token, process.env.JWT_SECRET_KEY);
+  const decoded = jwt.verify(seller_accessToken, process.env.JWT_SECRET_KEY);
 
   req.seller = await Shop.findById(decoded.id);
 
@@ -34,12 +34,12 @@ exports.isSeller = catchAsyncErrors(async (req, res, next) => {
 });
 
 exports.isShipper = catchAsyncErrors(async (req, res, next) => {
-  const { shipper_token } = req.cookies;
-  if (!shipper_token) {
+  const { shipper_accessToken } = req.cookies;
+  if (!shipper_accessToken) {
     return next(new ErrorHandler("Please login to continue", 401));
   }
 
-  const decoded = jwt.verify(shipper_token, process.env.JWT_SECRET_KEY);
+  const decoded = jwt.verify(shipper_accessToken, process.env.JWT_SECRET_KEY);
 
   req.shipper = await Shipper.findById(decoded.id);
 
