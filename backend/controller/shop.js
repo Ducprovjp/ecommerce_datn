@@ -13,106 +13,162 @@ const ErrorHandler = require("../utils/ErrorHandler");
 const sendShopToken = require("../utils/shopToken");
 const { OAuth2Client } = require("google-auth-library");
 
-// create shop
-router.post("/create-shop", upload.single("file"), async (req, res, next) => {
-  try {
-    const { email } = req.body;
-    const sellerEmail = await Shop.findOne({ email });
+// Tạo shop
+router.post(
+  "/create-shop",
+  upload.single("file"),
+  catchAsyncErrors(async (req, res, next) => {
+    const { name, email, password, address, phoneNumber, zipCode } = req.body;
+    console.log("Received shop creation request:", {
+      name,
+      email,
+      hasFile: !!req.file,
+      address,
+      phoneNumber,
+      zipCode,
+    });
 
+    // Xác thực các trường bắt buộc
+    if (!name) return next(new ErrorHandler("Tên là bắt buộc", 400));
+    if (!email) return next(new ErrorHandler("Email là bắt buộc", 400));
+    if (!password) return next(new ErrorHandler("Mật khẩu là bắt buộc", 400));
+    if (password.length < 4) {
+      return next(new ErrorHandler("Mật khẩu phải dài ít nhất 4 ký tự", 400));
+    }
+    if (!address) return next(new ErrorHandler("Địa chỉ là bắt buộc", 400));
+    if (!phoneNumber) return next(new ErrorHandler("Số điện thoại là bắt buộc", 400));
+    if (!zipCode) return next(new ErrorHandler("Mã bưu điện là bắt buộc", 400));
+
+    // Kiểm tra email đã tồn tại
+    const sellerEmail = await Shop.findOne({ email });
     if (sellerEmail) {
-      const filename = req.file.filename;
-      const filePath = `uploads/${filename}`;
-      fs.unlink(filePath, (err) => {
-        if (err) {
-          console.log(err);
-          res.status(500).json({ message: "Error deleting file" });
+      if (req.file) {
+        // Xóa ảnh trên Cloudinary nếu email đã tồn tại
+        try {
+          await cloudinary.uploader.destroy(req.file.filename);
+        } catch (err) {
+          console.error("Lỗi xóa ảnh trên Cloudinary:", err);
         }
-      });
-      return next(new ErrorHandler("User already exists", 400));
+      }
+      return next(new ErrorHandler("Shop đã tồn tại", 400));
     }
 
-    const filename = req.file.filename;
-    const fileUrl = path.join(filename);
+    // Xử lý avatar
+    let fileUrl = "default-avatar.png";
+    if (req.file) {
+      // Lấy URL công khai từ Cloudinary
+      fileUrl = req.file.path; // URL đầy đủ từ Cloudinary
+      console.log("Uploaded file URL:", fileUrl);
+    }
 
     const seller = {
-      name: req.body.name,
-      email: email,
-      password: req.body.password,
+      name,
+      email,
+      password,
       avatar: fileUrl,
-      address: req.body.address,
-      phoneNumber: req.body.phoneNumber,
-      zipCode: req.body.zipCode,
+      address,
+      phoneNumber,
+      zipCode,
+    };
+
+    // Tạo activation token
+    const createActivationToken = (seller) => {
+      if (!process.env.ACTIVATION_SECRET) {
+        throw new Error("ACTIVATION_SECRET chưa được cấu hình");
+      }
+      return jwt.sign(seller, process.env.ACTIVATION_SECRET, {
+        expiresIn: "5m",
+      });
     };
 
     const activationToken = createActivationToken(seller);
 
-    const activationUrl = `${process.env.REACT_APP_FRONT_END_URL}/seller/activation/${activationToken}`;
+    // Sử dụng domain động cho URL kích hoạt
+    const domain = process.env.REACT_APP_FRONT_END_URL;
+    const activationUrl = `${domain}/seller/activation/${activationToken}`;
 
+    const message = `Xin chào ${seller.name}, vui lòng nhấp vào liên kết để kích hoạt shop của bạn: <a href="${activationUrl}" style="text-decoration: underline; color: blue; font-weight: bold;">KÍCH HOẠT</a>`;
+
+    // Gửi email
+    console.log("Gửi email kích hoạt đến:", seller.email);
     try {
       await sendMail({
         email: seller.email,
-        subject: "Activate your Shop",
-        message: `Hello ${seller.name}, please click on the link to activate your shop: ${activationUrl}`,
+        subject: "Kích hoạt shop của bạn",
+        html: message,
       });
       res.status(201).json({
         success: true,
-        message: `please check your email:- ${seller.email} to activate your shop!`,
+        message: `Vui lòng kiểm tra email (${seller.email}) để kích hoạt shop của bạn!`,
       });
-    } catch (error) {
-      return next(new ErrorHandler(error.message, 500));
+    } catch (err) {
+      // Xóa ảnh trên Cloudinary nếu gửi email thất bại
+      if (req.file) {
+        try {
+          await cloudinary.uploader.destroy(req.file.filename);
+        } catch (err) {
+          console.error("Lỗi xóa ảnh trên Cloudinary:", err);
+        }
+      }
+      return next(new ErrorHandler("Không thể gửi email kích hoạt", 500));
     }
-  } catch (error) {
-    return next(new ErrorHandler(error.message, 400));
-  }
-});
+  })
+);
 
-// create activation token
-const createActivationToken = (seller) => {
-  return jwt.sign(seller, process.env.ACTIVATION_SECRET, {
-    expiresIn: "5m",
-  });
-};
-
-// activate user
+// Kích hoạt shop
 router.post(
   "/activation",
   catchAsyncErrors(async (req, res, next) => {
+    const { activation_token } = req.body;
+    console.log("Received shop activation request:", { activation_token });
+
+    if (!activation_token) {
+      return next(new ErrorHandler("Token kích hoạt là bắt buộc", 400));
+    }
+
     try {
-      const { activation_token } = req.body;
+      if (!process.env.ACTIVATION_SECRET) {
+        throw new Error("ACTIVATION_SECRET chưa được cấu hình");
+      }
 
       const newSeller = jwt.verify(
         activation_token,
         process.env.ACTIVATION_SECRET
       );
+      console.log("Decoded token:", newSeller);
 
-      if (!newSeller) {
-        return next(new ErrorHandler("Invalid token", 400));
-      }
-      const { name, email, password, avatar, zipCode, address, phoneNumber } =
-        newSeller;
+      const { name, email, password, avatar, zipCode, address, phoneNumber } = newSeller;
 
-      let seller = await Shop.findOne({ email });
-
-      if (seller) {
-        return next(new ErrorHandler("User already exists", 400));
+      // Kiểm tra shop đã tồn tại
+      const existingSeller = await Shop.findOne({ email });
+      if (existingSeller) {
+        return next(new ErrorHandler("Shop đã tồn tại", 400));
       }
 
-      seller = await Shop.create({
+      // Tạo shop
+      console.log("Tạo shop:", email);
+      const seller = await Shop.create({
         name,
         email,
-        avatar,
-        password,
+        password: password || undefined, // Xử lý mật khẩu undefined
+        avatar: avatar || "default-avatar.png", // Avatar mặc định
         zipCode,
         address,
         phoneNumber,
       });
 
+      console.log("Shop đã được tạo:", seller.email);
       sendShopToken(seller, 201, res);
-    } catch (error) {
-      return next(new ErrorHandler(error.message, 500));
+    } catch (err) {
+      console.error("Lỗi kích hoạt:", err);
+      if (err.name === "TokenExpiredError") {
+        return next(new ErrorHandler("Token kích hoạt đã hết hạn", 400));
+      }
+      return next(new ErrorHandler("Token kích hoạt không hợp lệ", 400));
     }
   })
 );
+
 
 // login shop
 router.post(

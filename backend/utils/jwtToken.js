@@ -6,31 +6,13 @@ const sendToken = async (user, statusCode, res) => {
   user.refreshToken = refreshToken;
   await user.save({ validateBeforeSave: false });
 
-  // Options cho access token cookie
-  const accessTokenOptions = {
-    expires: new Date(Date.now() + 30 * 60 * 1000), // 15 phút
-    // httpOnly: true,
-    sameSite: "none",
-    secure: true,
-  };
-
-  // Options cho refresh token cookie
-  const refreshTokenOptions = {
-    expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 ngày
-    // httpOnly: true,
-    sameSite: "none",
-    secure: true,
-  };
-
-  res
-    .status(statusCode)
-    .cookie("accessToken", accessToken, accessTokenOptions)
-    .cookie("refreshToken", refreshToken, refreshTokenOptions)
-    .json({
-      success: true,
-      user,
-      accessToken,
-    });
+  // Trả token trong response body
+  res.status(statusCode).json({
+    success: true,
+    user,
+    accessToken,
+    refreshToken,
+  });
 };
 
 module.exports = sendToken;

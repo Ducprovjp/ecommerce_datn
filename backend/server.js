@@ -33,6 +33,8 @@ app.use(
       process.env.REACT_APP_FRONT_END_URL,
     ],
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 

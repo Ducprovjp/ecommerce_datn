@@ -7,6 +7,7 @@ import Header from "../../components/Layout/Header";
 import Loader from "../../components/Layout/Loader";
 import ProductCard from "../../components/Route/ProductCard/ProductCard";
 import styles from "../../styles/styles";
+import { categoriesData } from "../../static/data"
 
 const ProductsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -125,23 +126,23 @@ const ProductsPage = () => {
   };
 
   // Lấy danh sách danh mục duy nhất từ API
-  const [categories, setCategories] = useState([]);
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const response = await axios.get(`${process.env.REACT_APP_SERVER}/product/get-all-products`, {
-          withCredentials: true,
-        });
-        const uniqueCategories = [
-          ...new Set(response.data.products.map((p) => p.category)),
-        ];
-        setCategories(uniqueCategories);
-      } catch (error) {
-        console.error("Error fetching categories:", error);
-      }
-    };
-    fetchCategories();
-  }, []);
+  // const [categories, setCategories] = useState([]);
+  // useEffect(() => {
+  //   const fetchCategories = async () => {
+  //     try {
+  //       const response = await axios.get(`${process.env.REACT_APP_SERVER}/product/get-all-products`, {
+  //         withCredentials: true,
+  //       });
+  //       const uniqueCategories = [
+  //         ...new Set(response.data.products.map((p) => p.category)),
+  //       ];
+  //       setCategories(uniqueCategories);
+  //     } catch (error) {
+  //       console.error("Error fetching categories:", error);
+  //     }
+  //   };
+  //   fetchCategories();
+  // }, []);
 
   // Xử lý thay đổi chế độ xem
   const toggleViewMode = () => {
@@ -170,9 +171,9 @@ const ProductsPage = () => {
                     className="border p-2 rounded-md"
                   >
                     <option value="">All Categories</option>
-                    {categories.map((cat) => (
-                      <option key={cat} value={cat}>
-                        {cat}
+                    {categoriesData.map((category) => (
+                      <option key={category.id} value={category.title}>
+                        {category.title}
                       </option>
                     ))}
                   </select>
