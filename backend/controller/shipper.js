@@ -137,7 +137,7 @@ router.post(
   })
 );
 
-// Refresh token
+// Refresh token for shipper
 router.post(
   "/refresh-token",
   catchAsyncErrors(async (req, res, next) => {
@@ -178,7 +178,7 @@ router.post(
             await shipper.save({ validateBeforeSave: false });
           }
         } catch (error) {
-          // If refresh token is invalid, no action needed
+          // Nếu refresh token không hợp lệ, không cần làm gì thêm
         }
       }
 

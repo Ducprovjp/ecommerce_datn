@@ -14,18 +14,19 @@ const ShipperLogin = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await postRequest("/shipper/login-shipper", {
-        email,
-        password,
-      });
+      const res = await postRequest("/shipper/login-shipper", { email, password });
       if (!res.success) {
         throw new Error(res.message || "Login failed");
       }
+      localStorage.setItem("shipper_accessToken", res.accessToken);
+      localStorage.setItem("shipper_refreshToken", res.refreshToken);
+      localStorage.setItem("role", "shipper");
       toast.success("Login Success!");
       navigate("/shipper-dashboard");
       window.location.reload(true);
-    } catch (err) {
-      toast.error(err.message);
+    } catch (error) {
+      console.error("Shipper login error:", error);
+      toast.error(error.message || "Login failed");
     }
   };
 
@@ -38,6 +39,9 @@ const ShipperLogin = () => {
       if (!res.success) {
         throw new Error(res.message || "Google Login Failed");
       }
+      localStorage.setItem("shipper_accessToken", res.accessToken);
+      localStorage.setItem("shipper_refreshToken", res.refreshToken);
+      localStorage.setItem("role", "shipper");
       toast.success("Google Login Success!");
       navigate("/shipper-dashboard");
       window.location.reload(true);
