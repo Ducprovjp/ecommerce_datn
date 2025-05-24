@@ -1,13 +1,13 @@
 import { Button } from "@material-ui/core";
 import { DataGrid } from "@material-ui/data-grid";
-import axios from "axios";
 import React, { useEffect, useState } from "react";
 import { AiOutlineDelete } from "react-icons/ai";
 import { RxCross1 } from "react-icons/rx";
-import { useDispatch, useSelector } from "react-redux";
+import { useSelector } from "react-redux";
 import styles from "../../styles/styles";
 import Loader from "../Layout/Loader";
 import { toast } from "react-toastify";
+import { getRequest, postRequest, deleteRequest } from "../../request/api";
 
 const AllCoupons = () => {
   const [open, setOpen] = useState(false);
@@ -25,60 +25,62 @@ const AllCoupons = () => {
   const { seller } = useSelector((state) => state.seller);
   const { products } = useSelector((state) => state.products);
 
-  const dispatch = useDispatch();
-
   useEffect(() => {
     setIsLoading(true);
-    axios
-      .get(`${process.env.REACT_APP_SERVER}/coupon/get-coupon/${seller._id}`, {
-        withCredentials: true,
-      })
+    getRequest(`/coupon/get-coupon/${seller._id}`)
       .then((res) => {
+        if (!res.success) {
+          throw new Error(res.message || "Failed to fetch coupons");
+        }
+        setCoupouns(res.couponCodes);
         setIsLoading(false);
-        setCoupouns(res.data.couponCodes);
       })
       .catch((error) => {
+        console.error("Fetch coupons error:", error);
+        toast.error(error.message || "Failed to fetch coupons");
         setIsLoading(false);
       });
-  }, [dispatch]);
+  }, []);
 
   const handleDelete = async (id) => {
-    axios
-      .delete(`${process.env.REACT_APP_SERVER}/coupon/delete-coupon/${id}`, { withCredentials: true })
-      .then((res) => {
-        toast.success("Coupon code deleted succesfully!");
-      });
-    window.location.reload();
+    try {
+      const res = await deleteRequest(`/coupon/delete-coupon/${id}`);
+      if (!res.success) {
+        throw new Error(res.message || "Failed to delete coupon");
+      }
+      toast.success("Coupon code deleted successfully!");
+      window.location.reload();
+    } catch (error) {
+      console.error("Delete coupon error:", error);
+      toast.error(error.message || "Failed to delete coupon");
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    await axios
-      .post(
-        `${process.env.REACT_APP_SERVER}/coupon/create-coupon-code`,
-        {
-          name,
-          minAmount,
-          maxAmount,
-          selectedProducts,
-          value,
-          discountType,
-          startDate: startDate ? new Date(startDate) : new Date(),
-          endDate: new Date(endDate),
-          usageLimit,
-          shopId: seller._id,
-        },
-        { withCredentials: true }
-      )
-      .then((res) => {
-        toast.success("Coupon code created successfully!");
-        setOpen(false);
-        window.location.reload();
-      })
-      .catch((error) => {
-        toast.error(error.response.data.message);
+    try {
+      const res = await postRequest("/coupon/create-coupon-code", {
+        name,
+        minAmount,
+        maxAmount,
+        selectedProducts,
+        value,
+        discountType,
+        startDate: startDate ? new Date(startDate) : new Date(),
+        endDate: new Date(endDate),
+        usageLimit,
+        shopId: seller._id, 
       });
+      if (!res.success) {
+        throw new Error(res.message || "Failed to create coupon");
+      }
+      toast.success("Coupon code created successfully!");
+      setOpen(false);
+      window.location.reload();
+    } catch (error) {
+      console.error("Create coupon error:", error);
+      toast.error(error.message || "Failed to create coupon");
+    }
   };
 
   const columns = [
@@ -122,11 +124,9 @@ const AllCoupons = () => {
       sortable: false,
       renderCell: (params) => {
         return (
-          <>
-            <Button onClick={() => handleDelete(params.id)}>
-              <AiOutlineDelete size={20} />
-            </Button>
-          </>
+          <Button onClick={() => handleDelete(params.id)}>
+            <AiOutlineDelete size={20} />
+          </Button>
         );
       },
     },
@@ -181,9 +181,8 @@ const AllCoupons = () => {
                   />
                 </div>
                 <h5 className="text-[30px] font-Poppins text-center">
-                  Create Coupon code
+                  Create Coupon Code
                 </h5>
-                {/* create coupoun code */}
                 <form onSubmit={handleSubmit} aria-required={true}>
                   <div>
                     <label className="pb-2">
@@ -254,7 +253,7 @@ const AllCoupons = () => {
                       value={maxAmount}
                       className="mt-2 appearance-none block w-full px-3 h-[35px] border border-gray-300 rounded-[3px] placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                       onChange={(e) => setMaxAmount(e.target.value)}
-                      placeholder="Set maximum discount amount... "
+                      placeholder="Set maximum discount amount..."
                     />
                   </div>
 

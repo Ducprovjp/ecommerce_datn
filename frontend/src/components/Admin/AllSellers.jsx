@@ -5,7 +5,7 @@ import { AiOutlineDelete, AiOutlineEye } from "react-icons/ai";
 import { Button } from "@material-ui/core";
 import styles from "../../styles/styles";
 import { RxCross1 } from "react-icons/rx";
-import axios from "axios";
+import { deleteRequest } from "../../request/api"; // Import deleteRequest
 import { toast } from "react-toastify";
 import { getAllSellers } from "../../redux/actions/sellers";
 import { Link } from "react-router-dom";
@@ -21,21 +21,24 @@ const AllSellers = () => {
   }, [dispatch]);
 
   const handleDelete = async (id) => {
-    await axios
-      .delete(`${process.env.REACT_APP_SERVER}/shop/delete-seller/${id}`, { withCredentials: true })
-      .then((res) => {
-        toast.success(res.data.message);
-      });
-
-    dispatch(getAllSellers());
+    try {
+      const res = await deleteRequest(`/shop/delete-seller/${id}`);
+      if (!res.success) {
+        throw new Error(res.message || "Failed to delete seller");
+      }
+      toast.success(res.message);
+      dispatch(getAllSellers());
+    } catch (error) {
+      console.error("Delete seller error:", error);
+      toast.error(error.message || "Failed to delete seller");
+    }
   };
 
   const columns = [
     { field: "id", headerName: "Seller ID", minWidth: 150, flex: 0.7 },
-
     {
       field: "name",
-      headerName: "name",
+      headerName: "Name",
       minWidth: 130,
       flex: 0.7,
     },
@@ -53,16 +56,15 @@ const AllSellers = () => {
       minWidth: 130,
       flex: 0.7,
     },
-
     {
       field: "joinedAt",
-      headerName: "joinedAt",
+      headerName: "Joined At",
       type: "text",
       minWidth: 130,
       flex: 0.8,
     },
     {
-      field: "  ",
+      field: "Preview",
       flex: 1,
       minWidth: 150,
       headerName: "Preview Shop",
@@ -81,7 +83,7 @@ const AllSellers = () => {
       },
     },
     {
-      field: " ",
+      field: "Delete",
       flex: 1,
       minWidth: 150,
       headerName: "Delete Seller",
@@ -114,7 +116,7 @@ const AllSellers = () => {
   return (
     <div className="w-full flex justify-center pt-5">
       <div className="w-[97%]">
-        <h3 className="text-[22px] font-Poppins pb-2">All Users</h3>
+        <h3 className="text-[22px] font-Poppins pb-2">All Sellers</h3>
         <div className="w-full min-h-[45vh] bg-white rounded">
           <DataGrid
             rows={row}
@@ -131,20 +133,20 @@ const AllSellers = () => {
                 <RxCross1 size={25} onClick={() => setOpen(false)} />
               </div>
               <h3 className="text-[25px] text-center py-5 font-Poppins text-[#000000cb]">
-                Are you sure you wanna delete this user?
+                Are you sure you want to delete this seller?
               </h3>
               <div className="w-full flex items-center justify-center">
                 <div
                   className={`${styles.button} text-white text-[18px] !h-[42px] mr-4`}
                   onClick={() => setOpen(false)}
                 >
-                  cancel
+                  Cancel
                 </div>
                 <div
                   className={`${styles.button} text-white text-[18px] !h-[42px] ml-4`}
                   onClick={() => setOpen(false) || handleDelete(userId)}
                 >
-                  confirm
+                  Confirm
                 </div>
               </div>
             </div>

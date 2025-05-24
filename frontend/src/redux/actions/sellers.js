@@ -1,24 +1,23 @@
-import axios from "axios";
+import { getRequest } from "../../request/api";
 
 // get all sellers --- admin
 export const getAllSellers = () => async (dispatch) => {
   try {
-    dispatch({
-      type: "getAllSellersRequest",
-    });
+    dispatch({ type: "getAllSellersRequest" });
 
-    const { data } = await axios.get(`${process.env.REACT_APP_SERVER}/shop/admin-all-sellers`, {
-      withCredentials: true,
-    });
-
+    const res = await getRequest("/shop/admin-all-sellers");
+    if (!res.success) {
+      throw new Error(res.message || "Failed to fetch sellers");
+    }
     dispatch({
       type: "getAllSellersSuccess",
-      payload: data.sellers,
+      payload: res.sellers,
     });
   } catch (error) {
+    console.error("Fetch sellers error:", error);
     dispatch({
-      type: "getAllSellerFailed",
-      //   payload: error.response.data.message,
+      type: "getAllSellersFailed",
+      payload: error.message || "Failed to fetch sellers",
     });
   }
 };

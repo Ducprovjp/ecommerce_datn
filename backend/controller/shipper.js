@@ -55,7 +55,7 @@ router.post(
         });
         res.status(201).json({
           success: true,
-          message: `please check your email: ${shipper.email} to activate your account!`,
+          message: `Please check your email: ${shipper.email} to activate your account!`,
         });
       } catch (error) {
         return next(new ErrorHandler(error.message, 500));
@@ -87,8 +87,7 @@ router.post(
       if (!newShipper) {
         return next(new ErrorHandler("Invalid token", 400));
       }
-      const { name, email, password, avatar, address, phoneNumber } =
-        newShipper;
+      const { name, email, password, avatar, address, phoneNumber } = newShipper;
 
       let shipper = await Shipper.findOne({ email });
       if (shipper) {
@@ -118,22 +117,75 @@ router.post(
     try {
       const { email, password } = req.body;
       if (!email || !password) {
-        return next(new ErrorHandler("Please provide all fields!", 400));
+        return next(new ErrorHandler("Please provide all fields", 400));
       }
 
       const user = await Shipper.findOne({ email }).select("+password");
       if (!user) {
-        return next(new ErrorHandler("User doesn't exist!", 400));
+        return next(new ErrorHandler("User doesn't exist", 400));
       }
 
       const isPasswordValid = await user.comparePassword(password);
       if (!isPasswordValid) {
-        return next(
-          new ErrorHandler("Please provide the correct information", 400)
-        );
+        return next(new ErrorHandler("Incorrect password", 400));
       }
 
       sendShipperToken(user, 201, res);
+    } catch (error) {
+      return next(new ErrorHandler(error.message, 500));
+    }
+  })
+);
+
+// Refresh token
+router.post(
+  "/refresh-token",
+  catchAsyncErrors(async (req, res, next) => {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      return next(new ErrorHandler("Refresh token not found", 401));
+    }
+
+    try {
+      const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_TOKEN_SECRET || process.env.JWT_SECRET_KEY);
+      const shipper = await Shipper.findById(decoded.id);
+
+      if (!shipper || shipper.refreshToken !== refreshToken) {
+        return next(new ErrorHandler("Invalid refresh token", 401));
+      }
+
+      sendShipperToken(shipper, 200, res);
+    } catch (error) {
+      return next(new ErrorHandler("Invalid or expired refresh token", 401));
+    }
+  })
+);
+
+// Logout shipper
+router.post(
+  "/logout",
+  catchAsyncErrors(async (req, res, next) => {
+    try {
+      const { refreshToken } = req.body;
+
+      if (refreshToken) {
+        try {
+          const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_TOKEN_SECRET || process.env.JWT_SECRET_KEY);
+          const shipper = await Shipper.findById(decoded.id);
+          if (shipper && shipper.refreshToken === refreshToken) {
+            shipper.refreshToken = null;
+            await shipper.save({ validateBeforeSave: false });
+          }
+        } catch (error) {
+          // If refresh token is invalid, no action needed
+        }
+      }
+
+      res.status(200).json({
+        success: true,
+        message: "Logged out successfully",
+      });
     } catch (error) {
       return next(new ErrorHandler(error.message, 500));
     }
@@ -158,26 +210,7 @@ router.get(
   })
 );
 
-// Logout shipper
-router.get(
-  "/logout",
-  catchAsyncErrors(async (req, res, next) => {
-    try {
-      res.cookie("shipper_token", null, {
-        expires: new Date(Date.now()),
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "PRODUCTION", // HTTPS trong PRODUCTION
-        sameSite: process.env.NODE_ENV === "PRODUCTION" ? "none" : "lax", // Cross-origin trong production
-        path: "/", // Áp dụng cho toàn bộ domain
-      });
-      res.status(201).json({ success: true, message: "Logout successful!" });
-    } catch (error) {
-      return next(new ErrorHandler(error.message, 500));
-    }
-  })
-);
-
-// get shipper info
+// Get shipper info by ID
 router.get(
   "/get-shipper-info/:id",
   catchAsyncErrors(async (req, res, next) => {
@@ -247,7 +280,7 @@ router.put(
   })
 );
 
-// update shipper delivery area
+// Update shipper delivery area
 router.post(
   "/update-shipper-delivered-area",
   isShipper,
@@ -261,7 +294,7 @@ router.post(
       if (existsDeliveredArea) {
         Object.assign(existsDeliveredArea, req.body);
       } else {
-        // add the new delivery area to the array
+        // Add the new delivery area to the array
         shipper.deliveredArea.push(req.body);
       }
 
@@ -277,6 +310,7 @@ router.post(
   })
 );
 
+// Delete shipper delivery area
 router.delete(
   "/delete-shipper-delivered-area/:id",
   isShipper,
@@ -288,9 +322,7 @@ router.delete(
       //   console.log(deliveredAreaId);
 
       await Shipper.updateOne(
-        {
-          _id: shipperId,
-        },
+        { _id: shipperId },
         { $pull: { deliveredArea: { _id: deliveredAreaId } } }
       );
 
@@ -327,13 +359,11 @@ router.delete(
     try {
       const shipper = await Shipper.findById(req.params.id);
       if (!shipper) {
-        return next(new ErrorHandler("Shipper not found with this ID", 400));
+        return next(new ErrorHandler("Shipper not found", 400));
       }
 
       await Shipper.findByIdAndDelete(req.params.id);
-      res
-        .status(201)
-        .json({ success: true, message: "Shipper deleted successfully!" });
+      res.status(201).json({ success: true, message: "Shipper deleted successfully" });
     } catch (error) {
       return next(new ErrorHandler(error.message, 500));
     }

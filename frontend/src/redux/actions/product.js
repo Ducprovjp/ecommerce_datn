@@ -1,27 +1,23 @@
-import axios from "axios";
+import { getRequest, postRequest, putRequest, deleteRequest } from "../../request/api";
 
 // create product
 export const createProduct = (newForm) => async (dispatch) => {
   try {
-    dispatch({
-      type: "productCreateRequest",
-    });
+    dispatch({ type: "productCreateRequest" });
 
-    const config = { headers: { "Content-Type": "multipart/form-data" } };
-
-    const { data } = await axios.post(
-      `${process.env.REACT_APP_SERVER}/product/create-product`,
-      newForm,
-      config
-    );
+    const res = await postRequest("/product/create-product", newForm);
+    if (!res.success) {
+      throw new Error(res.message || "Failed to create product");
+    }
     dispatch({
       type: "productCreateSuccess",
-      payload: data.product,
+      payload: res.product,
     });
   } catch (error) {
+    console.error("Create product error:", error);
     dispatch({
       type: "productCreateFail",
-      payload: error.response.data.message,
+      payload: error.message || "Failed to create product",
     });
   }
 };
@@ -31,27 +27,19 @@ export const updateProduct = (id, updatedFormData) => async (dispatch) => {
   try {
     dispatch({ type: "updateProductRequest" });
 
-    const config = {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-      withCredentials: true,
-    };
-
-    const { data } = await axios.put(
-      `${process.env.REACT_APP_SERVER}/product/update-product/${id}`,
-      updatedFormData,
-      config
-    );
-
+    const res = await putRequest(`/product/update-product/${id}`, updatedFormData);
+    if (!res.success) {
+      throw new Error(res.message || "Failed to update product");
+    }
     dispatch({
       type: "updateProductSuccess",
-      payload: data.product,
+      payload: res.product,
     });
   } catch (error) {
+    console.error("Update product error:", error);
     dispatch({
       type: "updateProductFailed",
-      payload: error.response.data.message,
+      payload: error.message || "Failed to update product",
     });
   }
 };
@@ -59,21 +47,21 @@ export const updateProduct = (id, updatedFormData) => async (dispatch) => {
 // get All Products of a shop
 export const getAllProductsShop = (id) => async (dispatch) => {
   try {
-    dispatch({
-      type: "getAllProductsShopRequest",
-    });
+    dispatch({ type: "getAllProductsShopRequest" });
 
-    const { data } = await axios.get(
-      `${process.env.REACT_APP_SERVER}/product/get-all-products-shop/${id}`
-    );
+    const res = await getRequest(`/product/get-all-products-shop/${id}`);
+    if (!res.success) {
+      throw new Error(res.message || "Failed to fetch shop products");
+    }
     dispatch({
       type: "getAllProductsShopSuccess",
-      payload: data.products,
+      payload: res.products,
     });
   } catch (error) {
+    console.error("Fetch shop products error:", error);
     dispatch({
       type: "getAllProductsShopFailed",
-      payload: error.response.data.message,
+      payload: error.message || "Failed to fetch shop products",
     });
   }
 };
@@ -81,25 +69,21 @@ export const getAllProductsShop = (id) => async (dispatch) => {
 // delete product of a shop
 export const deleteProduct = (id) => async (dispatch) => {
   try {
-    dispatch({
-      type: "deleteProductRequest",
-    });
+    dispatch({ type: "deleteProductRequest" });
 
-    const { data } = await axios.delete(
-      `${process.env.REACT_APP_SERVER}/product/delete-shop-product/${id}`,
-      {
-        withCredentials: true,
-      }
-    );
-
+    const res = await deleteRequest(`/product/delete-shop-product/${id}`);
+    if (!res.success) {
+      throw new Error(res.message || "Failed to delete product");
+    }
     dispatch({
       type: "deleteProductSuccess",
-      payload: data.message,
+      payload: res.message,
     });
   } catch (error) {
+    console.error("Delete product error:", error);
     dispatch({
       type: "deleteProductFailed",
-      payload: error.response.data.message,
+      payload: error.message || "Failed to delete product",
     });
   }
 };
@@ -107,19 +91,21 @@ export const deleteProduct = (id) => async (dispatch) => {
 // get all products
 export const getAllProducts = () => async (dispatch) => {
   try {
-    dispatch({
-      type: "getAllProductsRequest",
-    });
+    dispatch({ type: "getAllProductsRequest" });
 
-    const { data } = await axios.get(`${process.env.REACT_APP_SERVER}/product/get-all-products`);
+    const res = await getRequest("/product/get-all-products");
+    if (!res.success) {
+      throw new Error(res.message || "Failed to fetch all products");
+    }
     dispatch({
       type: "getAllProductsSuccess",
-      payload: data.products,
+      payload: res.products,
     });
   } catch (error) {
+    console.error("Fetch all products error:", error);
     dispatch({
       type: "getAllProductsFailed",
-      payload: error.response.data.message,
+      payload: error.message || "Failed to fetch all products",
     });
   }
 };

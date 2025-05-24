@@ -2,8 +2,8 @@ import React, { useState, useEffect } from "react";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import styles from "../../styles/styles";
 import { Link, useNavigate } from "react-router-dom";
-import axios from "axios";
 import { toast } from "react-toastify";
+import { postRequest } from "../../request/api"; // Import postRequest từ api.js
 
 const ShipperLogin = () => {
   const navigate = useNavigate();
@@ -13,39 +13,37 @@ const ShipperLogin = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    await axios
-      .post(
-        `${process.env.REACT_APP_SERVER}/shipper/login-shipper`,
-        {
-          email,
-          password,
-        },
-        { withCredentials: true }
-      )
-      .then((res) => {
-        toast.success("Login Success!");
-        navigate("/shipper-dashboard");
-        window.location.reload(true);
-      })
-      .catch((err) => {
-        toast.error(err.response.data.message);
+    try {
+      const res = await postRequest("/shipper/login-shipper", {
+        email,
+        password,
       });
+      if (!res.success) {
+        throw new Error(res.message || "Login failed");
+      }
+      toast.success("Login Success!");
+      navigate("/shipper-dashboard");
+      window.location.reload(true);
+    } catch (err) {
+      toast.error(err.message);
+    }
   };
 
   const handleGoogleSignIn = async (response) => {
     console.log("Google Sign-In response:", response);
     try {
-      await axios.post(
-        `${process.env.REACT_APP_SERVER}/shipper/auth/google`,
-        { id_token: response.credential },
-        { withCredentials: true }
-      );
+      const res = await postRequest("/shipper/auth/google", {
+        id_token: response.credential,
+      });
+      if (!res.success) {
+        throw new Error(res.message || "Google Login Failed");
+      }
       toast.success("Google Login Success!");
       navigate("/shipper-dashboard");
       window.location.reload(true);
     } catch (err) {
-      console.error("Google login error:", err.response?.data);
-      toast.error(err.response?.data?.message || "Google Login Failed");
+      console.error("Google login error:", err);
+      toast.error(err.message || "Google Login Failed");
     }
   };
 

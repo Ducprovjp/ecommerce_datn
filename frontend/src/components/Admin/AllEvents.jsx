@@ -4,15 +4,13 @@ import axios from "axios";
 import React, { useEffect, useState } from "react";
 import { AiOutlineEye } from "react-icons/ai";
 import { Link } from "react-router-dom";
+import { getRequest } from "../../request/api";
 
 const AllEvents = () => {
   const [events, setEvents] = useState([]);
   useEffect(() => {
-    axios
-      .get(`${process.env.REACT_APP_SERVER}/event/admin-all-events`, { withCredentials: true })
-      .then((res) => {
-        setEvents(res.data.events);
-      });
+    const res = getRequest("/event/admin-all-events");
+    setEvents(res.events);
   }, []);
 
   const columns = [

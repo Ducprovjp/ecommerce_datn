@@ -3,7 +3,7 @@ import styles from "../styles/styles";
 import { BsFillBagFill } from "react-icons/bs";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
-import axios from "axios";
+import { putRequest } from "../request/api"; // Import từ api.js
 import { RxCross1 } from "react-icons/rx";
 import { getAllOrdersOfUser } from "../redux/actions/order";
 import { useDispatch, useSelector } from "react-redux";
@@ -38,26 +38,27 @@ const UserOrderDetails = () => {
           ? "/product/create-new-review"
           : "/event/create-new-review-event";
 
-      const res = await axios.put(
-        `${process.env.REACT_APP_SERVER}${endpoint}`,
-        {
-          user,
-          rating,
-          comment,
-          productId: selectedItem?._id,
-          orderId: id,
-        },
-        { withCredentials: true }
-      );
+      const response = await putRequest(endpoint, {
+        user,
+        rating,
+        comment,
+        productId: selectedItem?._id,
+        orderId: id,
+      });
 
-      toast.success(res.data.message);
+      if (!response.success) {
+        toast.error(response.message || "Failed to submit review");
+        return;
+      }
+
+      toast.success(response.message);
       dispatch(getAllOrdersOfUser(user._id));
       setComment("");
       setRating(null);
       setOpen(false);
     } catch (error) {
-      console.error(error); // Log the error to the console for debugging
-      toast.error("An error occurred. Please try again."); // Display a generic error message
+      console.error("Review error:", error);
+      toast.error("An error occurred. Please try again.");
     }
   };
 
@@ -68,32 +69,35 @@ const UserOrderDetails = () => {
     }
   };
 
-  // Refund
   const refundHandler = async () => {
-    await axios
-      .put(`${process.env.REACT_APP_SERVER}/order/order-refund/${id}`, {
+    try {
+      const response = await putRequest(`/order/order-refund/${id}`, {
         status: "Processing refund",
-      })
-      .then((res) => {
-        toast.success(res.data.message);
-        dispatch(getAllOrdersOfUser(user._id));
-      })
-      .catch((error) => {
-        toast.error(error.response.data.message);
       });
+
+      if (!response.success) {
+        toast.error(response.message || "Failed to request refund");
+        return;
+      }
+
+      toast.success(response.message);
+      dispatch(getAllOrdersOfUser(user._id));
+    } catch (error) {
+      console.error("Refund error:", error);
+      toast.error("An error occurred. Please try again.");
+    }
   };
 
   return (
     <div className={`py-4 min-h-screen ${styles.section}`}>
-      <div className="w=full flex items-center justify-between">
+      <div className="w-full flex items-center justify-between">
         <div className="flex items-center">
           <BsFillBagFill size={30} color="crimson" />
           <h1 className="pl-2 text-[25px]">Order Details</h1>
         </div>
-        {/* phần thêm vào */}
         <button
           onClick={handleGoToOrders}
-          className={`${styles.button} !bg-[#f63b60]  font-[600] !h-[45px] text-[18px]`}
+          className={`${styles.button} !bg-[#f63b60] font-[600] !h-[45px] text-[18px]`}
         >
           Order List
         </button>
@@ -103,7 +107,7 @@ const UserOrderDetails = () => {
         <h5 className="text-[#00000084]">
           order ID: <span>#{data?._id?.slice(0, 8)}</span>
         </h5>
-        <h5 className="text-[#000000084]">
+        <h5 className="text-[#00000084]">
           Placed On: <span>{data?.createdAt?.slice(0, 10)}</span>
         </h5>
       </div>
@@ -114,11 +118,11 @@ const UserOrderDetails = () => {
       {data &&
         data?.cart.map((item, index) => {
           return (
-            <div className="w-full flex items-start mb-5">
+            <div className="w-full flex items-start mb-5" key={index}>
               <img
                 src={item.images[0]}
                 alt="Product item order img"
-                className="w-[80x] h-[80px]"
+                className="w-[80px] h-[80px]"
               />
               <div className="w-full">
                 <h5 className="pl-3 text-[20px]">{item.name}</h5>
@@ -141,8 +145,8 @@ const UserOrderDetails = () => {
 
       {/* Review Popup */}
       {open && (
-        <div className="w-full  top-0 left-0 h-screen bg-[#0005] z-50 flex items-center justify-center">
-          <div className="w-[50%] h-min bg-[#fff] shadow rounded-md p-3 ">
+        <div className="w-full top-0 left-0 h-screen bg-[#0005] z-50 flex items-center justify-center">
+          <div className="w-[50%] h-min bg-[#fff] shadow rounded-md p-3">
             <div className="w-full flex justify-end p-3">
               <RxCross1
                 size={30}
@@ -208,12 +212,11 @@ const UserOrderDetails = () => {
               </label>
               <textarea
                 name="comment"
-                id=""
                 cols="20"
                 rows="5"
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
-                placeholder="How was your product? write your expresion about it!"
+                placeholder="How was your product? Write your expression about it!"
                 className="mt-2 w-[95%] border p-2 outline-none"
               ></textarea>
             </div>
@@ -237,26 +240,21 @@ const UserOrderDetails = () => {
       <br />
 
       {/* Shipping Address */}
-
       <div className="w-full 800px:flex items-center">
         <div className="w-full 800px:w-[60%]">
           <h4 className="pt-3 text-[20px] font-[600]">Shipping Address:</h4>
-
           <h4 className="pt-3 text-[20px]">{data?.shippingAddress.address1}</h4>
-          <h4 className=" text-[20px]">
+          <h4 className="text-[20px]">
             {data?.shippingAddress.ward}, {data?.shippingAddress.district},{" "}
             {data?.shippingAddress.province}
           </h4>
-
-          <h4 className=" text-[20px]">{data?.user?.phoneNumber}</h4>
+          <h4 className="text-[20px]">{data?.user?.phoneNumber}</h4>
         </div>
 
         <div className="w-full 800px:w-[40%]">
           <h4 className="pt-3 text-[20px] font-[600]">Payment Info:</h4>
           <h4>
             Status:{" "}
-            {/* checks if the `status` property exists
-                     in the `paymentInfo` object within the `data` object. */}
             {data?.paymentInfo?.status ? data?.paymentInfo?.status : "Not Paid"}
           </h4>
           <br />

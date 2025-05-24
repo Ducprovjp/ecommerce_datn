@@ -1,5 +1,6 @@
 import axios from "axios";
 import React, { useEffect, useState } from "react";
+import { deleteRequest } from "../../request/api";
 
 const CountDown = ({ data }) => {
   const [timeLeft, setTimeLeft] = useState(calculateTimeLeft());
@@ -14,7 +15,7 @@ const CountDown = ({ data }) => {
       typeof timeLeft.minutes === "undefined" &&
       typeof timeLeft.seconds === "undefined"
     ) {
-      axios.delete(`${process.env.REACT_APP_SERVER}/event/delete-shop-event/${data._id}`);
+      deleteRequest(`/event/delete-shop-event/${data._id}`);
     }
     return () => clearInterval(timeLeft);
   });

@@ -25,6 +25,7 @@ import {
 import Loader from "../Layout/Loader";
 import axios from "axios";
 import { categoriesData } from "../../static/data";
+import { postRequest } from "../../request/api";
 
 const AllProducts = () => {
   const { products, isLoading } = useSelector((state) => state.products);
@@ -104,21 +105,15 @@ const AllProducts = () => {
     }
 
     try {
-      const res = await axios.post(
-        `${process.env.REACT_APP_SERVER}/product/upload-image`,
+      const res = await postRequest(
+        "/product/upload-image",
         uploadFormData,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-          withCredentials: true,
-        }
       );
 
-      if (res.data.success) {
+      if (res.success) {
         setFormData({
           ...formData,
-          images: [...formData.images, ...res.data.imageUrls],
+          images: [...formData.images, ...res.imageUrls],
         });
       } else {
         alert("Failed to upload images");

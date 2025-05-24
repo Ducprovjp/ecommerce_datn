@@ -13,6 +13,7 @@ import { useSelector } from "react-redux";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { RxCross1 } from "react-icons/rx";
+import { postRequest } from "../../request/api";
 
 const Payment = () => {
   const [orderData, setOrderData] = useState([]);
@@ -27,13 +28,11 @@ const Payment = () => {
     setOrderData(orderData);
   }, []);
 
-  // Pay-pal
+  // PayPal
   const createOrder = (data, actions) => {
-    // Giả sử totalPrice ban đầu là VND
     const totalPriceInVND = orderData?.totalPrice;
-    // Tỷ giá chuyển đổi (cập nhật theo tỷ giá thực tế)
-    const exchangeRate = 24000; // 1 USD = 24,000 VND (ví dụ)
-    const totalPriceInUSD = (totalPriceInVND / exchangeRate).toFixed(2); // Chuyển sang USD và làm tròn 2 chữ số
+    const exchangeRate = 24000; // 1 USD = 24,000 VND (cập nhật tỷ giá thực tế)
+    const totalPriceInUSD = (totalPriceInVND / exchangeRate).toFixed(2);
 
     return actions.order
       .create({
@@ -41,8 +40,8 @@ const Payment = () => {
           {
             description: "Thanh toán đơn hàng",
             amount: {
-              currency_code: "USD", // PayPal chỉ chấp nhận các loại tiền tệ được hỗ trợ
-              value: totalPriceInUSD, // Số tiền đã chuyển đổi sang USD
+              currency_code: "USD",
+              value: totalPriceInUSD,
             },
           },
         ],
@@ -50,9 +49,7 @@ const Payment = () => {
           shipping_preference: "NO_SHIPPING",
         },
       })
-      .then((orderID) => {
-        return orderID;
-      });
+      .then((orderID) => orderID);
   };
 
   const order = {
@@ -63,39 +60,41 @@ const Payment = () => {
   };
 
   const onApprove = async (data, actions) => {
-    return actions.order.capture().then(function (details) {
+    try {
+      const details = await actions.order.capture();
       const { payer } = details;
-
-      let paymentInfo = payer;
-
-      if (paymentInfo !== undefined) {
-        paypalPaymentHandler(paymentInfo);
+      if (payer) {
+        await paypalPaymentHandler(payer);
       }
-    });
+    } catch (error) {
+      console.error("PayPal capture error:", error);
+      toast.error(error.message || "Failed to capture PayPal payment");
+    }
   };
 
   const paypalPaymentHandler = async (paymentInfo) => {
-    const config = {
-      headers: {
-        "Content-Type": "application/json",
-      },
-    };
-    order.paymentInfo = {
-      id: paymentInfo.payer_id,
-      status: "succeeded",
-      type: "Paypal",
-    };
+    try {
+      order.paymentInfo = {
+        id: paymentInfo.payer_id,
+        status: "succeeded",
+        type: "Paypal",
+      };
 
-    await axios
-      .post(`${process.env.REACT_APP_SERVER}/order/create-order`, order, config)
-      .then((res) => {
-        setOpen(false);
-        navigate("/order/success");
-        toast.success("Order successful!");
-        localStorage.setItem("cartItems", JSON.stringify([]));
-        localStorage.setItem("latestOrder", JSON.stringify([]));
-        window.location.reload();
-      });
+      const res = await postRequest("/order/create-order", order);
+      if (!res.success) {
+        throw new Error(res.message || "Failed to create order");
+      }
+
+      setOpen(false);
+      navigate("/order/success");
+      toast.success("Order successful!");
+      localStorage.setItem("cartItems", JSON.stringify([]));
+      localStorage.setItem("latestOrder", JSON.stringify([]));
+      window.location.reload();
+    } catch (error) {
+      console.error("PayPal order error:", error);
+      toast.error(error.message || "Failed to create order");
+    }
   };
 
   const paymentData = {
@@ -105,21 +104,20 @@ const Payment = () => {
   const paymentHandler = async (e) => {
     e.preventDefault();
     try {
-      const config = {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      };
+      const paymentRes = await postRequest("/payment/process", paymentData);
+      if (!paymentRes.success) {
+        throw new Error(paymentRes.message || "Failed to process payment");
+      }
+      const client_secret = paymentRes.client_secret;
+      if (!client_secret) {
+        throw new Error("Missing client secret from payment response");
+      }
 
-      const { data } = await axios.post(
-        `${process.env.REACT_APP_SERVER}/payment/process`,
-        paymentData,
-        config
-      );
+      if (!stripe || !elements) {
+        toast.error("Stripe is not initialized");
+        return;
+      }
 
-      const client_secret = data.client_secret;
-
-      if (!stripe || !elements) return;
       const result = await stripe.confirmCardPayment(client_secret, {
         payment_method: {
           card: elements.getElement(CardNumberElement),
@@ -127,85 +125,85 @@ const Payment = () => {
       });
 
       if (result.error) {
-        toast.error(result.error.message);
-      } else {
-        if (result.paymentIntent.status === "succeeded") {
-          order.paymentInfo = {
-            id: result.paymentIntent.id,
-            status: result.paymentIntent.status,
-            type: "Credit Card",
-          };
-
-          await axios
-            .post(`${process.env.REACT_APP_SERVER}/order/create-order`, order, config)
-            .then((res) => {
-              setOpen(false);
-              navigate("/order/success");
-              toast.success("Order successful!");
-              localStorage.setItem("cartItems", JSON.stringify([]));
-              localStorage.setItem("latestOrder", JSON.stringify([]));
-              window.location.reload();
-            });
-        }
+        throw new Error(result.error.message);
       }
-    } catch (error) {
-      toast.error(error);
-    }
-  };
 
-  // Tạo URL thanh toán VNPAY
-  const createVNPAYPaymentUrl = async () => {
-    try {
-      const config = {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      };
-      const response = await axios.post(
-        `${process.env.REACT_APP_SERVER}/payment/vnpay`,
-        order,
-        config
-      );
-      return response.data.paymentUrl; // Server trả về URL thanh toán
-    } catch (error) {
-      toast.error("Lỗi khi tạo URL thanh toán VNPAY!");
-      console.error(error);
-    }
-  };
+      if (result.paymentIntent.status === "succeeded") {
+        order.paymentInfo = {
+          id: result.paymentIntent.id,
+          status: result.paymentIntent.status,
+          type: "Credit Card",
+        };
 
-  // Xử lý khi thanh toán thành công
-  const vnpayPaymentHandler = async () => {
-    const paymentUrl = await createVNPAYPaymentUrl();
-    if (paymentUrl) {
-      setOpen(true); // Mở popup để hiển thị URL
-      window.location.href = paymentUrl; // Chuyển hướng trực tiếp đến paymentUrl
-    }
-  };
+        const orderRes = await postRequest("/order/create-order", order);
+        if (!orderRes.success) {
+          throw new Error(orderRes.message || "Failed to create order");
+        }
 
-  //  Cash on Delevery Handler (COD)
-  const cashOnDeliveryHandler = async (e) => {
-    e.preventDefault();
-
-    const config = {
-      headers: {
-        "Content-Type": "application/json",
-      },
-    };
-
-    order.paymentInfo = {
-      type: "Cash On Delivery",
-    };
-
-    await axios
-      .post(`${process.env.REACT_APP_SERVER}/order/create-order`, order, config)
-      .then((res) => {
         setOpen(false);
         navigate("/order/success");
         toast.success("Order successful!");
         localStorage.setItem("cartItems", JSON.stringify([]));
         localStorage.setItem("latestOrder", JSON.stringify([]));
         window.location.reload();
-      });
+      } else {
+        throw new Error("Payment not successful");
+      }
+    } catch (error) {
+      console.error("Payment handler error:", error);
+      toast.error(error.message || "An error occurred during payment");
+    }
+  };
+
+  const createVNPAYPaymentUrl = async () => {
+    try {
+      const res = await postRequest("/payment/vnpay", order);
+      if (!res.success) {
+        throw new Error(res.message || "Failed to create VNPAY payment URL");
+      }
+      return res.paymentUrl;
+    } catch (error) {
+      console.error("VNPAY payment URL error:", error);
+      toast.error(error.message || "Failed to create VNPAY payment URL");
+      return null;
+    }
+  };
+
+  const vnpayPaymentHandler = async () => {
+    try {
+      const paymentUrl = await createVNPAYPaymentUrl();
+      if (!paymentUrl) {
+        throw new Error("No payment URL returned");
+      }
+      window.location.href = paymentUrl; // Chuyển hướng tới URL thanh toán
+    } catch (error) {
+      console.error("VNPAY handler error:", error);
+      toast.error(error.message || "Failed to initiate VNPAY payment");
+    }
+  };
+
+  const cashOnDeliveryHandler = async (e) => {
+    e.preventDefault();
+    try {
+      order.paymentInfo = {
+        type: "Cash On Delivery",
+      };
+
+      const res = await postRequest("/order/create-order", order);
+      if (!res.success) {
+        throw new Error(res.message || "Failed to create order");
+      }
+
+      setOpen(false);
+      navigate("/order/success");
+      toast.success("Order successful!");
+      localStorage.setItem("cartItems", JSON.stringify([]));
+      localStorage.setItem("latestOrder", JSON.stringify([]));
+      window.location.reload();
+    } catch (error) {
+      console.error("COD order error:", error);
+      toast.error(error.message || "Failed to create order");
+    }
   };
 
   return (

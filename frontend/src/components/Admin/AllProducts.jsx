@@ -1,24 +1,33 @@
 import { Button } from "@material-ui/core";
 import { DataGrid } from "@material-ui/data-grid";
-import React, { useEffect } from "react";
-import { AiOutlineDelete, AiOutlineEye } from "react-icons/ai";
+import React, { useEffect, useState } from "react";
+import { AiOutlineEye } from "react-icons/ai";
 import { useDispatch, useSelector } from "react-redux";
 import { Link } from "react-router-dom";
 import { getAllProductsShop } from "../../redux/actions/product";
 import { deleteProduct } from "../../redux/actions/product";
 import Loader from "../Layout/Loader";
-import axios from "axios";
-import { useState } from "react";
+import { getRequest } from "../../request/api"; // Import getRequest
+import { toast } from "react-toastify";
 
 const AllProducts = () => {
   const [data, setData] = useState([]);
 
   useEffect(() => {
-    axios
-      .get(`${process.env.REACT_APP_SERVER}/product/admin-all-products`, { withCredentials: true })
-      .then((res) => {
-        setData(res.data.products);
-      });
+    const fetchProducts = async () => {
+      try {
+        const res = await getRequest("/product/admin-all-products");
+        if (!res.success) {
+          throw new Error(res.message || "Failed to fetch products");
+        }
+        setData(res.products || []);
+      } catch (error) {
+        console.error("Fetch products error:", error);
+        toast.error(error.message || "Failed to fetch products");
+        setData([]);
+      }
+    };
+    fetchProducts();
   }, []);
 
   const columns = [
@@ -42,7 +51,6 @@ const AllProducts = () => {
       minWidth: 80,
       flex: 0.5,
     },
-
     {
       field: "sold",
       headerName: "Sold out",
