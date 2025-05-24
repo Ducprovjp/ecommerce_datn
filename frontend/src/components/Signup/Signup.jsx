@@ -3,7 +3,7 @@ import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import styles from "../../styles/styles";
 import { Link, useNavigate } from "react-router-dom";
 import { RxAvatar } from "react-icons/rx";
-import axios from "axios";
+import { uploadFileRequest } from "../../request/api"; // Import uploadFileRequest
 import { toast } from "react-toastify";
 
 const Signup = () => {
@@ -41,7 +41,6 @@ const Signup = () => {
       email,
       hasAvatar: !!avatar,
     });
-    const config = { headers: { "Content-Type": "multipart/form-data" } };
     const newForm = new FormData();
     if (avatar) newForm.append("file", avatar); // Only append if avatar exists
     newForm.append("name", name);
@@ -49,21 +48,20 @@ const Signup = () => {
     newForm.append("password", password);
 
     try {
-      const res = await axios.post(
-        `${process.env.REACT_APP_SERVER}/user/create-user`,
-        newForm,
-        config
-      );
-      console.log("Signup response:", res.data);
-      toast.success(res.data.message);
+      const res = await uploadFileRequest("/user/create-user", newForm);
+      console.log("Signup response:", res);
+      if (!res.success) {
+        throw new Error(res.message || "Signup Failed");
+      }
+      toast.success(res.message);
       setName("");
       setEmail("");
       setPassword("");
       setAvatar(null);
       navigate("/login");
     } catch (error) {
-      console.error("Signup error:", error.response?.data);
-      toast.error(error.response?.data?.message || "Signup Failed");
+      console.error("Signup error:", error);
+      toast.error(error.message || "Signup Failed");
     } finally {
       setLoading(false);
     }

@@ -12,22 +12,28 @@ import { TbAddressBook } from "react-icons/tb";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { useSelector } from "react-redux";
+import { postRequest } from "../../request/api";
 
 const ProfileSidebar = ({ active, setActive }) => {
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.user);
 
-  const logoutHandler = () => {
-    axios
-      .post(`${process.env.REACT_APP_SERVER}/user/logout`, {}, { withCredentials: true })
-      .then((res) => {
-        toast.success(res.data.message);
+  const logoutHandler = async () => {
+
+    try {
+      const refreshToken = localStorage.getItem("refreshToken");
+      const response = await postRequest("/user/logout", { refreshToken });
+      if (!response.success) {
+        throw new Error(response.message);
+      }
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
+      toast.success(response.data.message);
         window.location.reload(true);
         navigate("/login");
-      })
-      .catch((error) => {
-        console.log(error.response.data.message);
-      });
+    } catch (error) {
+      console.log(error.response.data.message);
+    }
   };
 
   return (

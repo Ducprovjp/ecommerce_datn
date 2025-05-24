@@ -1,10 +1,10 @@
-import axios from "axios";
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { DataGrid } from "@material-ui/data-grid";
 import { BsPencil } from "react-icons/bs";
 import { RxCross1 } from "react-icons/rx";
 import styles from "../../styles/styles";
+import { getRequest, putRequest } from "../../request/api"; // Import getRequest, putRequest
 import { toast } from "react-toastify";
 
 const AllWithdraw = () => {
@@ -14,20 +14,45 @@ const AllWithdraw = () => {
   const [withdrawStatus, setWithdrawStatus] = useState("Processing");
 
   useEffect(() => {
-    axios
-      .get(`${process.env.REACT_APP_SERVER}/withdraw/get-all-withdraw-request`, {
-        withCredentials: true,
-      })
-      .then((res) => {
-        setData(res.data.withdraws);
-      })
-      .catch((error) => {
-        console.log(error.response.data.message);
-      });
+    const fetchWithdraws = async () => {
+      try {
+        const res = await getRequest("/withdraw/get-all-withdraw-request");
+        if (!res.success) {
+          throw new Error(res.message || "Failed to fetch withdraw requests");
+        }
+        setData(res.withdraws || []);
+      } catch (error) {
+        console.error("Fetch withdraws error:", error);
+        toast.error(error.message || "Failed to fetch withdraw requests");
+        setData([]);
+      }
+    };
+    fetchWithdraws();
   }, []);
 
+  const handleSubmit = async () => {
+    try {
+      const res = await putRequest(
+        `/withdraw/update-withdraw-request/${withdrawData.id}`,
+        {
+          sellerId: withdrawData.shopId,
+          status: withdrawStatus,
+        }
+      );
+      if (!res.success) {
+        throw new Error(res.message || "Failed to update withdraw request");
+      }
+      toast.success("Withdraw request updated successfully!");
+      setData(res.withdraws || []);
+      setOpen(false);
+    } catch (error) {
+      console.error("Update withdraw error:", error);
+      toast.error(error.message || "Failed to update withdraw request");
+    }
+  };
+
   const columns = [
-    { field: "id", headerName: "Withdraw Id", minWidth: 150, flex: 0.7 },
+    { field: "id", headerName: "Withdraw ID", minWidth: 150, flex: 0.7 },
     {
       field: "name",
       headerName: "Shop Name",
@@ -36,7 +61,7 @@ const AllWithdraw = () => {
     },
     {
       field: "shopId",
-      headerName: "Shop Id",
+      headerName: "Shop ID",
       minWidth: 180,
       flex: 1.4,
     },
@@ -48,20 +73,20 @@ const AllWithdraw = () => {
     },
     {
       field: "status",
-      headerName: "status",
+      headerName: "Status",
       type: "text",
       minWidth: 80,
       flex: 0.5,
     },
     {
       field: "createdAt",
-      headerName: "Request given at",
+      headerName: "Request Given At",
       type: "number",
       minWidth: 130,
       flex: 0.6,
     },
     {
-      field: " ",
+      field: "Update",
       headerName: "Update Status",
       type: "number",
       minWidth: 130,
@@ -80,24 +105,7 @@ const AllWithdraw = () => {
     },
   ];
 
-  const handleSubmit = async () => {
-    await axios
-      .put(
-        `${process.env.REACT_APP_SERVER}/withdraw/update-withdraw-request/${withdrawData.id}`,
-        {
-          sellerId: withdrawData.shopId,
-        },
-        { withCredentials: true }
-      )
-      .then((res) => {
-        toast.success("Withdraw request updated successfully!");
-        setData(res.data.withdraws);
-        setOpen(false);
-      });
-  };
-
   const row = [];
-
   data &&
     data.forEach((item) => {
       row.push({
@@ -109,6 +117,7 @@ const AllWithdraw = () => {
         createdAt: item.createdAt.slice(0, 10),
       });
     });
+
   return (
     <div className="w-full flex items-center pt-5 justify-center">
       <div className="w-[95%] bg-white">
@@ -127,7 +136,7 @@ const AllWithdraw = () => {
               <RxCross1 size={25} onClick={() => setOpen(false)} />
             </div>
             <h1 className="text-[25px] text-center font-Poppins">
-              Update Withdraw status
+              Update Withdraw Status
             </h1>
             <br />
             <select
@@ -136,8 +145,8 @@ const AllWithdraw = () => {
               onChange={(e) => setWithdrawStatus(e.target.value)}
               className="w-[200px] h-[35px] border rounded"
             >
-              <option value={withdrawStatus}>{withdrawData.status}</option>
-              <option value={withdrawStatus}>Succeed</option>
+              <option value="Processing">{withdrawData.status}</option>
+              <option value="Succeed">Succeed</option>
             </select>
             <button
               type="submit"

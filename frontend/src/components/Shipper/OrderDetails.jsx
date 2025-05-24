@@ -6,6 +6,7 @@ import { toast } from "react-toastify";
 import axios from "axios";
 import { getAllOrdersOfShipper } from "../../redux/actions/order";
 import { useDispatch, useSelector } from "react-redux";
+import { putRequest } from "../../request/api";
 
 const OrderDetails = () => {
   const { orders, isLoading } = useSelector((state) => state.order);
@@ -35,12 +36,11 @@ const OrderDetails = () => {
 
   const orderUpdateHandler = async () => {
     try {
-      await axios.put(
-        `${process.env.REACT_APP_SERVER}/order/update-order-status-by-shipper/${id}`,
+      await putRequest(
+        `/order/update-order-status-by-shipper/${id}`,
         {
           status: selectedStatus,
         },
-        { withCredentials: true }
       );
       toast.success("Order updated!");
       setDisplayedStatus(selectedStatus); // Cập nhật thẻ hiển thị
@@ -52,12 +52,11 @@ const OrderDetails = () => {
 
   const refundOrderUpdateHandler = async () => {
     try {
-      await axios.put(
-        `${process.env.REACT_APP_SERVER}/order/order-refund-success/${id}`,
+      await putRequest(
+        `/order/order-refund-success/${id}`,
         {
           status: selectedStatus,
         },
-        { withCredentials: true }
       );
       toast.success("Order updated!");
       setDisplayedStatus(selectedStatus); // Cập nhật thẻ hiển thị

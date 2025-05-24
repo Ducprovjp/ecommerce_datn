@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
+import { postRequest } from "../../request/api";
 
 const ShipperActivationPage = () => {
   const { activation_token } = useParams();
@@ -10,7 +11,7 @@ const ShipperActivationPage = () => {
     if (activation_token) {
       const activationEmail = async () => {
         try {
-          const res = await axios.post(`${process.env.REACT_APP_SERVER}/shipper/activation`, {
+          const res = await postRequest("/shipper/activation", {
             activation_token,
           });
         } catch (err) {

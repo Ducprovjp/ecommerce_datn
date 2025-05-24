@@ -7,7 +7,7 @@ import { AiOutlineDelete } from "react-icons/ai";
 import { Button } from "@material-ui/core";
 import styles from "../../styles/styles";
 import { RxCross1 } from "react-icons/rx";
-import axios from "axios";
+import { deleteRequest } from "../../request/api"; // Import deleteRequest
 import { toast } from "react-toastify";
 
 const AllUsers = () => {
@@ -21,21 +21,24 @@ const AllUsers = () => {
   }, [dispatch]);
 
   const handleDelete = async (id) => {
-    await axios
-      .delete(`${process.env.REACT_APP_SERVER}/user/delete-user/${id}`, { withCredentials: true })
-      .then((res) => {
-        toast.success(res.data.message);
-      });
-
-    dispatch(getAllUsers());
+    try {
+      const res = await deleteRequest(`/user/delete-user/${id}`);
+      if (!res.success) {
+        throw new Error(res.message || "Failed to delete user");
+      }
+      toast.success(res.message);
+      dispatch(getAllUsers());
+    } catch (error) {
+      console.error("Delete user error:", error);
+      toast.error(error.message || "Failed to delete user");
+    }
   };
 
   const columns = [
     { field: "id", headerName: "User ID", minWidth: 150, flex: 0.7 },
-
     {
       field: "name",
-      headerName: "name",
+      headerName: "Name",
       minWidth: 130,
       flex: 0.7,
     },
@@ -53,17 +56,15 @@ const AllUsers = () => {
       minWidth: 130,
       flex: 0.7,
     },
-
     {
       field: "joinedAt",
-      headerName: "joinedAt",
+      headerName: "Joined At",
       type: "text",
       minWidth: 130,
       flex: 0.8,
     },
-
     {
-      field: " ",
+      field: "Delete",
       flex: 1,
       minWidth: 150,
       headerName: "Delete User",
@@ -71,11 +72,9 @@ const AllUsers = () => {
       sortable: false,
       renderCell: (params) => {
         return (
-          <>
-            <Button onClick={() => setUserId(params.id) || setOpen(true)}>
-              <AiOutlineDelete size={20} />
-            </Button>
-          </>
+          <Button onClick={() => setUserId(params.id) || setOpen(true)}>
+            <AiOutlineDelete size={20} />
+          </Button>
         );
       },
     },
@@ -113,20 +112,20 @@ const AllUsers = () => {
                 <RxCross1 size={25} onClick={() => setOpen(false)} />
               </div>
               <h3 className="text-[25px] text-center py-5 font-Poppins text-[#000000cb]">
-                Are you sure you wanna delete this user?
+                Are you sure you want to delete this user?
               </h3>
               <div className="w-full flex items-center justify-center">
                 <div
                   className={`${styles.button} text-white text-[18px] !h-[42px] mr-4`}
                   onClick={() => setOpen(false)}
                 >
-                  cancel
+                  Cancel
                 </div>
                 <div
                   className={`${styles.button} text-white text-[18px] !h-[42px] ml-4`}
                   onClick={() => setOpen(false) || handleDelete(userId)}
                 >
-                  confirm
+                  Confirm
                 </div>
               </div>
             </div>

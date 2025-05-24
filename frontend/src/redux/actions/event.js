@@ -1,4 +1,4 @@
-import axios from "axios";
+import { getRequest, postRequest, deleteRequest } from "../../request/api";
 
 // create event
 export const createevent = (newForm) => async (dispatch) => {
@@ -7,21 +7,19 @@ export const createevent = (newForm) => async (dispatch) => {
       type: "eventCreateRequest",
     });
 
-    const config = { headers: { "Content-Type": "multipart/form-data" } };
-
-    const { data } = await axios.post(
-      `${process.env.REACT_APP_SERVER}/event/create-event`,
-      newForm,
-      config
-    );
+    const res = await postRequest("/event/create-event", newForm);
+    if (!res.success) {
+      throw new Error(res.message || "Failed to create event");
+    }
     dispatch({
       type: "eventCreateSuccess",
-      payload: data.event,
+      payload: res.event,
     });
   } catch (error) {
+    console.error("Create event error:", error);
     dispatch({
       type: "eventCreateFail",
-      payload: error.response.data.message,
+      payload: error.message || "Failed to create event",
     });
   }
 };
@@ -33,15 +31,19 @@ export const getAllEventsShop = (id) => async (dispatch) => {
       type: "getAlleventsShopRequest",
     });
 
-    const { data } = await axios.get(`${process.env.REACT_APP_SERVER}/event/get-all-events/${id}`);
+    const res = await getRequest(`/event/get-all-events/${id}`);
+    if (!res.success) {
+      throw new Error(res.message || "Failed to fetch shop events");
+    }
     dispatch({
       type: "getAlleventsShopSuccess",
-      payload: data.events,
+      payload: res.events,
     });
   } catch (error) {
+    console.error("Fetch shop events error:", error);
     dispatch({
       type: "getAlleventsShopFailed",
-      payload: error.response.data.message,
+      payload: error.message || "Failed to fetch shop events",
     });
   }
 };
@@ -53,21 +55,19 @@ export const deleteEvent = (id) => async (dispatch) => {
       type: "deleteeventRequest",
     });
 
-    const { data } = await axios.delete(
-      `${process.env.REACT_APP_SERVER}/event/delete-shop-event/${id}`,
-      {
-        withCredentials: true,
-      }
-    );
-
+    const res = await deleteRequest(`/event/delete-shop-event/${id}`);
+    if (!res.success) {
+      throw new Error(res.message || "Failed to delete event");
+    }
     dispatch({
       type: "deleteeventSuccess",
-      payload: data.message,
+      payload: res.message,
     });
   } catch (error) {
+    console.error("Delete event error:", error);
     dispatch({
       type: "deleteeventFailed",
-      payload: error.response.data.message,
+      payload: error.message || "Failed to delete event",
     });
   }
 };
@@ -79,15 +79,19 @@ export const getAllEvents = () => async (dispatch) => {
       type: "getAlleventsRequest",
     });
 
-    const { data } = await axios.get(`${process.env.REACT_APP_SERVER}/event/get-all-events`);
+    const res = await getRequest("/event/get-all-events");
+    if (!res.success) {
+      throw new Error(res.message || "Failed to fetch all events");
+    }
     dispatch({
       type: "getAlleventsSuccess",
-      payload: data.events,
+      payload: res.events,
     });
   } catch (error) {
+    console.error("Fetch all events error:", error);
     dispatch({
       type: "getAlleventsFailed",
-      payload: error.response.data.message,
+      payload: error.message || "Failed to fetch all events",
     });
   }
 };

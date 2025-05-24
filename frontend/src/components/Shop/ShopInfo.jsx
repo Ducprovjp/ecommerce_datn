@@ -1,4 +1,3 @@
-import axios from "axios";
 import { toast } from "react-toastify";
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
@@ -6,45 +5,83 @@ import { Link, useParams, useNavigate } from "react-router-dom";
 import { getAllProductsShop } from "../../redux/actions/product";
 import styles from "../../styles/styles";
 import Loader from "../Layout/Loader";
+import { getRequest } from "../../request/api";
 
 const ShopInfo = ({ isOwner }) => {
   const [data, setData] = useState({});
   const { products } = useSelector((state) => state.products);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-
-
   const { id } = useParams();
   const dispatch = useDispatch();
 
-  useEffect(() => {
-    dispatch(getAllProductsShop(id));
-    setIsLoading(true);
-    axios
-      .get(`${process.env.REACT_APP_SERVER}/shop/get-shop-info/${id}`)
-      .then((res) => {
-        setData(res.data.shop);
-        setIsLoading(false);
-      })
-      .catch((error) => {
-        console.log(error);
-        setIsLoading(false);
-      });
-  }, []);
+  // useEffect(() => {
+  //   dispatch(getAllProductsShop(id));
+  //   setIsLoading(true);
+  //   getRequest(`/shop/get-shop-info/${id}`)
+  //     .then((res) => {
+  //       if (!res.success) {
+  //         throw new Error(res.message || "Failed to fetch shop info");
+  //       }
+  //       setData(res.shop);
+  //       setIsLoading(false);
+  //     })
+  //     .catch((error) => {
+  //       console.error("Fetch shop info error:", error);
+  //       toast.error(error.message || "Failed to fetch shop info");
+  //       setIsLoading(false);
+  //     });
+  // }, [dispatch, id]);
 
-  const logoutHandler = () => {
-    axios
-    .get(`${process.env.REACT_APP_SERVER}/shop/logout`, {
-      withCredentials: true,
-    })
-    .then((res) => {
-      toast.success(res.data.message);
+  // const logoutHandler = () => {
+  //   getRequest("/shop/logout")
+  //     .then((res) => {
+  //       if (!res.success) {
+  //         throw new Error(res.message || "Failed to logout");
+  //       }
+  //       toast.success(res.message);
+  //       window.location.reload(true);
+  //       navigate("/shop-login");
+  //     })
+  //     .catch((error) => {
+  //       console.error("Logout error:", error);
+  //       toast.error(error.message || "Failed to logout");
+  //     });
+  // };
+
+  useEffect(() => {
+    const fetchShopInfo = async () => {
+      try {
+        dispatch(getAllProductsShop(id));
+        setIsLoading(true);
+        const res = await getRequest(`/shop/get-shop-info/${id}`);
+        if (!res.success) {
+          throw new Error(res.message || "Failed to fetch shop info");
+        }
+        setData(res.shop);
+        setIsLoading(false);
+      } catch (error) {
+        console.error("Fetch shop info error:", error);
+        toast.error(error.message || "Failed to fetch shop info");
+        setIsLoading(false);
+      }
+    };
+    fetchShopInfo();
+  }, [dispatch, id]);
+  
+  const logoutHandler = async () => {
+    try {
+      const res = await getRequest("/shop/logout");
+      if (!res.success) {
+        throw new Error(res.message || "Failed to logout");
+      }
+      toast.success(res.message);
       window.location.reload(true);
       navigate("/shop-login");
-    })
-    .catch((error) => {
-      console.log(error.response.data.message);
-    });
+    } catch (error) {
+      console.error("Logout error:", error);
+      toast.error(error.message || "Failed to logout");
+    }
   };
 
   const totalReviewsLength =
@@ -68,10 +105,10 @@ const ShopInfo = ({ isOwner }) => {
       ) : (
         <div>
           <div className="w-full py-5">
-            <div className="w-full flex item-center justify-center">
+            <div className="w-full flex items-center justify-center">
               <img
                 src={data.avatar}
-                alt=""
+                alt="Shop avatar"
                 className="w-[150px] h-[150px] object-cover rounded-full"
               />
             </div>
@@ -111,7 +148,6 @@ const ShopInfo = ({ isOwner }) => {
                   <span className="text-white">Edit Shop</span>
                 </div>
               </Link>
-
               <div
                 className={`${styles.button} !w-full !h-[42px] !rounded-[5px]`}
                 onClick={logoutHandler}

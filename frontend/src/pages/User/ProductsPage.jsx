@@ -8,6 +8,7 @@ import Loader from "../../components/Layout/Loader";
 import ProductCard from "../../components/Route/ProductCard/ProductCard";
 import styles from "../../styles/styles";
 import { categoriesData } from "../../static/data"
+import { getRequest } from "../../request/api";
 
 const ProductsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -59,12 +60,9 @@ const ProductsPage = () => {
         if (search) params.search = search;
         if (sortOption) params.sort = sortOption;
 
-        const response = await axios.get(`${process.env.REACT_APP_SERVER}/product/get-all-products`, {
-          params,
-          withCredentials: true,
-        });
-        setData(response.data.products || []);
-        setTotalPages(response.data.totalPages || 1);
+        const response = await getRequest("/product/get-all-products", { params });
+        setData(response.products || []);
+        setTotalPages(response.totalPages || 1);
       } catch (error) {
         console.error("Error fetching products:", error);
         setData([]);

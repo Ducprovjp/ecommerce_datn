@@ -1,10 +1,10 @@
-import axios from "axios";
 import React, { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import styles from "../../styles/styles";
 import Loader from "../Layout/Loader";
 import { toast } from "react-toastify";
+import { getRequest } from "../../request/api"; // Import getRequest từ api.js
 
 const ShipperInfo = ({ isOwner }) => {
   const [data, setData] = useState({});
@@ -16,10 +16,12 @@ const ShipperInfo = ({ isOwner }) => {
 
   useEffect(() => {
     setIsLoading(true);
-    axios
-      .get(`${process.env.REACT_APP_SERVER}/shipper/get-shipper-info/${id}`)
+    getRequest(`/shipper/get-shipper-info/${id}`)
       .then((res) => {
-        setData(res.data.shipper);
+        if (!res.success) {
+          throw new Error(res.message || "Failed to fetch shipper info");
+        }
+        setData(res.shipper);
         setIsLoading(false);
       })
       .catch((error) => {
@@ -29,17 +31,20 @@ const ShipperInfo = ({ isOwner }) => {
   }, []);
 
   const logoutHandler = async () => {
-    axios.get(`${process.env.REACT_APP_SERVER}/shipper/logout`, {
-      withCredentials: true,
-    })
-    .then((res) => {
+    try {
+      const refreshToken = localStorage.getItem("shipper_refreshToken");
+      const res = await getRequest("/shipper/logout", { refreshToken });
+      if (!res.success) {
+        throw new Error(res.message || "Failed to logout");
+      }
       toast.success("Logout Success!");
+      localStorage.removeItem("shipper_accessToken");
+      localStorage.removeItem("shipper_refreshToken");
       navigate("/shipper-login");
       window.location.reload(true);
-    })
-    .catch((error) => {
-      console.log(error.response.data.message);
-    });
+    } catch (error) {
+      console.log(error.message);
+    }
   };
 
   return (

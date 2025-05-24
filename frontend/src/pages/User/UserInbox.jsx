@@ -3,7 +3,6 @@ import Header from "../../components/Layout/Header";
 import { useSelector } from "react-redux";
 import socketIO from "socket.io-client";
 import { format } from "timeago.js";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import {
   AiOutlineArrowRight,
@@ -12,6 +11,9 @@ import {
 } from "react-icons/ai";
 import { TfiGallery } from "react-icons/tfi";
 import styles from "../../styles/styles";
+import { getRequest, postRequest, putRequest } from "../../request/api";
+import { toast } from "react-toastify";
+
 const socketId = socketIO(process.env.ENDPOINT, { transports: ["websocket"] });
 
 const UserInbox = () => {
@@ -48,16 +50,14 @@ const UserInbox = () => {
   useEffect(() => {
     const getConversation = async () => {
       try {
-        const resonse = await axios.get(
-          `${process.env.REACT_APP_SERVER}/conversation/get-all-conversation-user/${user?._id}`,
-          {
-            withCredentials: true,
-          }
-        );
-
-        setConversations(resonse.data.conversations);
+        const res = await getRequest(`/conversation/get-all-conversation-user/${user?._id}`);
+        if (!res.success) {
+          throw new Error(res.message || "Failed to fetch conversations");
+        }
+        setConversations(res.conversations);
       } catch (error) {
-        // console.log(error);
+        console.error("Fetch conversations error:", error);
+        toast.error(error.message || "Failed to fetch conversations");
       }
     };
     getConversation();
@@ -76,26 +76,25 @@ const UserInbox = () => {
   const onlineCheck = (chat) => {
     const chatMembers = chat.members.find((member) => member !== user?._id);
     const online = onlineUsers.find((user) => user.userId === chatMembers);
-
     return online ? true : false;
   };
 
-  // get messages
   useEffect(() => {
     const getMessage = async () => {
       try {
-        const response = await axios.get(
-          `${process.env.REACT_APP_SERVER}/message/get-all-messages/${currentChat?._id}`
-        );
-        setMessages(response.data.messages);
+        const res = await getRequest(`/message/get-all-messages/${currentChat?._id}`);
+        if (!res.success) {
+          throw new Error(res.message || "Failed to fetch messages");
+        }
+        setMessages(res.messages);
       } catch (error) {
-        console.log(error);
+        console.error("Fetch messages error:", error);
+        toast.error(error.message || "Failed to fetch messages");
       }
     };
     getMessage();
   }, [currentChat]);
 
-  // create new message
   const sendMessageHandler = async (e) => {
     e.preventDefault();
 
@@ -104,30 +103,26 @@ const UserInbox = () => {
       text: newMessage,
       conversationId: currentChat._id,
     };
-    const receiverId = currentChat.members.find(
-      (member) => member !== user?._id
-    );
+    const receiverId = currentChat.members.find((member) => member !== user?._id);
 
     socketId.emit("sendMessage", {
-      senderId: user?._id,
+      senderId: user._id,
       receiverId,
       text: newMessage,
     });
 
     try {
       if (newMessage !== "") {
-        await axios
-          .post(`${process.env.REACT_APP_SERVER}/message/create-new-message`, message)
-          .then((res) => {
-            setMessages([...messages, res.data.message]);
-            updateLastMessage();
-          })
-          .catch((error) => {
-            console.log(error);
-          });
+        const res = await postRequest("/message/create-new-message", message);
+        if (!res.success) {
+          throw new Error(res.message || "Failed to send message");
+        }
+        setMessages([...messages, res.message]);
+        await updateLastMessage();
       }
     } catch (error) {
-      console.log(error);
+      console.error("Send message error:", error);
+      toast.error(error.message || "Failed to send message");
     }
   };
 
@@ -137,72 +132,73 @@ const UserInbox = () => {
       lastMessageId: user._id,
     });
 
-    await axios
-      .put(`${process.env.REACT_APP_SERVER}/conversation/update-last-message/${currentChat._id}`, {
+    try {
+      const res = await putRequest(`/conversation/update-last-message/${currentChat._id}`, {
         lastMessage: newMessage,
         lastMessageId: user._id,
-      })
-      .then((res) => {
-        setNewMessage("");
-      })
-      .catch((error) => {
-        console.log(error);
       });
+      if (!res.success) {
+        throw new Error(res.message || "Failed to update last message");
+      }
+      setNewMessage("");
+    } catch (error) {
+      console.error("Update last message error:", error);
+      toast.error(error.message || "Failed to update last message");
+    }
   };
 
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     setImages(file);
-    imageSendingHandler(file);
+    await imageSendingHandler(file);
   };
 
-  const imageSendingHandler = async (e) => {
+  const imageSendingHandler = async (file) => {
     const formData = new FormData();
-
-    formData.append("images", e);
+    formData.append("images", file);
     formData.append("sender", user._id);
     formData.append("text", newMessage);
     formData.append("conversationId", currentChat._id);
 
-    const receiverId = currentChat.members.find(
-      (member) => member !== user._id
-    );
+    const receiverId = currentChat.members.find((member) => member !== user._id);
 
     socketId.emit("sendMessage", {
       senderId: user._id,
       receiverId,
-      images: e,
+      images: file,
     });
 
     try {
-      await axios
-        .post(`${process.env.REACT_APP_SERVER}/message/create-new-message`, formData, {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        })
-        .then((res) => {
-          setImages();
-          setMessages([...messages, res.data.message]);
-          updateLastMessageForImage();
-        });
+      const res = await postRequest("/message/create-new-message", formData);
+      if (!res.success) {
+        throw new Error(res.message || "Failed to send image");
+      }
+      setImages(null);
+      setMessages([...messages, res.message]);
+      await updateLastMessageForImage();
     } catch (error) {
-      console.log(error);
+      console.error("Send image error:", error);
+      toast.error(error.message || "Failed to send image");
     }
   };
 
   const updateLastMessageForImage = async () => {
-    await axios.put(
-      `${process.env.REACT_APP_SERVER}/conversation/update-last-message/${currentChat._id}`,
-      {
+    try {
+      const res = await putRequest(`/conversation/update-last-message/${currentChat._id}`, {
         lastMessage: "Photo",
         lastMessageId: user._id,
+      });
+      if (!res.success) {
+        throw new Error(res.message || "Failed to update last message for image");
       }
-    );
+    } catch (error) {
+      console.error("Update last message for image error:", error);
+      toast.error(error.message || "Failed to update last message for image");
+    }
   };
 
   useEffect(() => {
-    scrollRef.current?.scrollIntoView({ beahaviour: "smooth" });
+    scrollRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   return (
@@ -223,9 +219,8 @@ const UserInbox = () => {
             <h1 className="text-center text-[30px] font-Poppins flex-1">
               All Messages
             </h1>
-            <div className="w-[100px]"></div> {/* Spacer để cân đối */}
+            <div className="w-[100px]"></div>
           </div>
-          {/* All messages list */}
           <div className={`${styles.section}`}>
             {conversations &&
               conversations.map((item, index) => (
@@ -278,6 +273,7 @@ const MessageList = ({
   const [active, setActive] = useState(0);
   const [user, setUser] = useState([]);
   const navigate = useNavigate();
+
   const handleClick = (id) => {
     navigate(`/inbox?${id}`);
     setOpen(true);
@@ -288,11 +284,14 @@ const MessageList = ({
     const userId = data.members.find((user) => user !== me);
     const getUser = async () => {
       try {
-        const res = await axios.get(`${process.env.REACT_APP_SERVER}/shop/get-shop-info/${userId}`);
-
-        setUser(res.data.shop);
+        const res = await getRequest(`/shop/get-shop-info/${userId}`);
+        if (!res.success) {
+          throw new Error(res.message || "Failed to fetch shop info");
+        }
+        setUser(res.shop);
       } catch (error) {
-        console.log(error);
+        console.error("Fetch shop info error:", error);
+        toast.error(error.message || "Failed to fetch shop info");
       }
     };
     getUser();
@@ -302,19 +301,19 @@ const MessageList = ({
     <div
       className={`w-full flex p-3 px-3 ${
         active === index ? "bg-[#00000010]" : "bg-transparent"
-      }  cursor-pointer`}
-      onClick={(e) =>
-        setActive(index) ||
-        handleClick(data._id) ||
-        setCurrentChat(data) ||
-        setUserData(user) ||
-        setActiveStatus(online)
-      }
+      } cursor-pointer`}
+      onClick={() => {
+        setActive(index);
+        handleClick(data._id);
+        setCurrentChat(data);
+        setUserData(user);
+        setActiveStatus(online);
+      }}
     >
       <div className="relative">
         <img
-          src={userData?.avatar}
-          alt=""
+          src={user?.avatar}
+          alt="Shop avatar"
           className="w-[50px] h-[50px] rounded-full"
         />
         {online ? (
@@ -324,11 +323,11 @@ const MessageList = ({
         )}
       </div>
       <div className="pl-3">
-        <h1 className="text-[18px]">{userData?.name}</h1>
+        <h1 className="text-[18px]">{user?.name}</h1>
         <p className="text-[16px] text-[#000c]">
-          {data?.lastMessageId !== userData?._id
+          {data?.lastMessageId !== user?._id
             ? "You:"
-            : userData?.name.split(" ")[0] + ": "}{" "}
+            : user?.name?.split(" ")[0] + ": "}{" "}
           {data?.lastMessage}
         </p>
       </div>
@@ -349,13 +348,12 @@ const SellerInbox = ({
   handleImageUpload,
 }) => {
   return (
-    <div className="w-[full] min-h-full flex flex-col justify-between p-5">
-      {/* message header */}
+    <div className="w-full min-h-full flex flex-col justify-between p-5">
       <div className="w-full flex p-3 items-center justify-between bg-slate-200">
         <div className="flex">
           <img
             src={userData?.avatar}
-            alt=""
+            alt="Shop avatar"
             className="w-[60px] h-[60px] rounded-full"
           />
           <div className="pl-3">
@@ -370,7 +368,6 @@ const SellerInbox = ({
         />
       </div>
 
-      {/* messages */}
       <div className="px-3 h-[75vh] py-3 overflow-y-scroll">
         {messages &&
           messages.map((item, index) => (
@@ -379,17 +376,19 @@ const SellerInbox = ({
                 item.sender === sellerId ? "justify-end" : "justify-start"
               }`}
               ref={scrollRef}
+              key={index}
             >
               {item.sender !== sellerId && (
                 <img
                   src={userData?.avatar}
+                  alt="Shop avatar"
                   className="w-[40px] h-[40px] rounded-full mr-3"
-                  alt=""
                 />
               )}
               {item.images && (
                 <img
                   src={item.images}
+                  alt="Message image"
                   className="w-[300px] h-[300px] object-cover rounded-[10px] ml-2 mb-2"
                 />
               )}
@@ -402,7 +401,6 @@ const SellerInbox = ({
                   >
                     <p>{item.text}</p>
                   </div>
-
                   <p className="text-[12px] text-[#000000d3] pt-1">
                     {format(item.createdAt)}
                   </p>
@@ -412,7 +410,6 @@ const SellerInbox = ({
           ))}
       </div>
 
-      {/* send message input */}
       <form
         aria-required={true}
         className="p-3 relative w-full flex justify-between items-center"
@@ -421,7 +418,7 @@ const SellerInbox = ({
         <div className="w-[30px]">
           <input
             type="file"
-            name=""
+            name="image"
             id="image"
             className="hidden"
             onChange={handleImageUpload}

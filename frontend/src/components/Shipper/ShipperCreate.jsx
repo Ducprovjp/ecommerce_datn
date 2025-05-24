@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import styles from "../../styles/styles";
 import { Link, useNavigate } from "react-router-dom";
-import axios from "axios";
+import { postRequest } from "../../request/api"; // Import postRequest
 import { toast } from "react-toastify";
 import { RxAvatar } from "react-icons/rx";
 
@@ -19,8 +19,6 @@ const ShipperCreate = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const config = { headers: { "Content-Type": "multipart/form-data" } };
-
     const newForm = new FormData();
     newForm.append("file", avatar);
     newForm.append("name", name);
@@ -29,23 +27,24 @@ const ShipperCreate = () => {
     newForm.append("address", address);
     newForm.append("phoneNumber", phoneNumber);
 
-    axios
-      .post(`${process.env.REACT_APP_SERVER}/shipper/create-shipper`, newForm, config)
-      .then((res) => {
-        toast.success(res.data.message);
-        setName("");
-        setEmail("");
-        setPassword("");
-        setAvatar(null);
-        setAddress("");
-        setPhoneNumber("");
-      })
-      .catch((error) => {
-        toast.error(error.response.data.message);
-      });
-
-    navigate("/shipper-login");
-    window.location.reload();
+    try {
+      const res = await postRequest("/shipper/create-shipper", newForm);
+      if (!res.success) {
+        throw new Error(res.message || "Failed to create shipper");
+      }
+      toast.success(res.message);
+      setName("");
+      setEmail("");
+      setPassword("");
+      setAvatar(null);
+      setAddress("");
+      setPhoneNumber("");
+      navigate("/shipper-login");
+      window.location.reload();
+    } catch (error) {
+      console.error("Create shipper error:", error);
+      toast.error(error.message || "Failed to create shipper");
+    }
   };
 
   const handleFileInputChange = (e) => {

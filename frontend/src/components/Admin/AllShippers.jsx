@@ -5,7 +5,7 @@ import { AiOutlineDelete, AiOutlineEye } from "react-icons/ai";
 import { Button } from "@material-ui/core";
 import styles from "../../styles/styles";
 import { RxCross1 } from "react-icons/rx";
-import axios from "axios";
+import { deleteRequest } from "../../request/api"; // Import deleteRequest
 import { toast } from "react-toastify";
 import { getAllShippers } from "../../redux/actions/shippers";
 import { Link } from "react-router-dom";
@@ -21,15 +21,17 @@ const AllShippers = () => {
   }, [dispatch]);
 
   const handleDelete = async (id) => {
-    await axios
-      .delete(`${process.env.REACT_APP_SERVER}/shipper/delete-shipper/${id}`, {
-        withCredentials: true,
-      })
-      .then((res) => {
-        toast.success(res.data.message);
-      });
-
-    dispatch(getAllShippers());
+    try {
+      const res = await deleteRequest(`/shipper/delete-shipper/${id}`);
+      if (!res.success) {
+        throw new Error(res.message || "Failed to delete shipper");
+      }
+      toast.success(res.message);
+      dispatch(getAllShippers());
+    } catch (error) {
+      console.error("Delete shipper error:", error);
+      toast.error(error.message || "Failed to delete shipper");
+    }
   };
 
   const columns = [
@@ -62,7 +64,7 @@ const AllShippers = () => {
       flex: 0.8,
     },
     {
-      field: "  ",
+      field: "Preview",
       flex: 1,
       minWidth: 150,
       headerName: "Preview Shipper",
@@ -79,7 +81,7 @@ const AllShippers = () => {
       },
     },
     {
-      field: " ",
+      field: "Delete",
       flex: 1,
       minWidth: 150,
       headerName: "Delete Shipper",

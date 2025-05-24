@@ -14,6 +14,7 @@ const { OAuth2Client } = require("google-auth-library");
 
 const router = express.Router();
 
+// Create user account
 router.post(
   "/create-user",
   upload.single("file"),
@@ -26,13 +27,11 @@ router.post(
     });
 
     // Validate required fields
-    if (!name) return next(new ErrorHandler("Tên là bắt buộc", 400));
-    if (!email) return next(new ErrorHandler("Email là bắt buộc", 400));
-    if (!password) return next(new ErrorHandler("Mật khẩu là bắt buộc", 400));
+    if (!name) return next(new ErrorHandler("Name is required", 400));
+    if (!email) return next(new ErrorHandler("Email is required", 400));
+    if (!password) return next(new ErrorHandler("Password is required", 400));
     if (password.length < 4) {
-      return next(
-        new ErrorHandler("Mật khẩu phải dài ít nhất 4 ký tự", 400)
-      );
+      return next(new ErrorHandler("Password must be at least 4 characters", 400));
     }
 
     // Check if email already exists
@@ -46,7 +45,7 @@ router.post(
           console.error("Lỗi xóa ảnh trên Cloudinary:", err);
         }
       }
-      return next(new ErrorHandler("Người dùng đã tồn tại", 400));
+      return next(new ErrorHandler("User already exists", 400));
     }
 
     // Handle avatar
@@ -80,19 +79,19 @@ router.post(
     const domain = process.env.REACT_APP_FRONT_END_URL;
     const activationUrl = `${domain}/activation/${activationToken}`;
 
-    const message = `Xin chào ${user.name}, vui lòng nhấp vào liên kết để kích hoạt tài khoản của bạn: <a href="${activationUrl}" style="text-decoration: underline; color: blue; font-weight: bold;">KÍCH HOẠT</a>`;
+    const message = `Hello ${user.name}, please click on the link to activate your account: <a href="${activationUrl}" style="text-decoration: underline; color: blue; font-weight: bold;">ACTIVATE</a>`;
 
     // Send email to user
     console.log("Gửi email kích hoạt đến:", user.email);
     try {
       await sendMail({
         email: user.email,
-        subject: "Kích hoạt tài khoản của bạn",
+        subject: "Activate your account",
         html: message,
       });
       res.status(201).json({
         success: true,
-        message: `Vui lòng kiểm tra email (${user.email}) để kích hoạt tài khoản của bạn!`,
+        message: `Please check your email (${user.email}) to activate your account!`,
       });
     } catch (err) {
       // Clean up uploaded file on Cloudinary if email fails
@@ -103,7 +102,7 @@ router.post(
           console.error("Lỗi xóa ảnh trên Cloudinary:", err);
         }
       }
-      return next(new ErrorHandler("Không thể gửi email kích hoạt", 500));
+      return next(new ErrorHandler("Failed to send activation email", 500));
     }
   })
 );
@@ -116,7 +115,7 @@ router.post(
     console.log("Received activation request:", { activation_token });
 
     if (!activation_token) {
-      return next(new ErrorHandler("Token kích hoạt là bắt buộc", 400));
+      return next(new ErrorHandler("Activation token is required", 400));
     }
 
     try {
@@ -135,7 +134,7 @@ router.post(
       // Check if user already exists
       const existingUser = await User.findOne({ email });
       if (existingUser) {
-        return next(new ErrorHandler("Người dùng đã tồn tại", 400));
+        return next(new ErrorHandler("User already exists", 400));
       }
 
       // Create user
@@ -152,14 +151,14 @@ router.post(
     } catch (err) {
       console.error("Lỗi kích hoạt:", err);
       if (err.name === "TokenExpiredError") {
-        return next(new ErrorHandler("Token kích hoạt đã hết hạn", 400));
+        return next(new ErrorHandler("Activation token has expired", 400));
       }
-      return next(new ErrorHandler("Token kích hoạt không hợp lệ", 400));
+      return next(new ErrorHandler("Invalid activation token", 400));
     }
   })
 );
 
-// login user
+// Login user
 router.post(
   "/login-user",
   catchAsyncErrors(async (req, res, next) => {
@@ -167,22 +166,19 @@ router.post(
       const { email, password } = req.body;
 
       if (!email || !password) {
-        return next(new ErrorHandler("Please provide the all fields", 400));
+        return next(new ErrorHandler("Please provide all fields", 400));
       }
       const user = await User.findOne({ email }).select("+password");
-      // +password is used to select the password field from the database
 
       if (!user) {
-        return next(new ErrorHandler("User doesn't exits", 400));
+        return next(new ErrorHandler("User doesn't exist", 400));
       }
 
-      // compore password with database password
+      // Compare password with database password
       const isPasswordValid = await user.comparePassword(password);
 
       if (!isPasswordValid) {
-        return next(
-          new ErrorHandler("Please provide the correct inforamtions", 400)
-        );
+        return next(new ErrorHandler("Incorrect password", 400));
       }
       sendToken(user, 201, res);
     } catch (error) {
@@ -191,7 +187,7 @@ router.post(
   })
 );
 
-//login with google
+// Login with Google
 router.post(
   "/auth/google",
   catchAsyncErrors(async (req, res, next) => {
@@ -240,9 +236,7 @@ router.post(
       sendToken(user, 201, res);
     } catch (error) {
       console.error("Google authentication error:", error);
-      return next(
-        new ErrorHandler("Google authentication failed: " + error.message, 400)
-      );
+      return next(new ErrorHandler("Google authentication failed: " + error.message, 400));
     }
   })
 );
@@ -251,14 +245,14 @@ router.post(
 router.post(
   "/refresh-token",
   catchAsyncErrors(async (req, res, next) => {
-    const { refreshToken } = req.cookies;
+    const { refreshToken } = req.body;
 
     if (!refreshToken) {
       return next(new ErrorHandler("Refresh token not found", 401));
     }
 
     try {
-      const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+      const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_TOKEN_SECRET || process.env.JWT_SECRET_KEY);
       const user = await User.findById(decoded.id);
 
       if (!user || user.refreshToken !== refreshToken) {
@@ -272,7 +266,6 @@ router.post(
     }
   })
 );
-
 
 // Forgot password
 router.post(
@@ -344,9 +337,7 @@ router.post(
         return next(new ErrorHandler("New password is required", 400));
       }
       if (newPassword.length < 4) {
-        return next(
-          new ErrorHandler("Password must be at least 4 characters", 400)
-        );
+        return next(new ErrorHandler("Password must be at least 4 characters", 400));
       }
 
       // Verify reset token
@@ -384,7 +375,7 @@ router.post(
   })
 );
 
-// load user
+// Load user
 router.get(
   "/getuser",
   isAuthenticated,
@@ -393,7 +384,7 @@ router.get(
       const user = await User.findById(req.user.id);
 
       if (!user) {
-        return next(new ErrorHandler("User doesn't exists", 400));
+        return next(new ErrorHandler("User doesn't exist", 400));
       }
       res.status(200).json({
         success: true,
@@ -410,12 +401,11 @@ router.post(
   "/logout",
   catchAsyncErrors(async (req, res, next) => {
     try {
-      const { refreshToken } = req.cookies;
+      const { refreshToken } = req.body;
 
-      // Xóa refresh token trong database nếu tồn tại
       if (refreshToken) {
         try {
-          const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+          const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_TOKEN_SECRET || process.env.JWT_SECRET_KEY);
           const user = await User.findById(decoded.id);
           if (user && user.refreshToken === refreshToken) {
             user.refreshToken = null;
@@ -426,32 +416,17 @@ router.post(
         }
       }
 
-      // Xóa cookie accessToken và refreshToken
-      res
-        .clearCookie("accessToken", {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === "PRODUCTION",
-          sameSite: process.env.NODE_ENV === "PRODUCTION" ? "none" : "lax",
-          path: "/",
-        })
-        .clearCookie("refreshToken", {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === "PRODUCTION",
-          sameSite: process.env.NODE_ENV === "PRODUCTION" ? "none" : "lax",
-          path: "/",
-        })
-        .status(200)
-        .json({
-          success: true,
-          message: "Logged out successfully",
-        });
+      res.status(200).json({
+        success: true,
+        message: "Logged out successfully",
+      });
     } catch (error) {
       return next(new ErrorHandler(error.message, 500));
     }
   })
 );
 
-// update user info
+// Update user info
 router.put(
   "/update-user-info",
   isAuthenticated,
@@ -459,11 +434,15 @@ router.put(
     try {
       const { email, password, phoneNumber, name } = req.body;
 
+      if (!email || !password || !name) {
+        return next(new ErrorHandler("Missing required fields", 400));
+      }
+
       /* The line `const user = await User.findOne({ email }).select("+password");` is querying the database
-to find a user with the specified email address. The `select("+password")` part is used to include
-the password field in the returned user object. By default, the password field is not selected when
-querying the database for security reasons. However, in this case, the password field is needed to
-compare the provided password with the stored password for authentication purposes. */
+      to find a user with the specified email address. The `select("+password")` part is used to include
+      the password field in the returned user object. By default, the password field is not selected when
+      querying the database for security reasons. However, in this case, the password field is needed to
+      compare the provided password with the stored password for authentication purposes. */
       const user = await User.findOne({ email }).select("+password");
 
       if (!user) {
@@ -473,9 +452,7 @@ compare the provided password with the stored password for authentication purpos
       const isPasswordValid = await user.comparePassword(password);
 
       if (!isPasswordValid) {
-        return next(
-          new ErrorHandler("Please provide the correct information", 400)
-        );
+        return next(new ErrorHandler("Incorrect password", 400));
       }
 
       user.name = name;
@@ -494,7 +471,7 @@ compare the provided password with the stored password for authentication purpos
   })
 );
 
-// update user avatar
+// Update user avatar
 router.put(
   "/update-avatar",
   isAuthenticated,
@@ -542,14 +519,12 @@ router.put(
       });
     } catch (error) {
       console.error("Update avatar error:", error);
-      return next(
-        new ErrorHandler(error.message || "Failed to update avatar", 500)
-      );
+      return next(new ErrorHandler(error.message || "Failed to update avatar", 500));
     }
   })
 );
 
-// update user addresses
+// Update user addresses
 router.put(
   "/update-user-addresses",
   isAuthenticated,
@@ -561,9 +536,7 @@ router.put(
         (address) => address.addressType === req.body.addressType
       );
       if (sameTypeAddress) {
-        return next(
-          new ErrorHandler(`${req.body.addressType} address already exists`)
-        );
+        return next(new ErrorHandler(`${req.body.addressType} address already exists`, 400));
       }
 
       const existsAddress = user.addresses.find(
@@ -573,7 +546,7 @@ router.put(
       if (existsAddress) {
         Object.assign(existsAddress, req.body);
       } else {
-        // add the new address to the array
+        // Add the new address to the array
         user.addresses.push(req.body);
       }
 
@@ -589,7 +562,7 @@ router.put(
   })
 );
 
-// delete user address
+// Delete user address
 router.delete(
   "/delete-user-address/:id",
   isAuthenticated,
@@ -601,9 +574,7 @@ router.delete(
       //   console.log(addressId);
 
       await User.updateOne(
-        {
-          _id: userId,
-        },
+        { _id: userId },
         { $pull: { addresses: { _id: addressId } } }
       );
 
@@ -616,7 +587,7 @@ router.delete(
   })
 );
 
-// update user password
+// Update user password
 router.put(
   "/update-user-password",
   isAuthenticated,
@@ -624,23 +595,19 @@ router.put(
     try {
       const user = await User.findById(req.user.id).select("+password");
 
-      const isPasswordMatched = await user.comparePassword(
-        req.body.oldPassword
-      );
+      const isPasswordMatched = await user.comparePassword(req.body.oldPassword);
 
       if (!isPasswordMatched) {
         return next(new ErrorHandler("Old password is incorrect!", 400));
       }
 
       /* The line `if (req.body.newPassword !== req.body.confirmPassword)` is checking if the value of
-    `newPassword` in the request body is not equal to the value of `confirmPassword` in the request
-    body. This is used to ensure that the new password entered by the user matches the confirmation
-    password entered by the user. If the two values do not match, it means that the user has entered
-    different passwords and an error is returned. */
+      `newPassword` in the request body is not equal to the value of `confirmPassword` in the request
+      body. This is used to ensure that the new password entered by the user matches the confirmation
+      password entered by the user. If the two values do not match, it means that the user has entered
+      different passwords and an error is returned. */
       if (req.body.newPassword !== req.body.confirmPassword) {
-        return next(
-          new ErrorHandler("Password doesn't matched with each other!", 400)
-        );
+        return next(new ErrorHandler("Passwords do not match", 400));
       }
       user.password = req.body.newPassword;
 
@@ -648,7 +615,7 @@ router.put(
 
       res.status(200).json({
         success: true,
-        message: "Password updated successfully!",
+        message: "Password updated successfully",
       });
     } catch (error) {
       return next(new ErrorHandler(error.message, 500));
@@ -656,7 +623,7 @@ router.put(
   })
 );
 
-// find user infoormation with the userId
+// Find user information with the userId
 router.get(
   "/user-info/:id",
   catchAsyncErrors(async (req, res, next) => {
@@ -673,16 +640,14 @@ router.get(
   })
 );
 
-// all users --- for admin
+// All users --- for admin
 router.get(
   "/admin-all-users",
   isAuthenticated,
   isAdmin("Admin"),
   catchAsyncErrors(async (req, res, next) => {
     try {
-      const users = await User.find().sort({
-        createdAt: -1,
-      });
+      const users = await User.find().sort({ createdAt: -1 });
       res.status(201).json({
         success: true,
         users,
@@ -693,7 +658,7 @@ router.get(
   })
 );
 
-// delete users --- admin
+// Delete users --- admin
 router.delete(
   "/delete-user/:id",
   isAuthenticated,
@@ -703,16 +668,14 @@ router.delete(
       const user = await User.findById(req.params.id);
 
       if (!user) {
-        return next(
-          new ErrorHandler("User is not available with this id", 400)
-        );
+        return next(new ErrorHandler("User not found", 400));
       }
 
       await User.findByIdAndDelete(req.params.id);
 
       res.status(201).json({
         success: true,
-        message: "User deleted successfully!",
+        message: "User deleted successfully",
       });
     } catch (error) {
       return next(new ErrorHandler(error.message, 500));

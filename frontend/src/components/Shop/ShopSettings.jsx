@@ -5,6 +5,7 @@ import styles from "../../styles/styles";
 import axios from "axios";
 import { loadSeller } from "../../redux/actions/user";
 import { toast } from "react-toastify";
+import { putRequest } from "../../request/api";
 
 const ShopSettings = () => {
   const { seller } = useSelector((state) => state.seller);
@@ -24,50 +25,45 @@ const ShopSettings = () => {
     e.preventDefault();
     const file = e.target.files[0];
     setAvatar(file);
-
+  
     const formData = new FormData();
-
-    formData.append("image", e.target.files[0]);
-
-    await axios
-      .put(`${process.env.REACT_APP_SERVER}/shop/update-shop-avatar`, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-        withCredentials: true,
-      })
-      .then((res) => {
-        dispatch(loadSeller());
-        toast.success("Avatar updated successfully!");
-      })
-      .catch((error) => {
-        toast.error(error.response.data.message);
-      });
+    formData.append("image", file);
+  
+    try {
+      const res = await putRequest("/shop/update-shop-avatar", formData);
+      if (!res.success) {
+        throw new Error(res.message || "Failed to update avatar");
+      }
+      dispatch(loadSeller());
+      toast.success("Avatar updated successfully!");
+    } catch (error) {
+      console.error("Update avatar error:", error);
+      toast.error(error.message || "Failed to update avatar");
+    }
   };
 
-  const updateHandler = async (e) => {
-    e.preventDefault();
+// Update shop info
+const updateHandler = async (e) => {
+  e.preventDefault();
 
-    await axios
-      .put(
-        `${process.env.REACT_APP_SERVER}/shop/update-seller-info`,
-        {
-          name,
-          address,
-          zipCode,
-          phoneNumber,
-          description,
-        },
-        { withCredentials: true }
-      )
-      .then((res) => {
-        toast.success("Shop info updated succesfully!");
-        dispatch(loadSeller());
-      })
-      .catch((error) => {
-        toast.error(error.response.data.message);
-      });
-  };
+  try {
+    const res = await putRequest("/shop/update-seller-info", {
+      name,
+      address,
+      zipCode,
+      phoneNumber,
+      description,
+    });
+    if (!res.success) {
+      throw new Error(res.message || "Failed to update shop info");
+    }
+    toast.success("Shop info updated successfully!");
+    dispatch(loadSeller());
+  } catch (error) {
+    console.error("Update shop info error:", error);
+    toast.error(error.message || "Failed to update shop info");
+  }
+};
 
   return (
     <div className="w-full min-h-screen flex flex-col items-center">

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
+import { postRequest } from "../../request/api";
 
 const ChatbotComponent = () => {
   const [messages, setMessages] = useState([
@@ -16,12 +17,11 @@ const ChatbotComponent = () => {
     const userMessage = { text: input, sender: "user" };
     setMessages([...messages, userMessage]);
     try {
-      const res = await axios.post(
+      const res = await postRequest(
         `${process.env.REACT_APP_SERVER}/chatbot/dialogflow`,
         { message: input },
-        { withCredentials: true }
       );
-      const botMessage = { text: res.data.reply, sender: "bot" };
+      const botMessage = { text: res.reply, sender: "bot" };
       setMessages((prev) => [...prev, botMessage]);
     } catch (error) {
       console.error("Chatbot Error:", error.response || error.message);

@@ -20,6 +20,7 @@ import { MdTrackChanges } from "react-icons/md";
 import { toast } from "react-toastify";
 import axios from "axios";
 import { getAllOrdersOfUser } from "../../redux/actions/order";
+import { putRequest } from "../../request/api";
 
 const ProfileContent = ({ active }) => {
   const { user, error, successMessage } = useSelector((state) => state.user);
@@ -56,20 +57,17 @@ const ProfileContent = ({ active }) => {
 
     formData.append("image", e.target.files[0]);
 
-    await axios
-      .put(`${process.env.REACT_APP_SERVER}/user/update-avatar`, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-        withCredentials: true,
-      })
-      .then((response) => {
-        dispatch(loadUser());
-        toast.success("avatar updated successfully!");
-      })
-      .catch((error) => {
-        toast.error(error);
-      });
+    try {
+      const res = await putRequest("/user/update-avatar", formData);
+      if (!res.success) {
+        throw new Error(res.message || "Failed to update avatar");
+      }
+      dispatch(loadUser());
+      toast.success("Avatar updated successfully!");
+    } catch (error) {
+      console.error("Update avatar error:", error);
+      toast.error(error.message || "Failed to update avatar");
+    }
   };
 
   return (
@@ -527,21 +525,23 @@ const ChangePassword = () => {
   const passwordChangeHandler = async (e) => {
     e.preventDefault();
 
-    await axios
-      .put(
-        `${process.env.REACT_APP_SERVER}/user/update-user-password`,
-        { oldPassword, newPassword, confirmPassword },
-        { withCredentials: true }
-      )
-      .then((res) => {
-        toast.success("Pawword is updated");
-        setOldPassword("");
-        setNewPassword("");
-        setConfirmPassword("");
-      })
-      .catch((error) => {
-        toast.error(error.response.data.message);
+    try {
+      const res = await putRequest("/user/update-user-password", {
+        oldPassword,
+        newPassword,
+        confirmPassword,
       });
+      if (!res.success) {
+        throw new Error(res.message || "Failed to update password");
+      }
+
+      toast.success("Password is updated");
+      setOldPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (error) {
+      toast.error(error.message);
+    }
   };
 
   return (

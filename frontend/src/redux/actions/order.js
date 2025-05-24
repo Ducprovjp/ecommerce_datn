@@ -1,4 +1,4 @@
-import axios from "axios";
+import { getRequest } from "../../request/api";
 
 // get all orders of user
 export const getAllOrdersOfUser = (userId) => async (dispatch) => {
@@ -7,18 +7,19 @@ export const getAllOrdersOfUser = (userId) => async (dispatch) => {
       type: "getAllOrdersUserRequest",
     });
 
-    const { data } = await axios.get(
-      `${process.env.REACT_APP_SERVER}/order/get-all-orders/${userId}`
-    );
-
+    const res = await getRequest(`/order/get-all-orders/${userId}`);
+    if (!res.success) {
+      throw new Error(res.message || "Failed to fetch user orders");
+    }
     dispatch({
       type: "getAllOrdersUserSuccess",
-      payload: data.orders,
+      payload: res.orders,
     });
   } catch (error) {
+    console.error("Fetch user orders error:", error);
     dispatch({
       type: "getAllOrdersUserFailed",
-      payload: error.response.data.message,
+      payload: error.message || "Failed to fetch user orders",
     });
   }
 };
@@ -30,18 +31,19 @@ export const getAllOrdersOfShop = (shopId) => async (dispatch) => {
       type: "getAllOrdersShopRequest",
     });
 
-    const { data } = await axios.get(
-      `${process.env.REACT_APP_SERVER}/order/get-seller-all-orders/${shopId}`
-    );
-
+    const res = await getRequest(`/order/get-seller-all-orders/${shopId}`);
+    if (!res.success) {
+      throw new Error(res.message || "Failed to fetch shop orders");
+    }
     dispatch({
       type: "getAllOrdersShopSuccess",
-      payload: data.orders,
+      payload: res.orders,
     });
   } catch (error) {
+    console.error("Fetch shop orders error:", error);
     dispatch({
       type: "getAllOrdersShopFailed",
-      payload: error.response.data.message,
+      payload: error.message || "Failed to fetch shop orders",
     });
   }
 };
@@ -53,18 +55,19 @@ export const getAllOrdersOfShipper = (shipperId) => async (dispatch) => {
       type: "getAllOrdersShipperRequest",
     });
 
-    const { data } = await axios.get(
-      `${process.env.REACT_APP_SERVER}/order/get-shipper-all-orders/${shipperId}`
-    );
-
+    const res = await getRequest(`/order/get-shipper-all-orders/${shipperId}`);
+    if (!res.success) {
+      throw new Error(res.message || "Failed to fetch shipper orders");
+    }
     dispatch({
       type: "getAllOrdersShipperSuccess",
-      payload: data.orders,
+      payload: res.orders,
     });
   } catch (error) {
+    console.error("Fetch shipper orders error:", error);
     dispatch({
       type: "getAllOrdersShipperFailed",
-      payload: error.response.data.message,
+      payload: error.message || "Failed to fetch shipper orders",
     });
   }
 };
@@ -76,18 +79,19 @@ export const getAllOrdersOfAdmin = () => async (dispatch) => {
       type: "adminAllOrdersRequest",
     });
 
-    const { data } = await axios.get(`${process.env.REACT_APP_SERVER}/order/admin-all-orders`, {
-      withCredentials: true,
-    });
-
+    const res = await getRequest("/order/admin-all-orders");
+    if (!res.success) {
+      throw new Error(res.message || "Failed to fetch admin orders");
+    }
     dispatch({
       type: "adminAllOrdersSuccess",
-      payload: data.orders,
+      payload: res.orders,
     });
   } catch (error) {
+    console.error("Fetch admin orders error:", error);
     dispatch({
       type: "adminAllOrdersFailed",
-      payload: error.response.data.message,
+      payload: error.message || "Failed to fetch admin orders",
     });
   }
 };

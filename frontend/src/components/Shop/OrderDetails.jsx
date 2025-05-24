@@ -3,7 +3,7 @@ import styles from "../../styles/styles";
 import { BsFillBagFill } from "react-icons/bs";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
-import axios from "axios";
+import { putRequest } from "../../request/api"; // Import putRequest từ api.js
 import { getAllOrdersOfShop } from "../../redux/actions/order";
 import { useDispatch, useSelector } from "react-redux";
 import { Button } from "@material-ui/core";
@@ -26,48 +26,47 @@ const OrderStatus = () => {
   const [displayedStatus, setDisplayedStatus] = useState(data?.status || "");
 
   const orderCancelHandler = async () => {
-    await axios
-      .put(`${process.env.REACT_APP_SERVER}/order/delete-order/${id}`, { withCredentials: true })
-      .then((res) => {
-        toast.success("Order canceled!");
-        navigate("/dashboard-orders");
-      })
-      .catch((error) => {
-        toast.error(error.response.data.message);
-      });
+    try {
+      const res = await putRequest(`/order/delete-order/${id}`);
+      if (!res.success) {
+        throw new Error(res.message || "Failed to cancel order");
+      }
+      toast.success("Order canceled!");
+      navigate("/dashboard-orders");
+    } catch (error) {
+      toast.error(error.message);
+    }
   };
 
   const orderUpdateHandler = async () => {
     try {
-      await axios.put(
-        `${process.env.REACT_APP_SERVER}/order/update-order-status/${id}`,
-        {
-          status: selectedStatus,
-        },
-        { withCredentials: true }
-      );
+      const res = await putRequest(`/order/update-order-status/${id}`, {
+        status: selectedStatus,
+      });
+      if (!res.success) {
+        throw new Error(res.message || "Failed to update order status");
+      }
       toast.success("Order updated!");
       setDisplayedStatus(selectedStatus); // Cập nhật thẻ hiển thị
       navigate("/dashboard-orders");
     } catch (error) {
-      toast.error(error.response.data.message);
+      toast.error(error.message);
     }
   };
 
   const refundOrderUpdateHandler = async () => {
     try {
-      await axios.put(
-        `${process.env.REACT_APP_SERVER}/order/order-refund-success/${id}`,
-        {
-          status: selectedStatus,
-        },
-        { withCredentials: true }
-      );
+      const res = await putRequest(`/order/order-refund-success/${id}`, {
+        status: selectedStatus,
+      });
+      if (!res.success) {
+        throw new Error(res.message || "Failed to update refund status");
+      }
       toast.success("Order updated!");
       setDisplayedStatus(selectedStatus); // Cập nhật thẻ hiển thị
       dispatch(getAllOrdersOfShop(seller._id));
     } catch (error) {
-      toast.error(error.response.data.message);
+      toast.error(error.message);
     }
   };
 
@@ -183,14 +182,12 @@ const OrderStatus = () => {
                 "Processing",
                 "Packaging",
                 "Transferred to delivery partner",
-                
               ]
                 .slice(
                   [
                     "Processing",
                     "Packaging",
                     "Transferred to delivery partner",
-                    
                   ].indexOf(data?.status)
                 )
                 .map((option, index) => (

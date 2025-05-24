@@ -1,4 +1,3 @@
-import axios from "axios";
 import React, { useRef, useState } from "react";
 import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
@@ -8,6 +7,13 @@ import styles from "../../styles/styles";
 import { TfiGallery } from "react-icons/tfi";
 import socketIO from "socket.io-client";
 import { format } from "timeago.js";
+import {
+  getRequest,
+  postRequest,
+  putRequest,
+  uploadFileRequest,
+} from "../../request/api"; // Import các hàm từ api.js
+
 const ENDPOINT = "http://localhost:4000/";
 const socketId = socketIO(ENDPOINT, { transports: ["websocket"] });
 
@@ -44,14 +50,13 @@ const DashboardMessages = () => {
   useEffect(() => {
     const getConversation = async () => {
       try {
-        const resonse = await axios.get(
-          `${process.env.REACT_APP_SERVER}/conversation/get-all-conversation-seller/${seller?._id}`,
-          {
-            withCredentials: true,
-          }
+        const res = await getRequest(
+          `/conversation/get-all-conversation-seller/${seller?._id}`
         );
-
-        setConversations(resonse.data.conversations);
+        if (!res.success) {
+          throw new Error(res.message || "Failed to fetch conversations");
+        }
+        setConversations(res.conversations);
       } catch (error) {
         // console.log(error);
       }
@@ -80,10 +85,13 @@ const DashboardMessages = () => {
   useEffect(() => {
     const getMessage = async () => {
       try {
-        const response = await axios.get(
-          `${process.env.REACT_APP_SERVER}/message/get-all-messages/${currentChat?._id}`
+        const res = await getRequest(
+          `/message/get-all-messages/${currentChat?._id}`
         );
-        setMessages(response.data.messages);
+        if (!res.success) {
+          throw new Error(res.message || "Failed to fetch messages");
+        }
+        setMessages(res.messages);
       } catch (error) {
         console.log(error);
       }
@@ -112,15 +120,12 @@ const DashboardMessages = () => {
 
     try {
       if (newMessage !== "") {
-        await axios
-          .post(`${process.env.REACT_APP_SERVER}/message/create-new-message`, message)
-          .then((res) => {
-            setMessages([...messages, res.data.message]);
-            updateLastMessage();
-          })
-          .catch((error) => {
-            console.log(error);
-          });
+        const res = await postRequest("/message/create-new-message", message);
+        if (!res.success) {
+          throw new Error(res.message || "Failed to send message");
+        }
+        setMessages([...messages, res.message]);
+        updateLastMessage();
       }
     } catch (error) {
       console.log(error);
@@ -133,22 +138,25 @@ const DashboardMessages = () => {
       lastMessageId: seller._id,
     });
 
-    await axios
-      .put(`${process.env.REACT_APP_SERVER}/conversation/update-last-message/${currentChat._id}`, {
-        lastMessage: newMessage,
-        lastMessageId: seller._id,
-      })
-      .then((res) => {
-        console.log(res.data.conversation);
-        setNewMessage("");
-      })
-      .catch((error) => {
-        console.log(error);
-      });
+    try {
+      const res = await putRequest(
+        `/conversation/update-last-message/${currentChat._id}`,
+        {
+          lastMessage: newMessage,
+          lastMessageId: seller._id,
+        }
+      );
+      if (!res.success) {
+        throw new Error(res.message || "Failed to update last message");
+      }
+      console.log(res.conversation);
+      setNewMessage("");
+    } catch (error) {
+      console.log(error);
+    }
   };
 
   // img upload
-
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     setImages(file);
@@ -157,7 +165,6 @@ const DashboardMessages = () => {
 
   const imageSendingHandler = async (e) => {
     const formData = new FormData();
-
     formData.append("images", e);
     formData.append("sender", seller._id);
     formData.append("text", newMessage);
@@ -174,30 +181,33 @@ const DashboardMessages = () => {
     });
 
     try {
-      await axios
-        .post(`${process.env.REACT_APP_SERVER}/message/create-new-message`, formData, {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        })
-        .then((res) => {
-          setImages();
-          setMessages([...messages, res.data.message]);
-          updateLastMessageForImage();
-        });
+      const res = await uploadFileRequest("/message/create-new-message", formData);
+      if (!res.success) {
+        throw new Error(res.message || "Failed to send image message");
+      }
+      setImages();
+      setMessages([...messages, res.message]);
+      updateLastMessageForImage();
     } catch (error) {
       console.log(error);
     }
   };
 
   const updateLastMessageForImage = async () => {
-    await axios.put(
-      `${process.env.REACT_APP_SERVER}/conversation/update-last-message/${currentChat._id}`,
-      {
-        lastMessage: "Photo",
-        lastMessageId: seller._id,
+    try {
+      const res = await putRequest(
+        `/conversation/update-last-message/${currentChat._id}`,
+        {
+          lastMessage: "Photo",
+          lastMessageId: seller._id,
+        }
+      );
+      if (!res.success) {
+        throw new Error(res.message || "Failed to update last message for image");
       }
-    );
+    } catch (error) {
+      console.log(error);
+    }
   };
 
   useEffect(() => {
@@ -272,8 +282,11 @@ const MessageList = ({
 
     const getUser = async () => {
       try {
-        const res = await axios.get(`${process.env.REACT_APP_SERVER}/user/user-info/${userId}`);
-        setUser(res.data.user);
+        const res = await getRequest(`/user/user-info/${userId}`);
+        if (!res.success) {
+          throw new Error(res.message || "Failed to fetch user info");
+        }
+        setUser(res.user);
       } catch (error) {
         console.log(error);
       }

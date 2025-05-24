@@ -1,26 +1,23 @@
-import axios from "axios";
-
-// Hàm helper để thêm header Authorization
-const getAuthHeaders = () => {
-  const accessToken = localStorage.getItem("accessToken");
-  return accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
-};
+import { getRequest, putRequest, deleteRequest } from "../../request/api";
 
 // load user
 export const loadUser = () => async (dispatch) => {
   try {
     dispatch({ type: "LoadUserRequest" });
-    const { data } = await axios.get(`${process.env.REACT_APP_SERVER}/user/getuser`, {
-      headers: getAuthHeaders(),
-    });
+
+    const res = await getRequest("/user/getuser");
+    if (!res.success) {
+      throw new Error(res.message || "Failed to load user");
+    }
     dispatch({
       type: "LoadUserSuccess",
-      payload: data.user,
+      payload: res.user,
     });
   } catch (error) {
+    console.error("Load user error:", error);
     dispatch({
       type: "LoadUserFail",
-      payload: error.response?.data?.message || "Failed to load user",
+      payload: error.message || "Failed to load user",
     });
   }
 };
@@ -29,17 +26,20 @@ export const loadUser = () => async (dispatch) => {
 export const loadSeller = () => async (dispatch) => {
   try {
     dispatch({ type: "LoadSellerRequest" });
-    const { data } = await axios.get(`${process.env.REACT_APP_SERVER}/shop/getSeller`, {
-      headers: getAuthHeaders(),
-    });
+
+    const res = await getRequest("/shop/getSeller");
+    if (!res.success) {
+      throw new Error(res.message || "Failed to load seller");
+    }
     dispatch({
       type: "LoadSellerSuccess",
-      payload: data.seller,
+      payload: res.seller,
     });
   } catch (error) {
+    console.error("Load seller error:", error);
     dispatch({
       type: "LoadSellerFail",
-      payload: error.response?.data?.message || "Failed to load seller",
+      payload: error.message || "Failed to load seller",
     });
   }
 };
@@ -48,17 +48,20 @@ export const loadSeller = () => async (dispatch) => {
 export const loadShipper = () => async (dispatch) => {
   try {
     dispatch({ type: "LoadShipperRequest" });
-    const { data } = await axios.get(`${process.env.REACT_APP_SERVER}/shipper/getShipper`, {
-      headers: getAuthHeaders(),
-    });
+
+    const res = await getRequest("/shipper/getShipper");
+    if (!res.success) {
+      throw new Error(res.message || "Failed to load shipper");
+    }
     dispatch({
       type: "LoadShipperSuccess",
-      payload: data.shipper,
+      payload: res.shipper,
     });
   } catch (error) {
+    console.error("Load shipper error:", error);
     dispatch({
       type: "LoadShipperFail",
-      payload: error.response?.data?.message || "Failed to load shipper",
+      payload: error.message || "Failed to load shipper",
     });
   }
 };
@@ -67,19 +70,20 @@ export const loadShipper = () => async (dispatch) => {
 export const updateUserInformation = (name, email, phoneNumber, password) => async (dispatch) => {
   try {
     dispatch({ type: "updateUserInfoRequest" });
-    const { data } = await axios.put(
-      `${process.env.REACT_APP_SERVER}/user/update-user-info`,
-      { name, email, phoneNumber, password },
-      { headers: getAuthHeaders() }
-    );
+
+    const res = await putRequest("/user/update-user-info", { name, email, phoneNumber, password });
+    if (!res.success) {
+      throw new Error(res.message || "Failed to update user info");
+    }
     dispatch({
       type: "updateUserInfoSuccess",
-      payload: data.user,
+      payload: res.user,
     });
   } catch (error) {
+    console.error("Update user info error:", error);
     dispatch({
       type: "updateUserInfoFailed",
-      payload: error.response?.data?.message || "Failed to update user info",
+      payload: error.message || "Failed to update user info",
     });
   }
 };
@@ -88,22 +92,29 @@ export const updateUserInformation = (name, email, phoneNumber, password) => asy
 export const updateUserAddress = (province, district, ward, address1, addressType) => async (dispatch) => {
   try {
     dispatch({ type: "updateUserAddressRequest" });
-    const { data } = await axios.put(
-      `${process.env.REACT_APP_SERVER}/user/update-user-addresses`,
-      { province, district, ward, address1, addressType },
-      { headers: getAuthHeaders() }
-    );
+
+    const res = await putRequest("/user/update-user-addresses", {
+      province,
+      district,
+      ward,
+      address1,
+      addressType,
+    });
+    if (!res.success) {
+      throw new Error(res.message || "Failed to update address");
+    }
     dispatch({
       type: "updateUserAddressSuccess",
       payload: {
-        successMessage: "User address updated succesfully!",
-        user: data.user,
+        successMessage: "User address updated successfully!",
+        user: res.user,
       },
     });
   } catch (error) {
+    console.error("Update user address error:", error);
     dispatch({
       type: "updateUserAddressFailed",
-      payload: error.response?.data?.message || "Failed to update address",
+      payload: error.message || "Failed to update address",
     });
   }
 };
@@ -112,21 +123,23 @@ export const updateUserAddress = (province, district, ward, address1, addressTyp
 export const deleteUserAddress = (id) => async (dispatch) => {
   try {
     dispatch({ type: "deleteUserAddressRequest" });
-    const { data } = await axios.delete(
-      `${process.env.REACT_APP_SERVER}/user/delete-user-address/${id}`,
-      { headers: getAuthHeaders() }
-    );
+
+    const res = await deleteRequest(`/user/delete-user-address/${id}`);
+    if (!res.success) {
+      throw new Error(res.message || "Failed to delete address");
+    }
     dispatch({
       type: "deleteUserAddressSuccess",
       payload: {
         successMessage: "Address deleted successfully!",
-        user: data.user,
+        user: res.user,
       },
     });
   } catch (error) {
+    console.error("Delete user address error:", error);
     dispatch({
       type: "deleteUserAddressFailed",
-      payload: error.response?.data?.message || "Failed to delete address",
+      payload: error.message || "Failed to delete address",
     });
   }
 };
@@ -135,25 +148,28 @@ export const deleteUserAddress = (id) => async (dispatch) => {
 export const getAllUsers = () => async (dispatch) => {
   try {
     dispatch({ type: "getAllUsersRequest" });
-    const { data } = await axios.get(`${process.env.REACT_APP_SERVER}/user/admin-all-users`, {
-      headers: getAuthHeaders(),
-    });
+
+    const res = await getRequest("/user/admin-all-users");
+    if (!res.success) {
+      throw new Error(res.message || "Failed to fetch users");
+    }
     dispatch({
       type: "getAllUsersSuccess",
-      payload: data.users,
+      payload: res.users,
     });
   } catch (error) {
+    console.error("Fetch users error:", error);
     dispatch({
       type: "getAllUsersFailed",
-      payload: error.response?.data?.message || "Failed to load users",
+      payload: error.message || "Failed to fetch users",
     });
   }
 };
 
 // what is action in redux ?
-// Trigger an event , and call reducer
+// Trigger an event, and call reducer
 // action is a plain object that contains information about an event that has occurred
 // action is the only way to change the state in redux
 // action is the only way to send data from the application to the store
 
-// dispatch :- active action , (action trigger)
+// dispatch :- active action, (action trigger)

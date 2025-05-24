@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import styles from "../../styles/styles";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import axios from "axios";
+import { postRequest } from "../../request/api"; // Import postRequest
 import { toast } from "react-toastify";
 
 const ResetPasswordPage = () => {
@@ -17,16 +17,18 @@ const ResetPasswordPage = () => {
     setLoading(true);
 
     try {
-      const res = await axios.post(
-        `${process.env.REACT_APP_SERVER}/user/reset-password`,
-        { reset_token: token, newPassword },
-        { withCredentials: true }
-      );
-      toast.success(res.data.message);
+      const res = await postRequest("/user/reset-password", {
+        reset_token: token,
+        newPassword,
+      });
+      if (!res.success) {
+        throw new Error(res.message || "Failed to reset password");
+      }
+      toast.success(res.message);
       setNewPassword("");
       navigate("/login");
     } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to reset password");
+      toast.error(error.message || "Failed to reset password");
     } finally {
       setLoading(false);
     }

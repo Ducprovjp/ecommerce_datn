@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import axios from "axios";
 import { toast } from "react-toastify";
+import { getRequest } from "../../request/api";
 
 const Checkout = () => {
   const { user } = useSelector((state) => state.user);
@@ -29,9 +30,7 @@ const Checkout = () => {
   const fetchAvailableCoupons = async () => {
     setIsLoadingCoupons(true);
     try {
-      const response = await axios.get(
-        `${process.env.REACT_APP_SERVER}/coupon/get-all-available-coupons`
-      );
+      const response = await getRequest("/coupon/get-all-available-coupons");
       setAvailableCoupons(response.data.couponCodes);
     } catch (error) {
       console.error("Error fetching coupons:", error);

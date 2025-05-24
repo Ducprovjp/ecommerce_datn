@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import styles from "../../styles/styles";
 import { Link, useNavigate } from "react-router-dom";
-import axios from "axios";
+import { postRequest } from "../../request/api"; // Import postRequest
 import { toast } from "react-toastify";
 
 const ForgotPasswordPage = () => {
@@ -14,15 +14,14 @@ const ForgotPasswordPage = () => {
     setLoading(true);
 
     try {
-      const res = await axios.post(
-        `${process.env.REACT_APP_SERVER}/user/forgot-password`,
-        { email },
-        { withCredentials: true }
-      );
-      toast.success(res.data.message);
+      const res = await postRequest("/user/forgot-password", { email });
+      if (!res.success) {
+        throw new Error(res.message || "Failed to send reset email");
+      }
+      toast.success(res.message);
       setEmail("");
     } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to send reset email");
+      toast.error(error.message || "Failed to send reset email");
     } finally {
       setLoading(false);
     }
