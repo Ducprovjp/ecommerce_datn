@@ -253,7 +253,7 @@ router.post(
   })
 );
 
-// Refresh token
+// Refresh token for shop
 router.post(
   "/refresh-token",
   catchAsyncErrors(async (req, res, next) => {
@@ -265,20 +265,20 @@ router.post(
 
     try {
       const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_TOKEN_SECRET || process.env.JWT_SECRET_KEY);
-      const seller = await Shop.findById(decoded.id);
+      const shop = await Shop.findById(decoded.id);
 
-      if (!seller || seller.refreshToken !== refreshToken) {
+      if (!shop || shop.refreshToken !== refreshToken) {
         return next(new ErrorHandler("Invalid refresh token", 401));
       }
 
-      sendShopToken(seller, 200, res);
+      sendShopToken(shop, 200, res);
     } catch (error) {
       return next(new ErrorHandler("Invalid or expired refresh token", 401));
     }
   })
 );
 
-// Log out from shop
+// Logout shop
 router.post(
   "/logout",
   catchAsyncErrors(async (req, res, next) => {
@@ -288,13 +288,13 @@ router.post(
       if (refreshToken) {
         try {
           const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_TOKEN_SECRET || process.env.JWT_SECRET_KEY);
-          const seller = await Shop.findById(decoded.id);
-          if (seller && seller.refreshToken === refreshToken) {
-            seller.refreshToken = null;
-            await seller.save({ validateBeforeSave: false });
+          const shop = await Shop.findById(decoded.id);
+          if (shop && shop.refreshToken === refreshToken) {
+            shop.refreshToken = null;
+            await shop.save({ validateBeforeSave: false });
           }
         } catch (error) {
-          // If refresh token is invalid, no action needed
+          // Nếu refresh token không hợp lệ, không cần làm gì thêm
         }
       }
 

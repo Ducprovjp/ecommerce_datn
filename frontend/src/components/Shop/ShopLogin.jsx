@@ -14,18 +14,19 @@ const ShopLogin = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await postRequest("/shop/login-shop", {
-        email,
-        password,
-      });
+      const res = await postRequest("/shop/login-shop", { email, password });
       if (!res.success) {
         throw new Error(res.message || "Login failed");
       }
+      localStorage.setItem("seller_accessToken", res.accessToken);
+      localStorage.setItem("seller_refreshToken", res.refreshToken);
+      localStorage.setItem("role", "seller");
       toast.success("Login Success!");
       navigate("/dashboard");
       window.location.reload(true);
-    } catch (err) {
-      toast.error(err.message);
+    } catch (error) {
+      console.error("Shop login error:", error);
+      toast.error(error.message || "Login failed");
     }
   };
 
@@ -38,6 +39,9 @@ const ShopLogin = () => {
       if (!res.success) {
         throw new Error(res.message || "Google Login Failed");
       }
+      localStorage.setItem("seller_accessToken", res.accessToken);
+      localStorage.setItem("seller_refreshToken", res.refreshToken);
+      localStorage.setItem("role", "seller");
       toast.success("Google Login Success!");
       navigate("/dashboard");
       window.location.reload(true);

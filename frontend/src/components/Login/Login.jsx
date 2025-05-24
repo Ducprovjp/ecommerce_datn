@@ -23,8 +23,10 @@ const Login = () => {
       const { accessToken, refreshToken } = res;
       localStorage.setItem("accessToken", accessToken);
       localStorage.setItem("refreshToken", refreshToken);
+      localStorage.setItem("role", "user"); // Set role to user
       toast.success("Login Success!");
       navigate("/");
+      window.location.reload(); // Reload the page to update user state
     } catch (err) {
       console.error("Login error:", err);
       toast.error(err.message || "Login Failed");
@@ -43,8 +45,10 @@ const Login = () => {
       const { accessToken, refreshToken } = res;
       localStorage.setItem("accessToken", accessToken);
       localStorage.setItem("refreshToken", refreshToken);
+      localStorage.setItem("role", "user"); // Set role to user
       toast.success("Google Login Success!");
       navigate("/");
+      window.location.reload(); // Reload the page to update user state
     } catch (err) {
       console.error("Google login error:", err);
       toast.error(err.message || "Google Login Failed");
