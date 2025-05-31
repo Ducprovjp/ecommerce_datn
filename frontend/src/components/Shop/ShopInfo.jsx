@@ -6,6 +6,7 @@ import { getAllProductsShop } from "../../redux/actions/product";
 import styles from "../../styles/styles";
 import Loader from "../Layout/Loader";
 import { getRequest } from "../../request/api";
+import { logoutSeller } from "../../redux/actions/sellers";
 
 const ShopInfo = ({ isOwner }) => {
   const [data, setData] = useState({});
@@ -14,40 +15,6 @@ const ShopInfo = ({ isOwner }) => {
   const navigate = useNavigate();
   const { id } = useParams();
   const dispatch = useDispatch();
-
-  // useEffect(() => {
-  //   dispatch(getAllProductsShop(id));
-  //   setIsLoading(true);
-  //   getRequest(`/shop/get-shop-info/${id}`)
-  //     .then((res) => {
-  //       if (!res.success) {
-  //         throw new Error(res.message || "Failed to fetch shop info");
-  //       }
-  //       setData(res.shop);
-  //       setIsLoading(false);
-  //     })
-  //     .catch((error) => {
-  //       console.error("Fetch shop info error:", error);
-  //       toast.error(error.message || "Failed to fetch shop info");
-  //       setIsLoading(false);
-  //     });
-  // }, [dispatch, id]);
-
-  // const logoutHandler = () => {
-  //   getRequest("/shop/logout")
-  //     .then((res) => {
-  //       if (!res.success) {
-  //         throw new Error(res.message || "Failed to logout");
-  //       }
-  //       toast.success(res.message);
-  //       window.location.reload(true);
-  //       navigate("/shop-login");
-  //     })
-  //     .catch((error) => {
-  //       console.error("Logout error:", error);
-  //       toast.error(error.message || "Failed to logout");
-  //     });
-  // };
 
   useEffect(() => {
     const fetchShopInfo = async () => {
@@ -67,16 +34,12 @@ const ShopInfo = ({ isOwner }) => {
       }
     };
     fetchShopInfo();
-  }, [dispatch, id]);
-  
+  }, [dispatch]);
+
   const logoutHandler = async () => {
     try {
-      const res = await getRequest("/shop/logout");
-      if (!res.success) {
-        throw new Error(res.message || "Failed to logout");
-      }
-      toast.success(res.message);
-      window.location.reload(true);
+      await dispatch(logoutSeller());
+      toast.success("Logged out successfully!");
       navigate("/shop-login");
     } catch (error) {
       console.error("Logout error:", error);

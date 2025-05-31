@@ -7,15 +7,16 @@ const initialState = {
 export const shipperReducer = createReducer(initialState, {
   LoadShipperRequest: (state) => {
     state.isLoading = true;
+    state.error = null;
   },
   LoadShipperSuccess: (state, action) => {
     state.isShipper = true;
     state.isLoading = false;
-    state.shipper = action.payload;
+    state.shipper = action.payload.shipper;
   },
   LoadShipperFail: (state, action) => {
     state.isLoading = false;
-    state.error = action.payload;
+    state.error = action.payload.error;
     state.isShipper = false;
   },
 
@@ -56,6 +57,20 @@ export const shipperReducer = createReducer(initialState, {
     state.shippers = action.payload;
   },
   getAllShippersFailed: (state, action) => {
+    state.isLoading = false;
+    state.error = action.payload;
+  },
+
+  // logout shipper
+  logoutShipperRequest: (state) => {
+    state.isLoading = true;
+  },
+  logoutShipperSuccess: (state) => {
+    state.isLoading = false;
+    state.isShipper = false;
+    state.shipper = null;
+  },
+  logoutShipperFailed: (state, action) => {
     state.isLoading = false;
     state.error = action.payload;
   },

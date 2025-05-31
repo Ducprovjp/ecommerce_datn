@@ -4,9 +4,12 @@ import styles from "../../styles/styles";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { postRequest } from "../../request/api"; // Import postRequest từ api.js
+import { loadShipper } from "../../redux/actions/user";
+import { useDispatch } from "react-redux";
 
 const ShipperLogin = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [visible, setVisible] = useState(false);
@@ -21,9 +24,9 @@ const ShipperLogin = () => {
       localStorage.setItem("shipper_accessToken", res.accessToken);
       localStorage.setItem("shipper_refreshToken", res.refreshToken);
       localStorage.setItem("role", "shipper");
+      await dispatch(loadShipper()); // Update Redux state if needed
       toast.success("Login Success!");
       navigate("/shipper-dashboard");
-      window.location.reload(true);
     } catch (error) {
       console.error("Shipper login error:", error);
       toast.error(error.message || "Login failed");
@@ -44,7 +47,7 @@ const ShipperLogin = () => {
       localStorage.setItem("role", "shipper");
       toast.success("Google Login Success!");
       navigate("/shipper-dashboard");
-      window.location.reload(true);
+      await dispatch(loadShipper());
     } catch (err) {
       console.error("Google login error:", err);
       toast.error(err.message || "Google Login Failed");

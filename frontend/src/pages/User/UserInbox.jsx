@@ -288,6 +288,7 @@ const MessageList = ({
         if (!res.success) {
           throw new Error(res.message || "Failed to fetch shop info");
         }
+        console.log("Shop data:", res.shop);
         setUser(res.shop);
       } catch (error) {
         console.error("Fetch shop info error:", error);

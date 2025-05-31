@@ -5,6 +5,7 @@ import styles from "../../styles/styles";
 import Loader from "../Layout/Loader";
 import { toast } from "react-toastify";
 import { getRequest } from "../../request/api"; // Import getRequest từ api.js
+import { logoutShipper } from "../../redux/actions/shippers";
 
 const ShipperInfo = ({ isOwner }) => {
   const [data, setData] = useState({});
@@ -32,18 +33,12 @@ const ShipperInfo = ({ isOwner }) => {
 
   const logoutHandler = async () => {
     try {
-      const refreshToken = localStorage.getItem("shipper_refreshToken");
-      const res = await getRequest("/shipper/logout", { refreshToken });
-      if (!res.success) {
-        throw new Error(res.message || "Failed to logout");
-      }
+      await dispatch(logoutShipper());
       toast.success("Logout Success!");
-      localStorage.removeItem("shipper_accessToken");
-      localStorage.removeItem("shipper_refreshToken");
       navigate("/shipper-login");
-      window.location.reload(true);
     } catch (error) {
       console.log(error.message);
+      toast.error(error.message || "Logout failed");
     }
   };
 

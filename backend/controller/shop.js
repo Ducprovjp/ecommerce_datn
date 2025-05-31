@@ -264,7 +264,7 @@ router.post(
     }
 
     try {
-      const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_TOKEN_SECRET || process.env.JWT_SECRET_KEY);
+      const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET_KEY);
       const shop = await Shop.findById(decoded.id);
 
       if (!shop || shop.refreshToken !== refreshToken) {
@@ -287,7 +287,7 @@ router.post(
 
       if (refreshToken) {
         try {
-          const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_TOKEN_SECRET || process.env.JWT_SECRET_KEY);
+          const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET_KEY);
           const shop = await Shop.findById(decoded.id);
           if (shop && shop.refreshToken === refreshToken) {
             shop.refreshToken = null;

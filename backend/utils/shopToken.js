@@ -3,7 +3,7 @@ const sendShopToken = async (user, statusCode, res) => {
   const refreshToken = user.getRefreshToken();
 
   // Lưu refresh token vào database
-  user.refreshToken = refreshToken;
+  user.seller_refreshToken = refreshToken;
   await user.save({ validateBeforeSave: false });
 
   // Trả token trong response body

@@ -241,7 +241,7 @@ router.post(
   })
 );
 
-// Refresh token
+// Refresh token for user
 router.post(
   "/refresh-token",
   catchAsyncErrors(async (req, res, next) => {
@@ -252,14 +252,13 @@ router.post(
     }
 
     try {
-      const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_TOKEN_SECRET || process.env.JWT_SECRET_KEY);
+      const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET_KEY);
       const user = await User.findById(decoded.id);
 
       if (!user || user.refreshToken !== refreshToken) {
         return next(new ErrorHandler("Invalid refresh token", 401));
       }
 
-      // Tạo access token mới
       sendToken(user, 200, res);
     } catch (error) {
       return next(new ErrorHandler("Invalid or expired refresh token", 401));
@@ -405,7 +404,7 @@ router.post(
 
       if (refreshToken) {
         try {
-          const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_TOKEN_SECRET || process.env.JWT_SECRET_KEY);
+          const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET_KEY);
           const user = await User.findById(decoded.id);
           if (user && user.refreshToken === refreshToken) {
             user.refreshToken = null;
