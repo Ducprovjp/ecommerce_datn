@@ -75,3 +75,30 @@ export const deleteShipperDeliveredArea = (id) => async (dispatch) => {
     });
   }
 };
+
+// logout shipper
+export const logoutShipper = () => async (dispatch) => {
+  try {
+    dispatch({ type: "logoutShipperRequest" });
+    const refreshToken = localStorage.getItem("shipper_refreshToken");
+    if (!refreshToken) {
+      throw new Error("No refresh token found");
+    }
+    const res = await postRequest("/shipper/logout", { refreshToken });
+    if (!res.success) {
+      throw new Error(res.message || "Failed to logout");
+    }
+    localStorage.removeItem("shipper_accessToken");
+    localStorage.removeItem("shipper_refreshToken");
+    localStorage.removeItem("role");
+    dispatch({
+      type: "logoutShipperSuccess",
+    });
+  } catch (error) {
+    console.error("Logout error:", error);
+    dispatch({
+      type: "logoutShipperFailed",
+      payload: error.message || "Failed to logout",
+    });
+  }
+};

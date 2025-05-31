@@ -155,6 +155,7 @@ export async function putRequest(url, body) {
       if (await refreshToken()) return;
       return await putRequest(url, body);
     }
+    console.log("Error:", error?.response?.status, error?.response?.data);
     return error?.response?.data || { code: -1, message: "Request failed" };
   }
 }
@@ -173,34 +174,5 @@ export async function deleteRequest(url) {
       return await deleteRequest(url);
     }
     return error?.response?.data || { code: -1, message: "Request failed" };
-  }
-}
-
-// Hàm logout
-export async function logout() {
-  try {
-    const { refreshTokenKey, logoutEndpoint } = getTokenKeysAndEndpoints();
-    const refreshToken = localStorage.getItem(refreshTokenKey);
-    const { accessTokenKey, loginRedirect } = getTokenKeysAndEndpoints();
-
-    if (refreshToken) {
-      await axios.post(
-        `${process.env.REACT_APP_SERVER}${logoutEndpoint}`,
-        { refreshToken },
-        { headers: { "Content-Type": "application/json" } }
-      );
-    }
-
-    localStorage.removeItem(accessTokenKey);
-    localStorage.removeItem(refreshTokenKey);
-    localStorage.removeItem("role");
-    window.location.href = loginRedirect;
-  } catch (error) {
-    console.error("Logout error:", error);
-    const { accessTokenKey, refreshTokenKey, loginRedirect } = getTokenKeysAndEndpoints();
-    localStorage.removeItem(accessTokenKey);
-    localStorage.removeItem(refreshTokenKey);
-    localStorage.removeItem("role");
-    window.location.href = loginRedirect;
   }
 }

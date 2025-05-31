@@ -2,11 +2,14 @@ import React, { useState, useEffect } from "react";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import styles from "../../styles/styles";
 import { Link, useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
 import { toast } from "react-toastify";
-import { postRequest } from "../../request/api"; // Import postRequest từ api.js
+import { postRequest } from "../../request/api";
+import { loadUser } from "../../redux/actions/user";
 
 const Login = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [visible, setVisible] = useState(false);
@@ -15,18 +18,18 @@ const Login = () => {
     e.preventDefault();
 
     try {
+      // localStorage.clear(); // Xóa token cũ để tránh xung đột
       const res = await postRequest("/user/login-user", { email, password });
       if (!res.success) {
         throw new Error(res.message || "Login failed");
       }
-      // res đã là response.data, nên không cần res.data
       const { accessToken, refreshToken } = res;
       localStorage.setItem("accessToken", accessToken);
       localStorage.setItem("refreshToken", refreshToken);
-      localStorage.setItem("role", "user"); // Set role to user
+      localStorage.setItem("role", "user");
+      await dispatch(loadUser()); // Cập nhật Redux state
       toast.success("Login Success!");
       navigate("/");
-      window.location.reload(); // Reload the page to update user state
     } catch (err) {
       console.error("Login error:", err);
       toast.error(err.message || "Login Failed");
@@ -36,6 +39,7 @@ const Login = () => {
   const handleGoogleSignIn = async (response) => {
     console.log("Google Sign-In response:", response);
     try {
+      // localStorage.clear(); // Xóa token cũ
       const res = await postRequest("/user/auth/google", {
         id_token: response.credential,
       });
@@ -45,10 +49,10 @@ const Login = () => {
       const { accessToken, refreshToken } = res;
       localStorage.setItem("accessToken", accessToken);
       localStorage.setItem("refreshToken", refreshToken);
-      localStorage.setItem("role", "user"); // Set role to user
+      localStorage.setItem("role", "user");
+      await dispatch(loadUser()); // Cập nhật Redux state
       toast.success("Google Login Success!");
       navigate("/");
-      window.location.reload(); // Reload the page to update user state
     } catch (err) {
       console.error("Google login error:", err);
       toast.error(err.message || "Google Login Failed");
@@ -93,7 +97,6 @@ const Login = () => {
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
           <form className="space-y-6" onSubmit={handleSubmit}>
-            {/* Email */}
             <div>
               <label
                 htmlFor="email"
@@ -114,7 +117,6 @@ const Login = () => {
                 />
               </div>
             </div>
-            {/* Password */}
             <div>
               <label
                 htmlFor="password"
@@ -147,7 +149,6 @@ const Login = () => {
                 )}
               </div>
             </div>
-            {/* Password end */}
             <div className={`${styles.noramlFlex} justify-between`}>
               <div className={`${styles.noramlFlex}`}>
                 <input
@@ -180,7 +181,6 @@ const Login = () => {
                 Submit
               </button>
             </div>
-            {/* Google Sign-In Button */}
             <div className="w-full mt-4">
               <div
                 id="googleSignInButton"

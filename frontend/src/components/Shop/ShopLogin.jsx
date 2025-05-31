@@ -3,9 +3,12 @@ import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import styles from "../../styles/styles";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import { useDispatch } from "react-redux";
 import { postRequest } from "../../request/api"; // Import postRequest từ api.js
+import { loadSeller } from "../../redux/actions/user";
 
 const ShopLogin = () => {
+  const dispatch = useDispatch();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -14,6 +17,7 @@ const ShopLogin = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      // localStorage.clear(); // Clear any existing tokens
       const res = await postRequest("/shop/login-shop", { email, password });
       if (!res.success) {
         throw new Error(res.message || "Login failed");
@@ -21,9 +25,9 @@ const ShopLogin = () => {
       localStorage.setItem("seller_accessToken", res.accessToken);
       localStorage.setItem("seller_refreshToken", res.refreshToken);
       localStorage.setItem("role", "seller");
+      await dispatch(loadSeller()); // Update Redux state if needed
       toast.success("Login Success!");
       navigate("/dashboard");
-      window.location.reload(true);
     } catch (error) {
       console.error("Shop login error:", error);
       toast.error(error.message || "Login failed");
@@ -44,7 +48,7 @@ const ShopLogin = () => {
       localStorage.setItem("role", "seller");
       toast.success("Google Login Success!");
       navigate("/dashboard");
-      window.location.reload(true);
+      await dispatch(loadSeller());
     } catch (err) {
       console.error("Google login error:", err);
       toast.error(err.message || "Google Login Failed");

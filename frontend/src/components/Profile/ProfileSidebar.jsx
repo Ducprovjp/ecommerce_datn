@@ -9,32 +9,32 @@ import {
   MdOutlineTrackChanges,
 } from "react-icons/md";
 import { TbAddressBook } from "react-icons/tb";
-import axios from "axios";
 import { toast } from "react-toastify";
-import { useSelector } from "react-redux";
-import { postRequest } from "../../request/api";
+import { useSelector, useDispatch } from "react-redux";
+import { logoutUser } from "../../redux/actions/user";
+import Loader from "../Layout/Loader";
 
 const ProfileSidebar = ({ active, setActive }) => {
   const navigate = useNavigate();
-  const { user } = useSelector((state) => state.user);
+  const dispatch = useDispatch();
+  const { user, isLoading, error } = useSelector((state) => state.user);
 
   const logoutHandler = async () => {
-
     try {
-      const refreshToken = localStorage.getItem("refreshToken");
-      const response = await postRequest("/user/logout", { refreshToken });
-      if (!response.success) {
-        throw new Error(response.message);
+      await dispatch(logoutUser());
+      if (error) {
+        throw new Error(error);
       }
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("refreshToken");
-      toast.success(response.data.message);
-        window.location.reload(true);
-        navigate("/login");
-    } catch (error) {
-      console.log(error.response.data.message);
+      toast.success("Logged out successfully!");
+      navigate("/login");
+    } catch (err) {
+      toast.error(err.message || "Failed to logout");
     }
   };
+
+  if (isLoading) {
+    return <Loader />;
+  }
 
   return (
     <div className="w-full bg-white shadow-sm rounded-[10px] p-4 pt-8">

@@ -15,10 +15,12 @@ const DashboardHero = () => {
   const { seller } = useSelector((state) => state.seller);
   const { products } = useSelector((state) => state.products);
 
+  console.log("Seller Data:", seller);
+
   useEffect(() => {
     dispatch(getAllOrdersOfShop(seller._id));
     dispatch(getAllProductsShop(seller._id));
-  }, [dispatch]);
+  }, [dispatch, seller]);
 
   /*  is calculating the available balance of the seller and rounding it to 2 decimal places. */
   const availableBalance = seller?.availableBalance;

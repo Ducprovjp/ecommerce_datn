@@ -86,14 +86,23 @@ const App = () => {
   const [stripeApikey, setStripeApiKey] = useState("");
 
   async function getStripeApikey() {
-    const { data } = await axios.get(`${process.env.REACT_APP_SERVER}/payment/stripeapikey`);
-    setStripeApiKey(data.stripeApikey);
+    try {
+      const { data } = await axios.get(`${process.env.REACT_APP_SERVER}/payment/stripeapikey`);
+      setStripeApiKey(data.stripeApikey);
+    } catch (error) {
+      console.error("Get Stripe API key error:", error);
+    }
   }
 
   useEffect(() => {
-    Store.dispatch(loadUser());
-    Store.dispatch(loadSeller());
-    Store.dispatch(loadShipper());
+    const role = localStorage.getItem("role");
+    if (role === "user" && localStorage.getItem("accessToken")) {
+      Store.dispatch(loadUser());
+    } else if (role === "seller" && localStorage.getItem("seller_accessToken")) {
+      Store.dispatch(loadSeller());
+    } else if (role === "shipper" && localStorage.getItem("shipper_accessToken")) {
+      Store.dispatch(loadShipper());
+    }
     Store.dispatch(getAllProducts());
     Store.dispatch(getAllEvents());
     getStripeApikey();

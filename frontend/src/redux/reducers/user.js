@@ -2,37 +2,44 @@ import { createReducer } from "@reduxjs/toolkit";
 
 const initialState = {
   isAuthenticated: false,
+  user: null,
+  isLoading: false,
+  error: null,
+  addressloading: false,
+  successMessage: null,
+  usersLoading: false,
+  users: null,
 };
 
 export const userReducer = createReducer(initialState, {
   LoadUserRequest: (state) => {
-    state.loading = true;
-    // state.loading meaning: if loading is true, then the user is not authenticated
+    state.isLoading = true;
+    state.error = null;
   },
   LoadUserSuccess: (state, action) => {
     state.isAuthenticated = true;
-    state.loading = false;
-    state.user = action.payload;
+    state.isLoading = false;
+    state.user = action.payload.user;
+    state.error = null;
   },
   LoadUserFail: (state, action) => {
-    state.loading = false;
-    state.error = action.payload;
+    state.isLoading = false;
+    state.error = action.payload.error;
     state.isAuthenticated = false;
+    state.user = null;
   },
-
   // update user information
   updateUserInfoRequest: (state) => {
-    state.loading = true;
+    state.isLoading = true;
   },
   updateUserInfoSuccess: (state, action) => {
-    state.loading = false;
+    state.isLoading = false;
     state.user = action.payload;
   },
   updateUserInfoFailed: (state, action) => {
-    state.loading = false;
+    state.isLoading = false;
     state.error = action.payload;
   },
-
   // Update User address
   updateUserAddressRequest: (state) => {
     state.addressloading = true;
@@ -46,7 +53,6 @@ export const userReducer = createReducer(initialState, {
     state.addressloading = false;
     state.error = action.payload;
   },
-
   // delete user address
   deleteUserAddressRequest: (state) => {
     state.addressloading = true;
@@ -72,10 +78,22 @@ export const userReducer = createReducer(initialState, {
     state.usersLoading = false;
     state.error = action.payload;
   },
-
+  // logout user
+  LogoutUserRequest: (state) => {
+    state.isLoading = true;
+    state.error = null;
+  },
+  LogoutUserSuccess: (state) => {
+    state.isLoading = false;
+    state.isAuthenticated = false;
+    state.user = null;
+    state.error = null;
+  },
+  LogoutUserFail: (state, action) => {
+    state.isLoading = false;
+    state.error = action.payload;
+  },
   clearErrors: (state) => {
     state.error = null;
   },
 });
-
-// reducer -> logic (state change)
