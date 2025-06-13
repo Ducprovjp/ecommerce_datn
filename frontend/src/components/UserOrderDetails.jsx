@@ -3,7 +3,7 @@ import styles from "../styles/styles";
 import { BsFillBagFill } from "react-icons/bs";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
-import { putRequest } from "../request/api"; // Import từ api.js
+import { putRequest } from "../request/api";
 import { RxCross1 } from "react-icons/rx";
 import { getAllOrdersOfUser } from "../redux/actions/order";
 import { useDispatch, useSelector } from "react-redux";
@@ -17,6 +17,10 @@ const UserOrderDetails = () => {
   const [comment, setComment] = useState("");
   const [selectedItem, setSelectedItem] = useState(null);
   const [rating, setRating] = useState(1);
+  const [refundModalOpen, setRefundModalOpen] = useState(false);
+  const [refundReason, setRefundReason] = useState("");
+  const [cancelModalOpen, setCancelModalOpen] = useState(false); // State cho modal hủy đơn
+  const [cancelReason, setCancelReason] = useState(""); // State cho lý do hủy
 
   const { id } = useParams();
 
@@ -62,10 +66,23 @@ const UserOrderDetails = () => {
     }
   };
 
+  // const combinedHandler = async () => {
+  //   if (rating > 1) {
+  //     await reviewHandler("product");
+  //     await reviewHandler("event");
+  //   }
+  // };
+
   const combinedHandler = async () => {
     if (rating > 1) {
-      await reviewHandler("product");
-      await reviewHandler("event");
+      // Kiểm tra xem selectedItem có phải là sự kiện không
+      const isEvent = selectedItem?.type === "event" || selectedItem?.eventId;
+
+      if (isEvent) {
+        await reviewHandler("event"); // Đánh giá sự kiện
+      } else {
+        await reviewHandler("product"); // Đánh giá sản phẩm
+      }
     }
   };
 
@@ -73,6 +90,7 @@ const UserOrderDetails = () => {
     try {
       const response = await putRequest(`/order/order-refund/${id}`, {
         status: "Processing refund",
+        refundReason,
       });
 
       if (!response.success) {
@@ -82,14 +100,38 @@ const UserOrderDetails = () => {
 
       toast.success(response.message);
       dispatch(getAllOrdersOfUser(user._id));
+      setRefundModalOpen(false);
+      setRefundReason("");
     } catch (error) {
       console.error("Refund error:", error);
       toast.error("An error occurred. Please try again.");
     }
   };
 
+  const cancelHandler = async () => {
+    try {
+      const response = await putRequest(`/order/order-cancel/${id}`, {
+        status: "Cancelled",
+        cancelReason,
+      });
+
+      if (!response.success) {
+        toast.error(response.message || "Failed to cancel order");
+        return;
+      }
+
+      toast.success(response.message);
+      dispatch(getAllOrdersOfUser(user._id));
+      setCancelModalOpen(false);
+      setCancelReason("");
+    } catch (error) {
+      console.error("Cancel error:", error);
+      toast.error("An error occurred. Please try again.");
+    }
+  };
+
   return (
-    <div className={`py-4 min-h-screen ${styles.section}`}>
+    <div className={`mx-3 py-4 min-h-screen ${styles.section}`}>
       <div className="w-full flex items-center justify-between">
         <div className="flex items-center">
           <BsFillBagFill size={30} color="crimson" />
@@ -116,36 +158,37 @@ const UserOrderDetails = () => {
       <br />
       <br />
       {data &&
-        data?.cart.map((item, index) => {
-          return (
-            <div className="w-full flex items-start mb-5" key={index}>
-              <img
-                src={item.images[0]}
-                alt="Product item order img"
-                className="w-[80px] h-[80px]"
-              />
-              <div className="w-full">
-                <h5 className="pl-3 text-[20px]">{item.name}</h5>
-                <h5 className="pl-3 text-[20px] text-[#00000091]">
-                  {item.discountPrice.toLocaleString("vi-VN") + " VNĐ"} x{" "}
-                  {item.qty}
-                </h5>
-              </div>
-              {!item.isReviewed && data?.status === "Delivered" ? (
-                <div
-                  className={`${styles.button} text-[#fff]`}
-                  onClick={() => setOpen(true) || setSelectedItem(item)}
-                >
-                  Write a review
-                </div>
-              ) : null}
+        data?.cart.map((item, index) => (
+          <div className="w-full flex items-start mb-5" key={index}>
+            <img
+              src={item.images[0]}
+              alt="Product item order img"
+              className="w-[80px] h-[80px]"
+            />
+            <div className="w-full">
+              <h5 className="pl-3 text-[20px]">{item.name}</h5>
+              <h5 className="pl-3 text-[20px] text-[#00000091]">
+                {item.discountPrice.toLocaleString("vi-VN") + " VNĐ"} x{" "}
+                {item.qty}
+              </h5>
             </div>
-          );
-        })}
+            {!item.isReviewed && data?.status === "Delivered" ? (
+              <div
+                className={`${styles.button} text-[#fff]`}
+                onClick={() => {
+                  setOpen(true);
+                  setSelectedItem(item);
+                }}
+              >
+                Write a review
+              </div>
+            ) : null}
+          </div>
+        ))}
 
       {/* Review Popup */}
       {open && (
-        <div className="w-full top-0 left-0 h-screen bg-[#0005] z-50 flex items-center justify-center">
+        <div className="w-full fixed top-0 left-0 h-screen bg-[#0005] z-50 flex items-center justify-center">
           <div className="w-[50%] h-min bg-[#fff] shadow rounded-md p-3">
             <div className="w-full flex justify-end p-3">
               <RxCross1
@@ -160,7 +203,7 @@ const UserOrderDetails = () => {
             <br />
             <div className="w-full flex">
               <img
-                src={`${process.env.REACT_APP_BACKEND_URL}/${selectedItem?.images[0]}`}
+                src={selectedItem?.images[0]}
                 alt=""
                 className="w-[80px] h-[80px]"
               />
@@ -230,6 +273,97 @@ const UserOrderDetails = () => {
         </div>
       )}
 
+      {/* Refund Modal */}
+      {refundModalOpen && (
+        <div className="w-full fixed top-0 left-0 h-screen bg-[#0005] z-50 flex items-center justify-center">
+          <div className="w-[50%] h-min bg-[#fff] shadow rounded-md p-3">
+            <div className="w-full flex justify-end p-3">
+              <RxCross1
+                size={30}
+                onClick={() => setRefundModalOpen(false)}
+                className="cursor-pointer"
+              />
+            </div>
+            <h2 className="text-[30px] font-[500] font-Poppins text-center">
+              Request Refund
+            </h2>
+            <br />
+            <div className="w-full ml-3">
+              <label className="block text-[20px] font-[500]">
+                Reason for Refund <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={refundReason}
+                onChange={(e) => setRefundReason(e.target.value)}
+                className="mt-2 w-[95%] border p-2 outline-none"
+              >
+                <option value="">Select a reason</option>
+                <option value="Hàng có vấn đề (bể, vỡ, sai màu, hàng lỗi,...)">
+                  هàng có vấn đề (bể, vỡ, sai màu, hàng lỗi,...)
+                </option>
+                <option value="Chưa nhận được hàng/nhận thiếu hàng">
+                  Chưa nhận được hàng/nhận thiếu hàng
+                </option>
+              </select>
+            </div>
+            <div
+              className={`${styles.button} text-white text-[20px] ml-3 mt-4`}
+              onClick={refundReason ? refundHandler : null}
+            >
+              Submit
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cancel Modal */}
+      {cancelModalOpen && (
+        <div className="w-full fixed top-0 left-0 h-screen bg-[#0005] z-50 flex items-center justify-center">
+          <div className="w-[50%] h-min bg-[#fff] shadow rounded-md p-3">
+            <div className="w-full flex justify-end p-3">
+              <RxCross1
+                size={30}
+                onClick={() => setCancelModalOpen(false)}
+                className="cursor-pointer"
+              />
+            </div>
+            <h2 className="text-[30px] font-[500] font-Poppins text-center">
+              Cancel Order
+            </h2>
+            <br />
+            <div className="w-full ml-3">
+              <label className="block text-[20px] font-[500]">
+                Reason for Cancellation <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                className="mt Horner điều khiển
+                mt-2 w-[95%] border p-2 outline-none"
+              >
+                <option value="">Select a reason</option>
+                <option value="Tôi muốn cập nhật địa chỉ, số điện thoại nhận hàng">
+                  Tôi muốn cập nhật địa chỉ, số điện thoại nhận hàng
+                </option>
+                <option value="Người bán không trả lời thắc mắc, yêu cầu của tôi">
+                  Người bán không trả lời thắc mắc, yêu cầu của tôi
+                </option>
+                <option value="Thay đổi đơn hàng (màu sắc, kích thước, thêm mã giảm giá,...)">
+                  Thay đổi đơn hàng (màu sắc, kích thước, thêm mã giảm giá,...)
+                </option>
+                <option value="Lý do khác">Lý do khác</option>
+              </select>
+            </div>
+            <div
+              className={`${styles.button} text-white text-[20px] ml-3 mt-4`}
+              onClick={cancelReason ? cancelHandler : null}
+            >
+              Submit
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="border-t w-full text-right">
         <h5>
           Total Price:{" "}
@@ -242,13 +376,29 @@ const UserOrderDetails = () => {
       {/* Shipping Address */}
       <div className="w-full 800px:flex items-center">
         <div className="w-full 800px:w-[60%]">
-          <h4 className="pt-3 text-[20px] font-[600]">Shipping Address:</h4>
-          <h4 className="pt-3 text-[20px]">{data?.shippingAddress.address1}</h4>
-          <h4 className="text-[20px]">
-            {data?.shippingAddress.ward}, {data?.shippingAddress.district},{" "}
-            {data?.shippingAddress.province}
-          </h4>
-          <h4 className="text-[20px]">{data?.user?.phoneNumber}</h4>
+          <div>
+            <h4 className="pt-3 text-[20px] font-[600]">Shipping Address:</h4>
+            <h4 className="pt-3 text-[20px]">
+              {data?.shippingAddress.address1}
+            </h4>
+            <h4 className="text-[20px]">
+              {data?.shippingAddress.ward}, {data?.shippingAddress.district},{" "}
+              {data?.shippingAddress.province}
+            </h4>
+            <h4 className="text-[20px]">{data?.user?.phoneNumber}</h4>
+          </div>
+          <div>
+            {data?.refundReason && (
+              <h4 className="mt-3 text-[20px] font-[600]">
+                Refund Reason: {data?.refundReason}
+              </h4>
+            )}
+            {data?.cancelReason && (
+              <h4 className="mt-3 text-[20px] font-[600]">
+                Cancel Reason: {data?.cancelReason}
+              </h4>
+            )}
+          </div>
         </div>
 
         <div className="w-full 800px:w-[40%]">
@@ -258,14 +408,21 @@ const UserOrderDetails = () => {
             {data?.paymentInfo?.status ? data?.paymentInfo?.status : "Not Paid"}
           </h4>
           <br />
-          {data?.status === "Delivered" && (
+          {data?.status === "Delivered" ? (
             <div
               className={`${styles.button} text-white`}
-              onClick={refundHandler}
+              onClick={() => setRefundModalOpen(true)}
             >
-              Give a Refund
+              Return order/Refund
             </div>
-          )}
+          ) : data?.status === "Processing" || data?.status === "Packaging" ? (
+            <div
+              className={`${styles.button} text-white`}
+              onClick={() => setCancelModalOpen(true)}
+            >
+              Cancel Order
+            </div>
+          ) : null}
         </div>
       </div>
       <br />

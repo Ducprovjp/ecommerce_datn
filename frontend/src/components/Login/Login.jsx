@@ -89,6 +89,21 @@ const Login = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+      <div className=" w-40 h-20 rounded-2xl">
+        <Link to="/">
+          <img
+            className="w-full h-full object-cover rounded-2xl"
+            src="https://blog.logrocket.com/wp-content/uploads/2023/03/How-NestJS-middleware-works.png"
+            alt="Logo"
+            style={{
+              WebkitMaskImage:
+                "radial-gradient(circle at center, rgba(0,0,0,1) 40%, rgba(0,0,0,0.2) 70%, rgba(0,0,0,0) 100%)",
+              WebkitMaskRepeat: "no-repeat",
+              WebkitMaskSize: "cover",
+            }}
+          />
+        </Link>
+      </div>
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
           Login to your account

@@ -58,7 +58,7 @@ const ProductDetails = ({ data }) => {
     if (isItemExists) {
       toast.error("Item already in cart!");
     } else {
-      if (data.stock < 1) {
+      if (data.stock < count) {
         toast.error("Product stock limited!");
       } else {
         const cartData = { ...data, qty: count };
@@ -179,21 +179,29 @@ const ProductDetails = ({ data }) => {
                 {/* inc dec option */}
                 <div className="flex items-center mt-12 justify-between pr-3">
                   <div className="flex items-center">
-                    <button
-                      className="h-10 bg-gradient-to-r from-teal-400 to-teal-500 text-white font-bold rounded-l-md px-4 shadow-lg hover:scale-105 active:scale-95 transition-all duration-200 ease-in-out"
-                      onClick={decrementCount}
-                    >
-                      -
-                    </button>
-                    <span className="h-10 bg-gray-200 text-gray-800 font-medium px-4 flex items-center justify-center border-y border-gray-300">
-                      {count}
-                    </span>
-                    <button
-                      className="h-10 bg-gradient-to-r from-teal-400 to-teal-500 text-white font-bold rounded-r-md px-4 shadow-lg hover:scale-105 active:scale-95 transition-all duration-200 ease-in-out"
-                      onClick={incrementCount}
-                    >
-                      +
-                    </button>
+                    <div className="flex items-center">
+                      <button
+                        className="h-10 bg-gradient-to-r from-teal-400 to-teal-500 text-white font-bold rounded-l-md px-4 shadow-lg hover:scale-105 active:scale-95 transition-all duration-200 ease-in-out"
+                        onClick={decrementCount}
+                      >
+                        -
+                      </button>
+                      <span className="h-10 bg-gray-200 text-gray-800 font-medium px-4 flex items-center justify-center border-y border-gray-300">
+                        {count}
+                      </span>
+                      <button
+                        className="h-10 bg-gradient-to-r from-teal-400 to-teal-500 text-white font-bold rounded-r-md px-4 shadow-lg hover:scale-105 active:scale-95 transition-all duration-200 ease-in-out"
+                        onClick={incrementCount}
+                      >
+                        +
+                      </button>
+                    </div>
+
+                    <div>
+                      <span className="font-bold ml-4">
+                        Stock quantity: {data.stock}
+                      </span>
+                    </div>
                   </div>
 
                   <div className="flex items-center justify-center w-10 h-10 bg-gray-100 rounded-full shadow-md hover:bg-gray-200 transition-all duration-200">
@@ -296,7 +304,9 @@ const ProductDetailsInfo = ({
           >
             Product Details
           </h5>
-          {active === 1 ? <div className={`${styles.active_indicator}`} /> : null}
+          {active === 1 ? (
+            <div className={`${styles.active_indicator}`} />
+          ) : null}
         </div>
 
         <div className="relative">
@@ -306,7 +316,9 @@ const ProductDetailsInfo = ({
           >
             Product Reviews
           </h5>
-          {active === 2 ? <div className={`${styles.active_indicator}`} /> : null}
+          {active === 2 ? (
+            <div className={`${styles.active_indicator}`} />
+          ) : null}
         </div>
 
         <div className="relative">
@@ -316,7 +328,9 @@ const ProductDetailsInfo = ({
           >
             Seller Information
           </h5>
-          {active === 3 ? <div className={`${styles.active_indicator}`} /> : null}
+          {active === 3 ? (
+            <div className={`${styles.active_indicator}`} />
+          ) : null}
         </div>
       </div>
 

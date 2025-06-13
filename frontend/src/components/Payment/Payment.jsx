@@ -10,10 +10,9 @@ import {
 } from "@stripe/react-stripe-js";
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import { useSelector } from "react-redux";
-import axios from "axios";
 import { toast } from "react-toastify";
 import { RxCross1 } from "react-icons/rx";
-import { postRequest } from "../../request/api";
+import { postRequest } from "../../request/api"; // Nhập postRequest từ api.js
 
 const Payment = () => {
   const [orderData, setOrderData] = useState([]);
@@ -22,16 +21,28 @@ const Payment = () => {
   const navigate = useNavigate();
   const stripe = useStripe();
   const elements = useElements();
+  const [vnpayOrderId, setVnpayOrderId] = useState(null); // State để lưu orderId
 
   useEffect(() => {
     const orderData = JSON.parse(localStorage.getItem("latestOrder"));
     setOrderData(orderData);
   }, []);
 
+  useEffect(() => {
+    return () => {
+      // Gọi API hủy nếu người dùng thoát trang mà chưa thanh toán
+      if (vnpayOrderId) {
+        postRequest("/order/cancel-vnpay-order", { orderId: vnpayOrderId })
+          .then(() => console.log("VNPay order cancelled"))
+          .catch((err) => console.error("Error cancelling VNPay order:", err));
+      }
+    };
+  }, [vnpayOrderId]);
+
   // PayPal
   const createOrder = (data, actions) => {
     const totalPriceInVND = orderData?.totalPrice;
-    const exchangeRate = 24000; // 1 USD = 24,000 VND (cập nhật tỷ giá thực tế)
+    const exchangeRate = 24000;
     const totalPriceInUSD = (totalPriceInVND / exchangeRate).toFixed(2);
 
     return actions.order
@@ -68,7 +79,7 @@ const Payment = () => {
       }
     } catch (error) {
       console.error("PayPal capture error:", error);
-      toast.error(error.message || "Failed to capture PayPal payment");
+      toast.error(error.message || "Sản phẩm tạm thời hết hàng hoặc đã được giữ chỗ");
     }
   };
 
@@ -82,7 +93,7 @@ const Payment = () => {
 
       const res = await postRequest("/order/create-order", order);
       if (!res.success) {
-        throw new Error(res.message || "Failed to create order");
+        throw new Error(res.message || "Sản phẩm tạm thời hết hàng hoặc đã được giữ chỗ");
       }
 
       setOpen(false);
@@ -93,7 +104,7 @@ const Payment = () => {
       window.location.reload();
     } catch (error) {
       console.error("PayPal order error:", error);
-      toast.error(error.message || "Failed to create order");
+      toast.error(error.message || "Sản phẩm tạm thời hết hàng hoặc đã được giữ chỗ");
     }
   };
 
@@ -106,7 +117,7 @@ const Payment = () => {
     try {
       const paymentRes = await postRequest("/payment/process", paymentData);
       if (!paymentRes.success) {
-        throw new Error(paymentRes.message || "Failed to process payment");
+        throw new Error(paymentRes.message || "Sản phẩm tạm thời hết hàng hoặc đã được giữ chỗ");
       }
       const client_secret = paymentRes.client_secret;
       if (!client_secret) {
@@ -137,7 +148,7 @@ const Payment = () => {
 
         const orderRes = await postRequest("/order/create-order", order);
         if (!orderRes.success) {
-          throw new Error(orderRes.message || "Failed to create order");
+          throw new Error(orderRes.message || "Sản phẩm tạm thời hết hàng hoặc đã được giữ chỗ");
         }
 
         setOpen(false);
@@ -151,7 +162,7 @@ const Payment = () => {
       }
     } catch (error) {
       console.error("Payment handler error:", error);
-      toast.error(error.message || "An error occurred during payment");
+      toast.error(error.message || "Sản phẩm tạm thời hết hàng hoặc đã được giữ chỗ");
     }
   };
 
@@ -159,26 +170,27 @@ const Payment = () => {
     try {
       const res = await postRequest("/payment/vnpay", order);
       if (!res.success) {
-        throw new Error(res.message || "Failed to create VNPAY payment URL");
+        throw new Error(res.message || "Sản phẩm tạm thời hết hàng hoặc đã được giữ chỗ");
       }
-      return res.paymentUrl;
+      return { paymentUrl: res.paymentUrl, orderId: res.orderId };
     } catch (error) {
       console.error("VNPAY payment URL error:", error);
-      toast.error(error.message || "Failed to create VNPAY payment URL");
-      return null;
+      throw error;
     }
   };
 
   const vnpayPaymentHandler = async () => {
     try {
-      const paymentUrl = await createVNPAYPaymentUrl();
+      toast.info("Giao dịch VNPay sẽ hết hạn sau 15 phút");
+      const { paymentUrl, orderId } = await createVNPAYPaymentUrl();
       if (!paymentUrl) {
         throw new Error("No payment URL returned");
       }
-      window.location.href = paymentUrl; // Chuyển hướng tới URL thanh toán
+      setVnpayOrderId(orderId); // Lưu orderId vào state
+      window.location.href = paymentUrl;
     } catch (error) {
       console.error("VNPAY handler error:", error);
-      toast.error(error.message || "Failed to initiate VNPAY payment");
+      toast.error(error.message || "Sản phẩm tạm thời hết hàng hoặc đã được giữ chỗ");
     }
   };
 
@@ -191,7 +203,7 @@ const Payment = () => {
 
       const res = await postRequest("/order/create-order", order);
       if (!res.success) {
-        throw new Error(res.message || "Failed to create order");
+        throw new Error(res.message || "Sản phẩm tạm thời hết hàng hoặc đã được giữ chỗ");
       }
 
       setOpen(false);
@@ -202,7 +214,7 @@ const Payment = () => {
       window.location.reload();
     } catch (error) {
       console.error("COD order error:", error);
-      toast.error(error.message || "Failed to create order");
+      toast.error(error.message || "Sản phẩm tạm thời hết hàng hoặc đã được giữ chỗ");
     }
   };
 

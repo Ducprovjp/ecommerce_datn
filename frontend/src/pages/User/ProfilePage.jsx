@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import Header from "../../components/Layout/Header";
 import styles from "../../styles/styles";
 import ProfileSideBar from "../../components/Profile/ProfileSidebar";
-import ProfileContent from "../../components/Profile/ProfileContent";
+import ProfileContent from "../../components/Profile/ProfileContent/ProfileContent";
 
 const ProfilePage = () => {
   const [active, setActive] = useState(1);

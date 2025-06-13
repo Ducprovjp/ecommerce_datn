@@ -7,6 +7,8 @@ const cookieParser = require("cookie-parser");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const path = require("path");
+const cron = require("node-cron");
+const cleanupExpiredOrders = require("./utils/cleanupExpiredOrders");
 
 // config
 if (process.env.NODE_ENV !== "PRODUCTION") {
@@ -48,6 +50,12 @@ app.get("/health", (req, res) => {
   res.status(200).json({ status: "ok" });
 });
 
+// Chạy mỗi 5 phút
+cron.schedule("*/5 * * * *", async () => {
+  console.log("Running cleanup for expired VNPay orders...");
+  await cleanupExpiredOrders();
+});
+
 app.use(bodyParser.urlencoded({ extended: true, limit: "50mb" }));
 
 // why bodyparser?
@@ -65,17 +73,17 @@ app.get("/", (req, res) => {
 });
 
 // routes
-const user = require("./controller/user");
-const shop = require("./controller/shop");
-const shipper = require("./controller/shipper");
-const product = require("./controller/product");
-const event = require("./controller/event");
-const coupon = require("./controller/coupounCode");
-const payment = require("./controller/payment");
-const order = require("./controller/order");
-const message = require("./controller/message");
-const conversation = require("./controller/conversation");
-const withdraw = require("./controller/withdraw");
+const user = require("./controller/user.controller");
+const shop = require("./controller/shop.controller");
+const shipper = require("./controller/shipper.controller");
+const product = require("./controller/product.controller");
+const event = require("./controller/event.controller");
+const coupon = require("./controller/coupon.controller");
+const payment = require("./controller/payment.controller");
+const order = require("./controller/order.controller");
+const message = require("./controller/message.controller");
+const conversation = require("./controller/conversation.controller");
+const withdraw = require("./controller/withdraw.controller");
 const chatbot = require("./controller/chatBot");
 app.use("/api/v2/withdraw", withdraw);
 

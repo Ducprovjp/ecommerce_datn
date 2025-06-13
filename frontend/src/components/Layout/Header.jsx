@@ -47,7 +47,7 @@ const Autocomplete = ({ refine, hits, currentRefinement }) => {
         value={currentRefinement}
         onChange={(event) => refine(event.currentTarget.value)}
         onKeyDown={handleKeyDown}
-        placeholder="Tìm kiếm sản phẩm..."
+        placeholder="Search Products..."
         className="h-[40px] w-full px-2 border-[#3957db] border-[2px] rounded-md"
       />
       {currentRefinement && hits.length > 0 && (

@@ -51,6 +51,17 @@ const orderSchema = new mongoose.Schema({
     type: Date,
     default: Date.now(),
   },
+  reservationExpiresAt: {
+    type: Date,
+  },
+  refundReason: { 
+    type: String,
+    default: null,
+  },
+  cancelReason: {
+    type: String,
+    default: null,
+  },
 });
 
 module.exports = mongoose.model("Order", orderSchema);
