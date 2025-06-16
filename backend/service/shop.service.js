@@ -21,8 +21,8 @@ const shopService = {
     if (!name) return next(new ErrorHandler("Name is required", 400));
     if (!email) return next(new ErrorHandler("Email is required", 400));
     if (!password) return next(new ErrorHandler("Password is required", 400));
-    if (password.length < 4) {
-      return next(new ErrorHandler("Password must be at least 4 characters", 400));
+    if (password.length < 6) {
+      return next(new ErrorHandler("Password must be at least 6 characters", 400));
     }
     if (!address) return next(new ErrorHandler("Address is required", 400));
     if (!phoneNumber) return next(new ErrorHandler("Phone number is required", 400));

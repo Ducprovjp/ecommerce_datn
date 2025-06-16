@@ -113,6 +113,8 @@ const productService = {
 
   async getAllProducts({ minPrice, maxPrice, category, sort, page, limit }, res, next) {
     try {
+      console.log("Query params:", { minPrice, maxPrice, category, sort, page, limit }); // Log để debug
+  
       const query = {};
       if (category) {
         query.category = { $regex: category, $options: "i" };
@@ -123,41 +125,46 @@ const productService = {
       if (maxPrice && !isNaN(maxPrice)) {
         query.discountPrice = { ...query.discountPrice, $lte: parseFloat(maxPrice) };
       }
-
+  
       let sortOption = {};
       switch (sort) {
         case "price-asc":
-          sortOption = { discountPrice: 1 };
+          sortOption = { discountPrice: 1, _id: 1 }; // Thêm _id để đảm bảo thứ tự duy nhất
           break;
         case "price-desc":
-          sortOption = { discountPrice: -1 };
+          sortOption = { discountPrice: -1, _id: 1 };
           break;
         case "name-asc":
-          sortOption = { name: 1 };
+          sortOption = { name: 1, _id: 1 };
           break;
         case "name-desc":
-          sortOption = { name: -1 };
+          sortOption = { name: -1, _id: 1 };
           break;
         default:
-          sortOption = { createdAt: -1 };
+          sortOption = { createdAt: -1, _id: 1 }; // Mặc định sort theo createdAt và _id
       }
-
+  
       const pageNum = parseInt(page) || 1;
       const limitNum = parseInt(limit) || 10;
       const skip = (pageNum - 1) * limitNum;
-
+  
       const products = await Product.find(query)
         .sort(sortOption)
         .skip(skip)
         .limit(limitNum);
-
+  
       const totalProducts = await Product.countDocuments(query);
       const totalPages = Math.ceil(totalProducts / limitNum);
-
-      res.status(201).json({
+  
+      // Debug: Log danh sách _id của sản phẩm trả về
+      console.log("Products IDs:", products.map(p => p._id));
+  
+      res.status(200).json({
         success: true,
         products,
         totalPages,
+        currentPage: pageNum,
+        totalProducts,
       });
     } catch (error) {
       return next(new ErrorHandler(error.message, 500));

@@ -44,4 +44,14 @@ router.put(
   })
 );
 
+// Get conversation by userId and sellerId
+router.post(
+  "/get-conversation",
+  isAuthenticated,
+  catchAsyncErrors(async (req, res, next) => {
+    const { userId, sellerId } = req.body;
+    await conversationService.getConversationByMembers(userId, sellerId, res, next);
+  })
+);
+
 module.exports = router;

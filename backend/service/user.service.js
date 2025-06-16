@@ -18,8 +18,8 @@ const userService = {
     if (!name) return next(new ErrorHandler("Name is required", 400));
     if (!email) return next(new ErrorHandler("Email is required", 400));
     if (!password) return next(new ErrorHandler("Password is required", 400));
-    if (password.length < 4) {
-      return next(new ErrorHandler("Password must be at least 4 characters", 400));
+    if (password.length < 6) {
+      return next(new ErrorHandler("Password must be at least 6 characters", 400));
     }
 
     const userEmail = await User.findOne({ email });
@@ -252,8 +252,8 @@ const userService = {
       if (!newPassword) {
         return next(new ErrorHandler("New password is required", 400));
       }
-      if (newPassword.length < 4) {
-        return next(new ErrorHandler("Password must be at least 4 characters", 400));
+      if (newPassword.length < 6) {
+        return next(new ErrorHandler("Password must be at least 6 characters", 400));
       }
 
       const decoded = jwt.verify(reset_token, process.env.JWT_RESET_PASSWORD_SECRET);

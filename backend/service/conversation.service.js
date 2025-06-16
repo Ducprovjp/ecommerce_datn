@@ -66,7 +66,21 @@ const conversationService = {
     } catch (error) {
       return next(new ErrorHandler(error, 500));
     }
-  }
+  },
+
+  async getConversationByMembers(userId, sellerId, res, next) {
+    try {
+      const conversation = await Conversation.findOne({
+        members: { $all: [userId, sellerId] },
+      });
+      res.status(200).json({
+        success: true,
+        conversation: conversation || null,
+      });
+    } catch (error) {
+      return next(new ErrorHandler(error.message, 500));
+    }
+  },
 };
 
 module.exports = conversationService;

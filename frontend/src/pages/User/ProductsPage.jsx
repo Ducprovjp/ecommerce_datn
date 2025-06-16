@@ -59,17 +59,27 @@ const ProductsPage = () => {
         }
         if (search) params.search = search;
         if (sortOption) params.sort = sortOption;
-
+  
+        console.log("Sending request with params:", params); // Log để debug
+  
         const response = await getRequest("/product/get-all-products", { params });
-        setData(response.products || []);
-        setTotalPages(response.totalPages || 1);
+        console.log("API response:", response); // Log để debug
+  
+        if (response.success) {
+          setData(response.products || []);
+          setTotalPages(response.totalPages || 1);
+        } else {
+          console.error("API error:", response.message);
+          setData([]);
+          setTotalPages(1);
+        }
       } catch (error) {
         console.error("Error fetching products:", error);
         setData([]);
         setTotalPages(1);
       }
     };
-
+  
     fetchProducts();
   }, [filters, sortOption, currentPage, search]);
 

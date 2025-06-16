@@ -13,6 +13,7 @@ import { toast } from "react-toastify";
 import { useSelector, useDispatch } from "react-redux";
 import { logoutUser } from "../../redux/actions/user";
 import Loader from "../Layout/Loader";
+import { postRequest } from "../../request/api";
 
 const ProfileSidebar = ({ active, setActive }) => {
   const navigate = useNavigate();
@@ -21,10 +22,21 @@ const ProfileSidebar = ({ active, setActive }) => {
 
   const logoutHandler = async () => {
     try {
-      await dispatch(logoutUser());
-      if (error) {
-        throw new Error(error);
-      }
+      // await dispatch(logoutUser());
+      // if (error) {
+        // throw new Error(error);
+      // }
+      const refreshToken = localStorage.getItem("refreshToken");
+    if (!refreshToken) {
+      throw new Error("No refresh token found");
+    }
+    const res = await postRequest("/user/logout", { refreshToken });
+    if (!res.success) {
+      throw new Error(res.message || "Failed to logout");
+    }
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    localStorage.removeItem("role");
       toast.success("Logged out successfully!");
       navigate("/login");
     } catch (err) {

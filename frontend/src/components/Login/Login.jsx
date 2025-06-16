@@ -18,7 +18,6 @@ const Login = () => {
     e.preventDefault();
 
     try {
-      // localStorage.clear(); // Xóa token cũ để tránh xung đột
       const res = await postRequest("/user/login-user", { email, password });
       if (!res.success) {
         throw new Error(res.message || "Login failed");
@@ -27,7 +26,7 @@ const Login = () => {
       localStorage.setItem("accessToken", accessToken);
       localStorage.setItem("refreshToken", refreshToken);
       localStorage.setItem("role", "user");
-      await dispatch(loadUser()); // Cập nhật Redux state
+      await dispatch(loadUser());
       toast.success("Login Success!");
       navigate("/");
     } catch (err) {
@@ -39,7 +38,6 @@ const Login = () => {
   const handleGoogleSignIn = async (response) => {
     console.log("Google Sign-In response:", response);
     try {
-      // localStorage.clear(); // Xóa token cũ
       const res = await postRequest("/user/auth/google", {
         id_token: response.credential,
       });
@@ -50,7 +48,7 @@ const Login = () => {
       localStorage.setItem("accessToken", accessToken);
       localStorage.setItem("refreshToken", refreshToken);
       localStorage.setItem("role", "user");
-      await dispatch(loadUser()); // Cập nhật Redux state
+      await dispatch(loadUser());
       toast.success("Google Login Success!");
       navigate("/");
     } catch (err) {
@@ -89,10 +87,11 @@ const Login = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className=" w-40 h-20 rounded-2xl">
+      {/* Logo container */}
+      <div className="flex justify-center mb-8">
         <Link to="/">
           <img
-            className="w-full h-full object-cover rounded-2xl"
+            className="w-40 h-20 object-cover rounded-2xl"
             src="https://blog.logrocket.com/wp-content/uploads/2023/03/How-NestJS-middleware-works.png"
             alt="Logo"
             style={{
@@ -104,6 +103,8 @@ const Login = () => {
           />
         </Link>
       </div>
+
+      {/* Form container */}
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
           Login to your account
@@ -164,8 +165,8 @@ const Login = () => {
                 )}
               </div>
             </div>
-            <div className={`${styles.noramlFlex} justify-between`}>
-              <div className={`${styles.noramlFlex}`}>
+            <div className={`${styles.normalFlex} justify-between`}>
+              <div className={`${styles.normalFlex}`}>
                 <input
                   type="checkbox"
                   name="remember-me"
@@ -203,7 +204,7 @@ const Login = () => {
                 style={{ minHeight: "40px" }}
               ></div>
             </div>
-            <div className={`${styles.noramlFlex} w-full mt-4`}>
+            <div className={`${styles.normalFlex} w-full mt-4`}>
               <h4>Not have any account?</h4>
               <Link to="/sign-up" className="text-blue-600 pl-2">
                 Sign Up

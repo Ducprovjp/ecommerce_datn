@@ -125,17 +125,20 @@ export async function postRequest(url, body) {
 }
 
 // Hàm GET request
-export async function getRequest(url) {
+export async function getRequest(url, { params } = {}) {
   try {
     const response = await axios.get(
       `${process.env.REACT_APP_SERVER}${url}`,
-      generateRequestHeader()
+      {
+        ...generateRequestHeader(),
+        params, // Đảm bảo params được truyền vào
+      }
     );
     return response.data;
   } catch (error) {
     if (error?.response?.status === 401) {
       if (await refreshToken()) return;
-      return await getRequest(url);
+      return await getRequest(url, { params });
     }
     return error?.response?.data || { code: -1, message: "Request failed" };
   }

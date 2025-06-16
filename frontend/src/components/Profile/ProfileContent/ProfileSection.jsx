@@ -74,7 +74,7 @@ const ProfileSection = () => {
         <form onSubmit={handleSubmit} aria-required={true}>
           <div className="w-full 800px:flex block pb-3">
             <div className="w-[100%] 800px:w-[50%]">
-              <label className="block pb-2">Họ và tên</label>
+              <label className="block pb-2">Full name</label>
               <input
                 type="text"
                 className={`${styles.input} !w-[95%] mb-4 800px:mb-0`}
@@ -84,7 +84,7 @@ const ProfileSection = () => {
               />
             </div>
             <div className="w-[100%] 800px:w-[50%]">
-              <label className="block pb-2">Địa chỉ email</label>
+              <label className="block pb-2">Email</label>
               <input
                 type="text"
                 className={`${styles.input} !w-[95%] mb-4 800px:mb-0`}
@@ -96,7 +96,7 @@ const ProfileSection = () => {
           </div>
           <div className="w-full 800px:flex block pb-3">
             <div className="w-[100%] 800px:w-[50%]">
-              <label className="block pb-2">Số điện thoại</label>
+              <label className="block pb-2">Phone number</label>
               <input
                 type="number"
                 className={`${styles.input} !w-[95%] mb-4 800px:mb-0`}
@@ -106,7 +106,7 @@ const ProfileSection = () => {
               />
             </div>
             <div className="w-[100%] 800px:w-[50%]">
-              <label className="block pb-2">Nhập mật khẩu</label>
+              <label className="block pb-2">Enter password</label>
               <input
                 type="password"
                 className={`${styles.input} !w-[95%] mb-4 800px:mb-0`}
@@ -119,7 +119,7 @@ const ProfileSection = () => {
           <input
             className="w-[250px] h-[40px] border border-[#3a24db] text-center text-[#3a24db] rounded-[3px] mt-8 cursor-pointer"
             required
-            value="Cập nhật"
+            value="Update"
             type="submit"
           />
         </form>

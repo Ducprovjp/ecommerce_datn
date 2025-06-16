@@ -4,23 +4,24 @@ const Order = require("../model/order.model");
 const Shop = require("../model/shop.model");
 const Product = require("../model/product.model");
 const Shipper = require("../model/shipper.model");
+const CouponCode = require("../model/coupon.model");
 const ErrorHandler = require("../utils/ErrorHandler");
 
 const orderService = {
   async createOrder(data, res, next) {
     try {
-      const { cart, shippingAddress, user, totalPrice, paymentInfo } = data;
+      const { cart, shippingAddress, user, totalPrice, paymentInfo, couponCode } = data;
       if (!cart || !shippingAddress || !user || !totalPrice || !paymentInfo) {
         return next(new ErrorHandler("Please provide all required fields", 400));
       }
-  
+
       if (!Array.isArray(cart) || cart.length === 0) {
         return next(new ErrorHandler("Cart is empty", 400));
       }
-  
+
       const session = await mongoose.startSession();
       session.startTransaction();
-  
+
       try {
         const productUpdates = [];
         for (const item of cart) {
@@ -36,27 +37,73 @@ const orderService = {
             session.endSession();
             return next(new ErrorHandler(`Invalid cart item: ${JSON.stringify(item)}`, 400));
           }
-  
+
           const product = await Product.findById(item._id).session(session);
           if (!product) {
             await session.abortTransaction();
             session.endSession();
             return next(new ErrorHandler(`Product not found: ${item._id}`, 400));
           }
-          // Kiểm tra số lượng còn lại (stock - reservedStock)
           if (product.stock - product.reservedStock < item.qty) {
             await session.abortTransaction();
             session.endSession();
-            return next(new ErrorHandler(`Sản phẩm tạm thời hết hàng: ${product.name}`, 400));
+            return next(new ErrorHandler(`Product out of stock: ${product.name}`, 400));
           }
-  
+
           productUpdates.push({
             productId: item._id,
             qty: item.qty,
           });
         }
-  
-        // Cập nhật stock cho đơn hàng COD hoặc các phương thức khác (trừ VNPay)
+
+        // Validate and update coupon
+        if (couponCode) {
+          const coupon = await CouponCode.findOne({ name: couponCode }).session(session);
+          if (!coupon) {
+            await session.abortTransaction();
+            session.endSession();
+            return next(new ErrorHandler("Coupon code not found", 400));
+          }
+          if (!coupon.isActive || coupon.endDate < new Date() || coupon.startDate > new Date()) {
+            await session.abortTransaction();
+            session.endSession();
+            return next(new ErrorHandler("Coupon code is not valid", 400));
+          }
+          if (coupon.usageLimit > 0 && coupon.usedCount >= coupon.usageLimit) {
+            await session.abortTransaction();
+            session.endSession();
+            return next(new ErrorHandler("Coupon code usage limit reached", 400));
+          }
+          const isCouponValid = cart.filter(
+            (item) =>
+              item.shopId === coupon.shopId &&
+              (!coupon.selectedProduct?.length || coupon.selectedProduct.includes(item.name))
+          );
+          if (isCouponValid.length === 0) {
+            await session.abortTransaction();
+            session.endSession();
+            return next(new ErrorHandler("Coupon code not valid for any items in your cart", 400));
+          }
+          const eligiblePrice = isCouponValid.reduce(
+            (acc, item) => acc + item.qty * item.discountPrice,
+            0
+          );
+          if (coupon.minAmount && eligiblePrice < coupon.minAmount) {
+            await session.abortTransaction();
+            session.endSession();
+            return next(new ErrorHandler(`Order total must be at least ${coupon.minAmount.toLocaleString("en-US")} VND`, 400));
+          }
+          if (coupon.maxAmount && eligiblePrice > coupon.maxAmount) {
+            await session.abortTransaction();
+            session.endSession();
+            return next(new ErrorHandler(`Order total must not exceed ${coupon.maxAmount.toLocaleString("en-US")} VND`, 400));
+          }
+          console.log(`Incrementing usedCount for coupon: ${couponCode}`);
+          coupon.usedCount += 1;
+          await coupon.save({ session });
+        }
+
+        // Update product stock
         for (const update of productUpdates) {
           await Product.findByIdAndUpdate(
             update.productId,
@@ -64,48 +111,34 @@ const orderService = {
             { session, validateBeforeSave: false }
           );
         }
-  
+
         const order = new Order({
           cart,
           shippingAddress,
           user,
           totalPrice,
           paymentInfo,
+          couponCode,
           paidAt: paymentInfo.status === "succeeded" ? new Date() : null,
         });
-  
+
         await order.save({ session });
-  
+
         await session.commitTransaction();
         session.endSession();
-  
+
         res.status(200).json({
           success: true,
           order,
         });
-  
+
         return order;
       } catch (error) {
         await session.abortTransaction();
         session.endSession();
         console.error("Error creating order:", error);
-        return next(new ErrorHandler("Sản phẩm tạm thời hết hàng hoặc đã được giữ chỗ", 400));
+        return next(new ErrorHandler("Product out of stock or reserved", 400));
       }
-    } catch (error) {
-      return next(new ErrorHandler(error.message, 500));
-    }
-  },
-
-  async deleteOrder(orderId, res, next) {
-    try {
-      const order = await Order.findByIdAndDelete(orderId);
-      if (!order) {
-        return next(new ErrorHandler("Order not found", 400));
-      }
-      res.status(200).json({
-        success: true,
-        message: "Cancel order successfully",
-      });
     } catch (error) {
       return next(new ErrorHandler(error.message, 500));
     }
@@ -135,7 +168,7 @@ const orderService = {
       const orderId = vnp_Params["vnp_TxnRef"];
       const session = await mongoose.startSession();
       session.startTransaction();
-  
+
       try {
         const order = await Order.findOne({ "paymentInfo.orderId": orderId }).session(session);
         if (!order || order.reservationExpiresAt < new Date()) {
@@ -144,7 +177,7 @@ const orderService = {
           console.error("Order not found or expired for orderId:", orderId);
           return res.redirect(`${process.env.REACT_APP_FRONT_END_URL}/order/failure`);
         }
-  
+
         if (vnp_Params["vnp_ResponseCode"] === "00") {
           const productUpdates = [];
           for (const item of order.cart) {
@@ -165,29 +198,63 @@ const orderService = {
               qty: item.qty,
             });
           }
-  
-          // Cập nhật stock và reservedStock
+
+          // Update product stock
           for (const update of productUpdates) {
             await Product.findByIdAndUpdate(
               update.productId,
               {
                 $inc: { stock: -update.qty, sold_out: update.qty },
-                $set: { reservedStock: Math.max(0, update.reservedStock - update.qty) }, // Đảm bảo không âm
+                $set: { reservedStock: Math.max(0, update.reservedStock - update.qty) },
               },
               { session, validateBeforeSave: false }
             );
           }
-  
+
+          // Update coupon usedCount
+          if (order.couponCode) {
+            const coupon = await CouponCode.findOne({ name: order.couponCode }).session(session);
+            if (coupon) {
+              const isCouponValid = order.cart.filter(
+                (item) =>
+                  item.shopId === coupon.shopId &&
+                  (!coupon.selectedProduct?.length || coupon.selectedProduct.includes(item.name))
+              );
+              if (isCouponValid.length === 0) {
+                await session.abortTransaction();
+                session.endSession();
+                return res.redirect(`${process.env.REACT_APP_FRONT_END_URL}/order/failure`);
+              }
+              const eligiblePrice = isCouponValid.reduce(
+                (acc, item) => acc + item.qty * item.discountPrice,
+                0
+              );
+              if (coupon.minAmount && eligiblePrice < coupon.minAmount) {
+                await session.abortTransaction();
+                session.endSession();
+                return res.redirect(`${process.env.REACT_APP_FRONT_END_URL}/order/failure`);
+              }
+              if (coupon.maxAmount && eligiblePrice > coupon.maxAmount) {
+                await session.abortTransaction();
+                session.endSession();
+                return res.redirect(`${process.env.REACT_APP_FRONT_END_URL}/order/failure`);
+              }
+              console.log(`Incrementing usedCount for coupon: ${order.couponCode}`);
+              coupon.usedCount += 1;
+              await coupon.save({ session });
+            }
+          }
+
           order.paymentInfo.id = vnp_Params["vnp_TransactionNo"];
           order.paymentInfo.status = "Paid";
           order.paidAt = new Date();
           order.reservationExpiresAt = null;
           await order.save({ session });
-  
+
           console.log("Order updated:", order);
           await session.commitTransaction();
           session.endSession();
-  
+
           const redirectUrl = `${process.env.REACT_APP_FRONT_END_URL}/order/success`;
           res.send(`
             <script>
@@ -196,13 +263,13 @@ const orderService = {
             </script>
           `);
         } else {
-          // Giải phóng reservedStock nếu thanh toán thất bại
+          // Release reserved stock on payment failure
           for (const item of order.cart) {
             const product = await Product.findById(item._id).session(session);
             if (product) {
               await Product.findByIdAndUpdate(
                 item._id,
-                { $set: { reservedStock: Math.max(0, product.reservedStock - item.qty) } }, // Đảm bảo không âm
+                { $set: { reservedStock: Math.max(0, product.reservedStock - item.qty) } },
                 { session, validateBeforeSave: false }
               );
             }
@@ -223,14 +290,14 @@ const orderService = {
         res.redirect(`${process.env.REACT_APP_FRONT_END_URL}/order/failure`);
       }
     } else {
-      res.send("Xác minh chữ ký thất bại");
+      res.send("Signature verification failed");
     }
   },
 
   async cancelVNPayOrder(orderId, res, next) {
     const session = await mongoose.startSession();
     session.startTransaction();
-  
+
     try {
       const order = await Order.findOne({ "paymentInfo.orderId": orderId }).session(session);
       if (!order) {
@@ -238,13 +305,13 @@ const orderService = {
         session.endSession();
         return next(new ErrorHandler("Order not found", 400));
       }
-  
+
       if (order.paymentInfo.status === "Paid") {
         await session.abortTransaction();
         session.endSession();
         return next(new ErrorHandler("Order already paid, cannot cancel", 400));
       }
-  
+
       for (const item of order.cart) {
         await Product.findByIdAndUpdate(
           item._id,
@@ -252,12 +319,12 @@ const orderService = {
           { session, validateBeforeSave: false }
         );
       }
-  
+
       await Order.deleteOne({ "paymentInfo.orderId": orderId }).session(session);
-  
+
       await session.commitTransaction();
       session.endSession();
-  
+
       res.status(200).json({
         success: true,
         message: "VNPay order cancelled successfully",
@@ -408,16 +475,16 @@ const orderService = {
       if (!order) {
         return next(new ErrorHandler("Order not found with this id", 400));
       }
-  
+
       order.status = status;
       if (refundReason) {
-        order.refundReason = refundReason; 
+        order.refundReason = refundReason;
       }
       await order.save({ validateBeforeSave: false });
       res.status(200).json({
         success: true,
         order,
-        message: "Order Refund Request successfully!",
+        message: "Order refund request submitted successfully!",
       });
     } catch (error) {
       return next(new ErrorHandler(error.message, 500));
@@ -430,11 +497,11 @@ const orderService = {
       if (!order) {
         return next(new ErrorHandler("Order not found with this id", 400));
       }
-  
+
       if (order.status !== "Processing" && order.status !== "Packaging") {
         return next(new ErrorHandler("Order cannot be cancelled at this stage", 400));
       }
-  
+
       order.status = status;
       if (cancelReason) {
         order.cancelReason = cancelReason;
@@ -443,7 +510,7 @@ const orderService = {
       res.status(200).json({
         success: true,
         order,
-        message: "Order Cancelled successfully!",
+        message: "Order cancelled successfully!",
       });
     } catch (error) {
       return next(new ErrorHandler(error.message, 500));
@@ -462,7 +529,7 @@ const orderService = {
 
       res.status(200).json({
         success: true,
-        message: "Order Refund successfull!",
+        message: "Order refund processed successfully!",
       });
 
       if (status === "Refund Success") {
@@ -492,7 +559,7 @@ const orderService = {
     } catch (error) {
       return next(new ErrorHandler(error.message, 500));
     }
-  }
+  },
 };
 
 module.exports = orderService;
