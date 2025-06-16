@@ -90,7 +90,7 @@ const ResetPasswordPage = () => {
                 {loading ? "Resetting..." : "Reset Password"}
               </button>
             </div>
-            <div className={`${styles.noramlFlex} w-full`}>
+            <div className={`${styles.normalFlex} w-full`}>
               <h4>Back to login?</h4>
               <Link to="/login" className="text-blue-600 pl-2">
                 Log In

@@ -3,7 +3,7 @@ import styles from "../../styles/styles";
 import { BsFillBagFill } from "react-icons/bs";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
-import { putRequest } from "../../request/api"; // Import putRequest từ api.js
+import { putRequest } from "../../request/api";
 import { getAllOrdersOfShop } from "../../redux/actions/order";
 import { useDispatch, useSelector } from "react-redux";
 import { Button } from "@material-ui/core";
@@ -20,9 +20,7 @@ const OrderStatus = () => {
   }, [dispatch]);
 
   const data = orders && orders.find((item) => item._id === id);
-  // State cho dropdown (giá trị tạm thời khi chọn)
   const [selectedStatus, setSelectedStatus] = useState(data?.status || "");
-  // State cho thẻ hiển thị trạng thái (chỉ cập nhật sau khi nhấn Update Status)
   const [displayedStatus, setDisplayedStatus] = useState(data?.status || "");
 
   const orderCancelHandler = async () => {
@@ -47,7 +45,7 @@ const OrderStatus = () => {
         throw new Error(res.message || "Failed to update order status");
       }
       toast.success("Order updated!");
-      setDisplayedStatus(selectedStatus); // Cập nhật thẻ hiển thị
+      setDisplayedStatus(selectedStatus);
       navigate("/dashboard-orders");
     } catch (error) {
       toast.error(error.message);
@@ -63,14 +61,13 @@ const OrderStatus = () => {
         throw new Error(res.message || "Failed to update refund status");
       }
       toast.success("Order updated!");
-      setDisplayedStatus(selectedStatus); // Cập nhật thẻ hiển thị
+      setDisplayedStatus(selectedStatus);
       dispatch(getAllOrdersOfShop(seller._id));
     } catch (error) {
       toast.error(error.message);
     }
   };
 
-  // Đồng bộ state khi data thay đổi
   useEffect(() => {
     if (data?.status) {
       setSelectedStatus(data.status);
@@ -118,8 +115,7 @@ const OrderStatus = () => {
               <div className="w-full">
                 <h5 className="pl-3 text-[20px]">{item.name}</h5>
                 <h5 className="pl-3 text-[20px] text-[#00000091]">
-                  {item.discountPrice.toLocaleString("vi-VN") + " VNĐ"} x{" "}
-                  {item.qty}
+                  {item.discountPrice.toLocaleString("vi-VN") + " VNĐ"} x {item.qty}
                 </h5>
               </div>
             </div>
@@ -143,13 +139,27 @@ const OrderStatus = () => {
       {/* Shipping Address */}
       <div className="w-full 800px:flex items-center">
         <div className="w-full 800px:w-[60%]">
-          <h4 className="pt-3 text-[20px] font-[600]">Shipping Address:</h4>
-          <h4 className="pt-3 text-[20px]">{data?.shippingAddress.address1}</h4>
-          <h4 className="text-[20px]">
-            {data?.shippingAddress.ward}, {data?.shippingAddress.district},{" "}
-            {data?.shippingAddress.province}
-          </h4>
-          <h4 className="text-[20px]">{data?.user?.phoneNumber}</h4>
+          <div>
+            <h4 className="pt-3 text-[20px] font-[600]">Shipping Address:</h4>
+            <h4 className="pt-3 text-[20px]">{data?.shippingAddress.address1}</h4>
+            <h4 className="text-[20px]">
+              {data?.shippingAddress.ward}, {data?.shippingAddress.district},{" "}
+              {data?.shippingAddress.province}
+            </h4>
+            <h4 className="text-[20px]">{data?.user?.phoneNumber}</h4>
+          </div>
+          <div>
+            {data?.refundReason && (
+              <h4 className="mt-3 text-[20px] font-[600]">
+                Refund Reason: {data?.refundReason}
+              </h4>
+            )}
+            {data?.cancelReason && (
+              <h4 className="mt-3 text-[20px] font-[600]">
+                Cancel Reason: {data?.cancelReason}
+              </h4>
+            )}
+          </div>
         </div>
 
         <div className="w-full 800px:w-[40%]">
@@ -169,64 +179,69 @@ const OrderStatus = () => {
         <div className="border border-gray-300 rounded-[5px] px-3 py-1 bg-gray-100 text-[16px]">
           {displayedStatus}
         </div>
+        {data?.status === "Processing refund" && (
+          <div>
+            <h4 className="font-bold">{data?.refundReason}</h4>
+          </div>
+        )}
       </div>
       <div className="mt-2">
-        {data?.status !== "Processing refund" &&
-          data?.status !== "Refund Success" && (
-            <select
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-              className="w-[200px] border h-[35px] rounded-[5px]"
+        {data?.status !== "Cancelled" && (
+          <>
+            {data?.status !== "Processing refund" &&
+            data?.status !== "Refund Success" ? (
+              <select
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+                className="w-[200px] border h-[35px] rounded-[5px]"
+              >
+                {[
+                  "Processing",
+                  "Packaging",
+                  "Transferred to delivery partner",
+                ]
+                  .slice(
+                    [
+                      "Processing",
+                      "Packaging",
+                      "Transferred to delivery partner",
+                    ].indexOf(data?.status)
+                  )
+                  .map((option, index) => (
+                    <option value={option} key={index}>
+                      {option}
+                    </option>
+                  ))}
+              </select>
+            ) : (
+              <select
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+                className="w-[200px] border h-[35px] rounded-[5px]"
+              >
+                {["Processing refund", "Refund Success"]
+                  .slice(
+                    ["Processing refund", "Refund Success"].indexOf(data?.status)
+                  )
+                  .map((option, index) => (
+                    <option value={option} key={index}>
+                      {option}
+                    </option>
+                  ))}
+              </select>
+            )}
+            <div
+              className={`${styles.button} mt-5 !bg-[#16b12e] !rounded-[4px] text-[#E94560] font-[600] !h-[45px] text-[18px]`}
+              onClick={
+                data?.status !== "Processing refund"
+                  ? orderUpdateHandler
+                  : refundOrderUpdateHandler
+              }
             >
-              {[
-                "Processing",
-                "Packaging",
-                "Transferred to delivery partner",
-              ]
-                .slice(
-                  [
-                    "Processing",
-                    "Packaging",
-                    "Transferred to delivery partner",
-                  ].indexOf(data?.status)
-                )
-                .map((option, index) => (
-                  <option value={option} key={index}>
-                    {option}
-                  </option>
-                ))}
-            </select>
-          )}
-
-        {data?.status === "Processing refund" ||
-        data?.status === "Refund Success" ? (
-          <select
-            value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
-            className="w-[200px] border h-[35px] rounded-[5px]"
-          >
-            {["Processing refund", "Refund Success"]
-              .slice(
-                ["Processing refund", "Refund Success"].indexOf(data?.status)
-              )
-              .map((option, index) => (
-                <option value={option} key={index}>
-                  {option}
-                </option>
-              ))}
-          </select>
-        ) : null}
-
-        <div
-          className={`${styles.button} mt-5 !bg-[#16b12e] !rounded-[4px] text-[#E94560] font-[600] !h-[45px] text-[18px]`}
-          onClick={
-            data?.status !== "Processing refund"
-              ? orderUpdateHandler
-              : refundOrderUpdateHandler
-          }
-        >
-          Update Status
-        </div>
+              Update Status
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

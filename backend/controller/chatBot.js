@@ -5,8 +5,8 @@ const { GoogleAuth } = require("google-auth-library");
 const router = express.Router();
 
 // Import models từ file schema riêng
-const Product = require("../model/product");
-const Order = require("../model/order");
+const Product = require("../model/product.model");
+const Order = require("../model/order.model");
 
 // Kết nối HubSpot
 const hubspotClient = new hubspot.Client({

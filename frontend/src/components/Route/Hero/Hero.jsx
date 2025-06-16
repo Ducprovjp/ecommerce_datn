@@ -59,7 +59,7 @@ const Hero = () => {
   const descriptionColor = banners[currentBanner].isDark ? "text-[#ffffffba]" : "text-[#000000ba]";
 
   return (
-    <div className={`relative min-h-[70vh] 800px:min-h-[80vh] w-full bg-no-repeat ${styles.noramlFlex}`}>
+    <div className={`relative min-h-[70vh] 800px:min-h-[80vh] w-full bg-no-repeat ${styles.normalFlex}`}>
       <AnimatePresence>
         <motion.div
           key={currentBanner}
@@ -71,7 +71,7 @@ const Hero = () => {
           transition={{ duration: 0.8 }}
         />
       </AnimatePresence>
-      <div className={`${styles.section} w-full relative z-10`}>
+      <div className={`${styles.section} w-full relative `}>
         <AnimatePresence mode="wait">
           <motion.h1
             key={`title-${currentBanner}`}

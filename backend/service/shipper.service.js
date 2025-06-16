@@ -1,23 +1,15 @@
-const express = require("express");
-const path = require("path");
-const router = express.Router();
+const Shipper = require("../model/shipper.model");
 const fs = require("fs");
+const path = require("path");
 const jwt = require("jsonwebtoken");
 const sendMail = require("../utils/sendMail");
-const Shipper = require("../model/shipper");
-const { isAuthenticated, isShipper, isAdmin } = require("../middleware/auth");
-const { upload } = require("../multer");
-const catchAsyncErrors = require("../middleware/catchAsyncErrors");
-const ErrorHandler = require("../utils/ErrorHandler");
 const sendShipperToken = require("../utils/shipperToken");
+const ErrorHandler = require("../utils/ErrorHandler");
 
-// Create shipper account
-router.post(
-  "/create-shipper",
-  upload.single("file"),
-  async (req, res, next) => {
+const shipperService = {
+  async createShipper(req, res, next) {
     try {
-      const { email } = req.body;
+      const { email, name, password, address, phoneNumber } = req.body;
       const existingShipper = await Shipper.findOne({ email });
 
       if (existingShipper) {
@@ -36,15 +28,15 @@ router.post(
       const fileUrl = path.join(filename);
 
       const shipper = {
-        name: req.body.name,
-        email: email,
-        password: req.body.password,
+        name,
+        email,
+        password,
         avatar: fileUrl,
-        address: req.body.address,
-        phoneNumber: req.body.phoneNumber,
+        address,
+        phoneNumber,
       };
 
-      const activationToken = createActivationToken(shipper);
+      const activationToken = this.createActivationToken(shipper);
       const activationUrl = `${process.env.REACT_APP_FRONT_END_URL}/shipper/activation/${activationToken}`;
 
       try {
@@ -63,27 +55,11 @@ router.post(
     } catch (error) {
       return next(new ErrorHandler(error.message, 400));
     }
-  }
-);
+  },
 
-// Create activation token
-const createActivationToken = (shipper) => {
-  return jwt.sign(shipper, process.env.ACTIVATION_SECRET, {
-    expiresIn: "5m",
-  });
-};
-
-// Activate shipper account
-router.post(
-  "/activation",
-  catchAsyncErrors(async (req, res, next) => {
+  async activateShipper(activation_token, res, next) {
     try {
-      const { activation_token } = req.body;
-      const newShipper = jwt.verify(
-        activation_token,
-        process.env.ACTIVATION_SECRET
-      );
-
+      const newShipper = jwt.verify(activation_token, process.env.ACTIVATION_SECRET);
       if (!newShipper) {
         return next(new ErrorHandler("Invalid token", 400));
       }
@@ -107,15 +83,10 @@ router.post(
     } catch (error) {
       return next(new ErrorHandler(error.message, 500));
     }
-  })
-);
+  },
 
-// Shipper login
-router.post(
-  "/login-shipper",
-  catchAsyncErrors(async (req, res, next) => {
+  async loginShipper(email, password, res, next) {
     try {
-      const { email, password } = req.body;
       if (!email || !password) {
         return next(new ErrorHandler("Please provide all fields", 400));
       }
@@ -134,15 +105,9 @@ router.post(
     } catch (error) {
       return next(new ErrorHandler(error.message, 500));
     }
-  })
-);
+  },
 
-// Refresh token for shipper
-router.post(
-  "/refresh-token",
-  catchAsyncErrors(async (req, res, next) => {
-    const { refreshToken } = req.body;
-
+  async refreshToken(refreshToken, res, next) {
     if (!refreshToken) {
       return next(new ErrorHandler("Refresh token not found", 401));
     }
@@ -159,16 +124,10 @@ router.post(
     } catch (error) {
       return next(new ErrorHandler("Invalid or expired refresh token", 401));
     }
-  })
-);
+  },
 
-// Logout shipper
-router.post(
-  "/logout",
-  catchAsyncErrors(async (req, res, next) => {
+  async logoutShipper(refreshToken, res, next) {
     try {
-      const { refreshToken } = req.body;
-
       if (refreshToken) {
         try {
           const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_TOKEN_SECRET || process.env.JWT_SECRET_KEY);
@@ -178,7 +137,7 @@ router.post(
             await shipper.save({ validateBeforeSave: false });
           }
         } catch (error) {
-          // Nếu refresh token không hợp lệ, không cần làm gì thêm
+          // If refresh token is invalid, no action needed
         }
       }
 
@@ -189,16 +148,11 @@ router.post(
     } catch (error) {
       return next(new ErrorHandler(error.message, 500));
     }
-  })
-);
+  },
 
-// Get shipper info
-router.get(
-  "/getShipper",
-  isShipper,
-  catchAsyncErrors(async (req, res, next) => {
+  async getShipper(shipperId, res, next) {
     try {
-      const shipper = await Shipper.findById(req.shipper._id);
+      const shipper = await Shipper.findById(shipperId);
       if (!shipper) {
         return next(new ErrorHandler("User doesn't exist", 400));
       }
@@ -207,15 +161,11 @@ router.get(
     } catch (error) {
       return next(new ErrorHandler(error.message, 500));
     }
-  })
-);
+  },
 
-// Get shipper info by ID
-router.get(
-  "/get-shipper-info/:id",
-  catchAsyncErrors(async (req, res, next) => {
+  async getShipperInfo(shipperId, res, next) {
     try {
-      const shipper = await Shipper.findById(req.params.id);
+      const shipper = await Shipper.findById(shipperId);
       res.status(201).json({
         success: true,
         shipper,
@@ -223,15 +173,9 @@ router.get(
     } catch (error) {
       return next(new ErrorHandler(error.message, 500));
     }
-  })
-);
+  },
 
-// Update shipper profile picture
-router.put(
-  "/update-shipper-avatar",
-  isShipper,
-  upload.single("image"),
-  catchAsyncErrors(async (req, res, next) => {
+  async updateShipperAvatar(req, res, next) {
     try {
       const existsUser = await Shipper.findById(req.shipper._id);
 
@@ -252,122 +196,90 @@ router.put(
     } catch (error) {
       return next(new ErrorHandler(error.message, 500));
     }
-  })
-);
+  },
 
-// Update shipper info
-router.put(
-  "/update-shipper-info",
-  isShipper,
-  catchAsyncErrors(async (req, res, next) => {
+  async updateShipperInfo({ name, phoneNumber, address }, shipper, res, next) {
     try {
-      const { name, phoneNumber, address } = req.body;
-
-      const shipper = await Shipper.findById(req.shipper._id);
-      if (!shipper) {
+      const existingShipper = await Shipper.findById(shipper._id);
+      if (!existingShipper) {
         return next(new ErrorHandler("Shipper not found", 400));
       }
 
-      shipper.name = name;
-      shipper.phoneNumber = phoneNumber;
-      shipper.address = address;
+      existingShipper.name = name;
+      existingShipper.phoneNumber = phoneNumber;
+      existingShipper.address = address;
 
-      await shipper.save();
-      res.status(201).json({ success: true, shipper });
+      await existingShipper.save();
+      res.status(201).json({ success: true, shipper: existingShipper });
     } catch (error) {
       return next(new ErrorHandler(error.message, 500));
     }
-  })
-);
+  },
 
-// Update shipper delivery area
-router.post(
-  "/update-shipper-delivered-area",
-  isShipper,
-  catchAsyncErrors(async (req, res, next) => {
+  async updateShipperDeliveredArea(deliveredAreaData, shipper, res, next) {
     try {
-      const shipper = await Shipper.findById(req.shipper._id);
-      const existsDeliveredArea = shipper.deliveredArea.find(
-        (delivered_area) => delivered_area._id === req.body._id
+      const existingShipper = await Shipper.findById(shipper._id);
+      const existsDeliveredArea = existingShipper.deliveredArea.find(
+        (delivered_area) => delivered_area._id === deliveredAreaData._id
       );
 
       if (existsDeliveredArea) {
-        Object.assign(existsDeliveredArea, req.body);
+        Object.assign(existsDeliveredArea, deliveredAreaData);
       } else {
-        // Add the new delivery area to the array
-        shipper.deliveredArea.push(req.body);
+        existingShipper.deliveredArea.push(deliveredAreaData);
       }
 
-      await shipper.save();
-
+      await existingShipper.save();
       res.status(200).json({
         success: true,
-        shipper,
+        shipper: existingShipper,
       });
     } catch (error) {
       return next(new ErrorHandler(error.message, 500));
     }
-  })
-);
+  },
 
-// Delete shipper delivery area
-router.delete(
-  "/delete-shipper-delivered-area/:id",
-  isShipper,
-  catchAsyncErrors(async (req, res, next) => {
+  async deleteShipperDeliveredArea(shipperId, deliveredAreaId, res, next) {
     try {
-      const shipperId = req.shipper._id;
-      const deliveredAreaId = req.params.id;
-
-      //   console.log(deliveredAreaId);
-
+      const shipper = await Shipper.findById(shipperId);
       await Shipper.updateOne(
         { _id: shipperId },
         { $pull: { deliveredArea: { _id: deliveredAreaId } } }
       );
-
-      const shipper = await Shipper.findById(shipperId);
-
-      res.status(200).json({ success: true, shipper });
+      const updatedShipper = await Shipper.findById(shipperId);
+      res.status(200).json({ success: true, shipper: updatedShipper });
     } catch (error) {
       return next(new ErrorHandler(error.message, 500));
     }
-  })
-);
+  },
 
-// Get all shippers (admin only)
-router.get(
-  "/admin-all-shippers",
-  isAuthenticated,
-  isAdmin("Admin"),
-  catchAsyncErrors(async (req, res, next) => {
+  async getAllShippers(res, next) {
     try {
       const shippers = await Shipper.find().sort({ createdAt: -1 });
       res.status(201).json({ success: true, shippers });
     } catch (error) {
       return next(new ErrorHandler(error.message, 500));
     }
-  })
-);
+  },
 
-// Delete shipper (admin only)
-router.delete(
-  "/delete-shipper/:id",
-  isAuthenticated,
-  isAdmin("Admin"),
-  catchAsyncErrors(async (req, res, next) => {
+  async deleteShipper(shipperId, res, next) {
     try {
-      const shipper = await Shipper.findById(req.params.id);
+      const shipper = await Shipper.findById(shipperId);
       if (!shipper) {
         return next(new ErrorHandler("Shipper not found", 400));
       }
-
-      await Shipper.findByIdAndDelete(req.params.id);
+      await Shipper.findByIdAndDelete(shipperId);
       res.status(201).json({ success: true, message: "Shipper deleted successfully" });
     } catch (error) {
       return next(new ErrorHandler(error.message, 500));
     }
-  })
-);
+  },
 
-module.exports = router;
+  createActivationToken(shipper) {
+    return jwt.sign(shipper, process.env.ACTIVATION_SECRET, {
+      expiresIn: "5m",
+    });
+  }
+};
+
+module.exports = shipperService;

@@ -72,6 +72,11 @@ const productSchema = new mongoose.Schema({
     type: Date,
     default: Date.now(),
   },
+  reservedStock: {
+    type: Number,
+    default: 0,
+    min: [0, "Reserved stock cannot be negative"],
+  },
 });
 
 module.exports = mongoose.model("Product", productSchema);

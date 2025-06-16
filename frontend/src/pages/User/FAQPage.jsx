@@ -72,8 +72,8 @@ const Faq = () => {
             <div className="mt-4">
               <p className="text-base text-gray-500">
                 If you're not satisfied with your purchase, we accept returns
-                within 30 days of delivery. To initiate a return, please email
-                us at support@myecommercestore.com with your order number and a
+                within 15 days of delivery. To initiate a return, please email
+                us at duc.hv37hust@gmail.com with your order number and a
                 brief explanation of why you're returning the item.
               </p>
             </div>
@@ -171,7 +171,7 @@ const Faq = () => {
             <div className="mt-4">
               <p className="text-base text-gray-500">
                 You can contact our customer support team by emailing us at
-                duc.hv204950@sis.hust.edu.vn
+                duc.hv37hust@gmail.com
               </p>
             </div>
           )}
@@ -218,10 +218,8 @@ const Faq = () => {
           {activeTab === 5 && (
             <div className="mt-4">
               <p className="text-base text-gray-500">
-                Unfortunately, once an order has been placed, we are not able to
-                make changes or cancellations. If you no longer want the items
-                you've ordered, you can return them for a refund within 30 days
-                of delivery.
+              You can change or cancel your order by clicking cancel 
+              order and entering the reason for canceling the order.
               </p>
             </div>
           )}
@@ -315,7 +313,7 @@ const Faq = () => {
           {activeTab === 7 && (
             <div className="mt-4">
               <p className="text-base text-gray-500">
-                We accept visa,mastercard,paypal payment method also we have
+                We accept VNPAY, PAYPAL payment method also we have
                 cash on delivery system.
               </p>
             </div>

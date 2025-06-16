@@ -45,9 +45,9 @@ const ShipperLogin = () => {
       localStorage.setItem("shipper_accessToken", res.accessToken);
       localStorage.setItem("shipper_refreshToken", res.refreshToken);
       localStorage.setItem("role", "shipper");
+      await dispatch(loadShipper());
       toast.success("Google Login Success!");
       navigate("/shipper-dashboard");
-      await dispatch(loadShipper());
     } catch (err) {
       console.error("Google login error:", err);
       toast.error(err.message || "Google Login Failed");
@@ -148,8 +148,8 @@ const ShipperLogin = () => {
             </div>
 
             {/* Remember Me & Forgot Password */}
-            <div className={`${styles.noramlFlex} justify-between`}>
-              <div className={`${styles.noramlFlex}`}>
+            <div className={`${styles.normalFlex} justify-between`}>
+              <div className={`${styles.normalFlex}`}>
                 <input
                   type="checkbox"
                   id="remember-me"
@@ -192,7 +192,7 @@ const ShipperLogin = () => {
             </div>
 
             {/* Sign Up Link */}
-            <div className={`${styles.noramlFlex} w-full`}>
+            <div className={`${styles.normalFlex} w-full`}>
               <h4>Not have an account?</h4>
               <Link to="/shipper-create" className="text-blue-600 pl-2">
                 Sign Up

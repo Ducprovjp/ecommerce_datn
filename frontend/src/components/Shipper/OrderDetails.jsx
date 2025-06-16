@@ -98,7 +98,7 @@ const OrderDetails = () => {
         data?.cart.map((item, index) => (
           <div className="w-full flex items-start mb-5" key={index}>
             <img
-              src={`${process.env.REACT_APP_BACKEND_URL}/${item.images[0]}`}
+              src={item.images[0]}
               alt="Product item order img"
               className="w-[80px] h-[80px]"
             />

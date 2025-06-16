@@ -7,7 +7,7 @@ const CheckoutSteps = ({ active }) => {
   return (
     <div className="w-full flex justify-center">
       <div className="w-[90%] 800px:w-[50%] flex items-center flex-wrap">
-        <div className={`${styles.noramlFlex}`}>
+        <div className={`${styles.normalFlex}`}>
           <Link to="/checkout">
             <div className={`${styles.cart_button}`}>
               <span className={`${styles.cart_button_text}`}>1.Shipping</span>
@@ -22,7 +22,7 @@ const CheckoutSteps = ({ active }) => {
           />
         </div>
 
-        <div className={`${styles.noramlFlex}`}>
+        <div className={`${styles.normalFlex}`}>
           <div
             className={`${
               active > 1
@@ -42,7 +42,7 @@ const CheckoutSteps = ({ active }) => {
           </div>
         </div>
 
-        <div className={`${styles.noramlFlex}`}>
+        <div className={`${styles.normalFlex}`}>
           <div
             className={`${
               active > 3

@@ -13,10 +13,10 @@ const AllCoupons = () => {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [coupouns, setCoupouns] = useState([]);
-  const [minAmount, setMinAmout] = useState(null);
+  const [coupons, setCoupons] = useState([]);
+  const [minAmount, setMinAmount] = useState(null);
   const [maxAmount, setMaxAmount] = useState(null);
-  const [selectedProducts, setSelectedProducts] = useState(null);
+  const [selectedProducts, setSelectedProducts] = useState([]);
   const [value, setValue] = useState(null);
   const [discountType, setDiscountType] = useState("percentage");
   const [startDate, setStartDate] = useState("");
@@ -29,10 +29,11 @@ const AllCoupons = () => {
     setIsLoading(true);
     getRequest(`/coupon/get-coupon/${seller._id}`)
       .then((res) => {
+        console.log("Fetched coupons:", res);
         if (!res.success) {
           throw new Error(res.message || "Failed to fetch coupons");
         }
-        setCoupouns(res.couponCodes);
+        setCoupons(res.couponCodes);
         setIsLoading(false);
       })
       .catch((error) => {
@@ -40,7 +41,7 @@ const AllCoupons = () => {
         toast.error(error.message || "Failed to fetch coupons");
         setIsLoading(false);
       });
-  }, []);
+  }, [seller._id]);
 
   const handleDelete = async (id) => {
     try {
@@ -48,7 +49,7 @@ const AllCoupons = () => {
       if (!res.success) {
         throw new Error(res.message || "Failed to delete coupon");
       }
-      toast.success("Coupon code deleted successfully!");
+      toast.success("Coupon deleted successfully!");
       window.location.reload();
     } catch (error) {
       console.error("Delete coupon error:", error);
@@ -58,23 +59,29 @@ const AllCoupons = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (new Date(endDate) < new Date()) {
+      toast.error("End date must be after the current date!");
+      return;
+    }
     try {
-      const res = await postRequest("/coupon/create-coupon-code", {
+      const couponData = {
         name,
         minAmount,
         maxAmount,
-        selectedProducts,
+        selectedProduct: selectedProducts.length > 0 ? selectedProducts : [],
         value,
         discountType,
         startDate: startDate ? new Date(startDate) : new Date(),
         endDate: new Date(endDate),
         usageLimit,
-        shopId: seller._id, 
-      });
+        shopId: seller._id,
+      };
+      console.log("Creating coupon:", couponData);
+      const res = await postRequest("/coupon/create-coupon-code", couponData);
       if (!res.success) {
         throw new Error(res.message || "Failed to create coupon");
       }
-      toast.success("Coupon code created successfully!");
+      toast.success("Coupon created successfully!");
       setOpen(false);
       window.location.reload();
     } catch (error) {
@@ -84,34 +91,36 @@ const AllCoupons = () => {
   };
 
   const columns = [
-    { field: "id", headerName: "Id", minWidth: 150, flex: 0.7 },
-    {
-      field: "name",
-      headerName: "Coupon Code",
-      minWidth: 180,
-      flex: 1.4,
-    },
-    {
-      field: "discountType",
-      headerName: "Type",
-      minWidth: 100,
-      flex: 0.6,
-    },
+    { field: "id", headerName: "ID", minWidth: 150, flex: 0.7 },
+    { field: "name", headerName: "Coupon Code", minWidth: 180, flex: 1.4 },
+    { field: "discountType", headerName: "Type", minWidth: 100, flex: 0.6 },
     {
       field: "value",
       headerName: "Value",
       minWidth: 100,
       flex: 0.6,
+      renderCell: (params) =>
+        params.row.discountType === "percentage"
+          ? `${params.value}%`
+          : `${params.value.toLocaleString("en-US")} VND`,
     },
     {
       field: "endDate",
       headerName: "Expiry",
       minWidth: 120,
       flex: 0.7,
+      renderCell: (params) => new Date(params.value).toLocaleDateString(),
     },
     {
       field: "usageLimit",
       headerName: "Usage Limit",
+      minWidth: 100,
+      flex: 0.6,
+      renderCell: (params) => params.value || "Unlimited",
+    },
+    {
+      field: "usedCount",
+      headerName: "Used Count",
       minWidth: 100,
       flex: 0.6,
     },
@@ -120,34 +129,24 @@ const AllCoupons = () => {
       flex: 0.8,
       minWidth: 120,
       headerName: "",
-      type: "number",
       sortable: false,
-      renderCell: (params) => {
-        return (
-          <Button onClick={() => handleDelete(params.id)}>
-            <AiOutlineDelete size={20} />
-          </Button>
-        );
-      },
+      renderCell: (params) => (
+        <Button onClick={() => handleDelete(params.id)}>
+          <AiOutlineDelete size={20} />
+        </Button>
+      ),
     },
   ];
 
-  const row = [];
-
-  coupouns &&
-    coupouns.forEach((item) => {
-      row.push({
-        id: item._id,
-        name: item.name,
-        discountType: item.discountType || "percentage",
-        value:
-          item.discountType === "percentage"
-            ? `${item.value}%`
-            : `${item.value.toLocaleString("vi-VN")} VNĐ`,
-        endDate: new Date(item.endDate).toLocaleDateString(),
-        usageLimit: item.usageLimit || "Unlimited",
-      });
-    });
+  const rows = coupons.map((item) => ({
+    id: item._id,
+    name: item.name,
+    discountType: item.discountType || "percentage",
+    value: item.value,
+    endDate: item.endDate,
+    usageLimit: item.usageLimit,
+    usedCount: item.usedCount,
+  }));
 
   return (
     <>
@@ -160,11 +159,11 @@ const AllCoupons = () => {
               className={`${styles.button} !w-max !h-[45px] px-3 !rounded-[5px] mr-3 mb-3`}
               onClick={() => setOpen(true)}
             >
-              <span className="text-white">Create Coupon Code</span>
+              <span className="text-white">Create Coupon</span>
             </div>
           </div>
           <DataGrid
-            rows={row}
+            rows={rows}
             columns={columns}
             pageSize={10}
             disableSelectionOnClick
@@ -181,12 +180,12 @@ const AllCoupons = () => {
                   />
                 </div>
                 <h5 className="text-[30px] font-Poppins text-center">
-                  Create Coupon Code
+                  Create Coupon
                 </h5>
                 <form onSubmit={handleSubmit} aria-required={true}>
                   <div>
                     <label className="pb-2">
-                      Name <span className="text-red-500">*</span>
+                      Coupon Code <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
@@ -195,7 +194,7 @@ const AllCoupons = () => {
                       value={name}
                       className="mt-2 appearance-none block w-full px-3 h-[35px] border border-gray-300 rounded-[3px] placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                       onChange={(e) => setName(e.target.value)}
-                      placeholder="Enter your coupon code name..."
+                      placeholder="Enter coupon code..."
                     />
                   </div>
 
@@ -228,32 +227,32 @@ const AllCoupons = () => {
                       placeholder={
                         discountType === "percentage"
                           ? "Enter discount percentage..."
-                          : "Enter discount amount in VNĐ..."
+                          : "Enter discount amount (VND)..."
                       }
                     />
                   </div>
 
                   <div>
-                    <label className="pb-2">Min Amount</label>
+                    <label className="pb-2">Minimum Amount</label>
                     <input
                       type="number"
                       name="minAmount"
                       value={minAmount}
                       className="mt-2 appearance-none block w-full px-3 h-[35px] border border-gray-300 rounded-[3px] placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                      onChange={(e) => setMinAmout(e.target.value)}
-                      placeholder="Set minimum order amount..."
+                      onChange={(e) => setMinAmount(e.target.value)}
+                      placeholder="Enter minimum order amount..."
                     />
                   </div>
 
                   <div>
-                    <label className="pb-2">Max Amount</label>
+                    <label className="pb-2">Maximum Amount</label>
                     <input
                       type="number"
                       name="maxAmount"
                       value={maxAmount}
                       className="mt-2 appearance-none block w-full px-3 h-[35px] border border-gray-300 rounded-[3px] placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                       onChange={(e) => setMaxAmount(e.target.value)}
-                      placeholder="Set maximum discount amount..."
+                      placeholder="Enter maximum order amount..."
                     />
                   </div>
 
@@ -292,27 +291,37 @@ const AllCoupons = () => {
                       value={usageLimit}
                       className="mt-2 appearance-none block w-full px-3 h-[35px] border border-gray-300 rounded-[3px] placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                       onChange={(e) => setUsageLimit(e.target.value)}
-                      placeholder="Set usage limit (0 for unlimited)..."
+                      placeholder="Enter usage limit (0 for unlimited)..."
                     />
                   </div>
 
                   <div>
-                    <label className="pb-2">Selected Product</label>
+                    <label className="pb-2">Selected Products</label>
                     <select
-                      className="w-full mt-2 border h-[35px] rounded-[5px]"
+                      multiple
+                      className="w-full mt-2 border h-[100px] rounded-[5px]"
                       value={selectedProducts}
-                      onChange={(e) => setSelectedProducts(e.target.value)}
+                      onChange={(e) =>
+                        setSelectedProducts(
+                          Array.from(e.target.selectedOptions, (option) => option.value)
+                        )
+                      }
                     >
-                      <option value="Choose your selected products">
-                        Choose a selected product
-                      </option>
-                      {products &&
-                        products.map((i) => (
-                          <option value={i.name} key={i.name}>
-                            {i.name}
+                      <option value="">All Products</option>
+                      {products && products.length > 0 ? (
+                        products.map((product) => (
+                          <option value={product.name} key={product._id}>
+                            {product.name}
                           </option>
-                        ))}
+                        ))
+                      ) : (
+                        <option disabled>No products available</option>
+                      )}
                     </select>
+                    <p className="text-sm text-gray-500 mt-1">
+                      Hold Ctrl (Windows) or Cmd (Mac) to select multiple products.
+                      Leave empty to apply to all products.
+                    </p>
                   </div>
 
                   <div>

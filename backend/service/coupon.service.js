@@ -1,28 +1,15 @@
-const express = require("express");
-const moment = require("moment-timezone");
-const catchAsyncErrors = require("../middleware/catchAsyncErrors");
-const Shop = require("../model/shop");
+const CouponCode = require("../model/coupon.model");
 const ErrorHandler = require("../utils/ErrorHandler");
-const { isSeller } = require("../middleware/auth");
-const CoupounCode = require("../model/coupounCode");
-const router = express.Router();
 
-// create coupoun code
-router.post(
-  "/create-coupon-code",
-  isSeller,
-  catchAsyncErrors(async (req, res, next) => {
+const couponService = {
+  async createCouponCode(couponData, seller, res, next) {
     try {
-      const isCoupounCodeExists = await CoupounCode.find({
-        name: req.body.name,
-      });
-
+      const isCoupounCodeExists = await CouponCode.find({ name: couponData.name });
       if (isCoupounCodeExists.length !== 0) {
         return next(new ErrorHandler("Coupoun code already exists!", 400));
       }
 
-      const coupounCode = await CoupounCode.create(req.body);
-
+      const coupounCode = await CouponCode.create({ ...couponData, shopId: seller.id });
       res.status(201).json({
         success: true,
         coupounCode,
@@ -30,16 +17,11 @@ router.post(
     } catch (error) {
       return next(new ErrorHandler(error, 400));
     }
-  })
-);
+  },
 
-// get all coupons of a shop
-router.get(
-  "/get-coupon/:id",
-  isSeller,
-  catchAsyncErrors(async (req, res, next) => {
+  async getShopCoupons(shopId, res, next) {
     try {
-      const couponCodes = await CoupounCode.find({ shopId: req.seller.id });
+      const couponCodes = await CouponCode.find({ shopId });
       res.status(201).json({
         success: true,
         couponCodes,
@@ -47,20 +29,14 @@ router.get(
     } catch (error) {
       return next(new ErrorHandler(error, 400));
     }
-  })
-);
+  },
 
-// get all available coupon codes for a user
-router.get(
-  "/get-all-available-coupons",
-  catchAsyncErrors(async (req, res, next) => {
+  async getAllAvailableCoupons(res, next) {
     try {
-      // Lấy thời gian UTC và thêm 7 giờ (UTC+7)
       const currentDate = new Date(Date.now() + 7 * 60 * 60 * 1000);
       console.log("Current Date:", currentDate.toISOString());
 
-      // Tìm tất cả mã giảm giá đang hoạt động, chưa hết hạn và đã bắt đầu
-      const couponCodes = await CoupounCode.find({
+      const couponCodes = await CouponCode.find({
         isActive: true,
         endDate: { $gt: currentDate },
         startDate: { $lte: currentDate },
@@ -71,7 +47,6 @@ router.get(
       });
 
       console.log("Coupons found:", couponCodes);
-
       res.status(200).json({
         success: true,
         couponCodes,
@@ -84,19 +59,13 @@ router.get(
       console.error("Error fetching coupons:", error);
       return next(new ErrorHandler(error.message, 400));
     }
-  })
-);
+  },
 
-// delete coupoun code of a shop
-router.delete(
-  "/delete-coupon/:id",
-  isSeller,
-  catchAsyncErrors(async (req, res, next) => {
+  async deleteCoupon(couponId, res, next) {
     try {
-      const couponCode = await CoupounCode.findByIdAndDelete(req.params.id);
-
+      const couponCode = await CouponCode.findByIdAndDelete(couponId);
       if (!couponCode) {
-        return next(new ErrorHandler("Coupon code dosen't exists!", 400));
+        return next(new ErrorHandler("Coupon code doesn't exist!", 400));
       }
       res.status(201).json({
         success: true,
@@ -105,16 +74,11 @@ router.delete(
     } catch (error) {
       return next(new ErrorHandler(error, 400));
     }
-  })
-);
+  },
 
-// get coupon code value by its name
-router.get(
-  "/get-coupon-value/:name",
-  catchAsyncErrors(async (req, res, next) => {
+  async getCouponValue(couponName, res, next) {
     try {
-      const couponCode = await CoupounCode.findOne({ name: req.params.name });
-
+      const couponCode = await CouponCode.findOne({ name: couponName });
       res.status(200).json({
         success: true,
         couponCode,
@@ -122,7 +86,7 @@ router.get(
     } catch (error) {
       return next(new ErrorHandler(error, 400));
     }
-  })
-);
+  }
+};
 
-module.exports = router;
+module.exports = couponService;
