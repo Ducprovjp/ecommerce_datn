@@ -1,10 +1,4 @@
-<div align="center">
-      <img width="226" alt="image" src="https://github.com/pattjoshi/Multi_vondor_E_shop/assets/78966839/51c0517e-e5e6-4a65-a520-9e5a52095fb9">
 
-## 🌟 MERN Marketplace 🌟
-
-The MERN Marketplace application will allow users to become sellers, who can manage  shops, and add the products they want to sell in each shop. Admin can control functionality of Seller Users who visit MERN Marketplace will be able to search for and browse products they want to buy, and add products to their shopping cart to place an order. we have 3 Order Method.
-</div>
 
 ## 🖥️ Tech Stack
 **Frontend:**
@@ -302,7 +296,6 @@ This project does not have a mongoDB connection setup. Set up the connection bas
 - local development: create a config folder (make sure to name it .env) in the config folder, which exports your db.uri connection.
 -  (make new folder `uploads`) in the backend.
 
-
 ## File structure
 #### `client` - Holds the client application
 - #### `public` - This holds all of our static files
@@ -354,7 +347,7 @@ This project does not have a mongoDB connection setup. Set up the connection bas
 💻 How to run the app locally! 🏃
 
 ### STAP-1
-`git clone https://github.com/pattjoshi/Multi_vondor_E_shop.git`
+`git clone https://github.com/Ducprovjp/ecommerce_datn.git`
 
 ### STAP-2
 - `cd frontend`
