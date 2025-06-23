@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import axios from "axios";
 import { postRequest } from "../../request/api";
 
 const ActivationPage = () => {
@@ -11,12 +10,12 @@ const ActivationPage = () => {
     if (activation_token) {
       const activationEmail = async () => {
         try {
-          const res = await postRequest(`${process.env.REACT_APP_SERVER}/user/activation`, {
+          const res = await postRequest(`/user/activation`, {
             activation_token,
           });
-          console.log(res.data.message);
+          console.log(res.message);
         } catch (err) {
-          console.log(err.response.data.message);
+          console.log(err.response.message);
           setError(true);
         }
       };

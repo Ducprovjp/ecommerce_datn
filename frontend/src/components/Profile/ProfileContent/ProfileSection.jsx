@@ -1,10 +1,10 @@
 // src/components/ProfileContent/ProfileSection.jsx
 import React, { useEffect, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { loadUser, updateUserInformation } from "../../../redux/actions/user";
 import { AiOutlineCamera } from "react-icons/ai";
+import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-toastify";
-import { putRequest } from "../../../request/api";
+import { loadUser, updateUserInformation } from "../../../redux/actions/user";
+import { putFormDataRequest } from "../../../request/api";
 import styles from "../../../styles/styles";
 
 const ProfileSection = () => {
@@ -39,7 +39,7 @@ const ProfileSection = () => {
     formData.append("image", file);
 
     try {
-      const res = await putRequest("/user/update-avatar", formData);
+      const res = await putFormDataRequest("/user/update-avatar", formData);
       if (!res.success) {
         throw new Error(res.message || "Cập nhật ảnh đại diện thất bại");
       }
