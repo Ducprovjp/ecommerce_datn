@@ -11,7 +11,7 @@ import {
 import { TbAddressBook } from "react-icons/tb";
 import { toast } from "react-toastify";
 import { useSelector, useDispatch } from "react-redux";
-import { logoutUser } from "../../redux/actions/user";
+import { loadUser, logoutUser } from "../../redux/actions/user";
 import Loader from "../Layout/Loader";
 import { postRequest } from "../../request/api";
 
@@ -24,19 +24,20 @@ const ProfileSidebar = ({ active, setActive }) => {
     try {
       // await dispatch(logoutUser());
       // if (error) {
-        // throw new Error(error);
+      // throw new Error(error);
       // }
       const refreshToken = localStorage.getItem("refreshToken");
-    if (!refreshToken) {
-      throw new Error("No refresh token found");
-    }
-    const res = await postRequest("/user/logout", { refreshToken });
-    if (!res.success) {
-      throw new Error(res.message || "Failed to logout");
-    }
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
-    localStorage.removeItem("role");
+      if (!refreshToken) {
+        throw new Error("No refresh token found");
+      }
+      const res = await postRequest("/user/logout", { refreshToken });
+      if (!res.success) {
+        throw new Error(res.message || "Failed to logout");
+      }
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
+      localStorage.removeItem("role");
+      dispatch(loadUser());
       toast.success("Logged out successfully!");
       navigate("/login");
     } catch (err) {

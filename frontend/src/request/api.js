@@ -163,6 +163,30 @@ export async function putRequest(url, body) {
   }
 }
 
+export async function putFormDataRequest(url, formData) {
+  try {
+    const { accessTokenKey } = getTokenKeysAndEndpoints();
+    const response = await axios.put(
+      `${process.env.REACT_APP_SERVER}${url}`,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+          Authorization: `Bearer ${localStorage.getItem(accessTokenKey) || ""}`,
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    if (error?.response?.status === 401) {
+      if (await refreshToken()) return;
+      return await putFormDataRequest(url, formData);
+    }
+    return error?.response?.data || { code: -1, message: "Request failed" };
+  }
+}
+
+
 // Hàm DELETE request
 export async function deleteRequest(url) {
   try {

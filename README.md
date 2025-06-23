@@ -1,10 +1,4 @@
-<div align="center">
-      <img width="226" alt="image" src="https://github.com/pattjoshi/Multi_vondor_E_shop/assets/78966839/51c0517e-e5e6-4a65-a520-9e5a52095fb9">
 
-## 🌟 MERN Marketplace 🌟
-
-The MERN Marketplace application will allow users to become sellers, who can manage  shops, and add the products they want to sell in each shop. Admin can control functionality of Seller Users who visit MERN Marketplace will be able to search for and browse products they want to buy, and add products to their shopping cart to place an order. we have 3 Order Method.
-</div>
 
 ## 🖥️ Tech Stack
 **Frontend:**
@@ -302,7 +296,6 @@ This project does not have a mongoDB connection setup. Set up the connection bas
 - local development: create a config folder (make sure to name it .env) in the config folder, which exports your db.uri connection.
 -  (make new folder `uploads`) in the backend.
 
-
 ## File structure
 #### `client` - Holds the client application
 - #### `public` - This holds all of our static files
@@ -354,12 +347,29 @@ This project does not have a mongoDB connection setup. Set up the connection bas
 💻 How to run the app locally! 🏃
 
 ### STAP-1
-`git clone https://github.com/pattjoshi/Multi_vondor_E_shop.git`
+`git clone https://github.com/Ducprovjp/ecommerce_datn.git`
 
 ### STAP-2
 - `cd frontend`
 - `yarn install`
+
+create file .env:
+#DEVELOPER
+REACT_APP_SERVER=
+REACT_APP_BACKEND_URL=
+#PRODUCTION
+# REACT_APP_SERVER=
+# REACT_APP_BACKEND_URL=
+
+
+REACT_APP_GOOGLE_CLIENT_ID=
+REACT_APP_ALGOLIA_APP_ID=
+REACT_APP_ALGOLIA_SEARCH_API_KEY=
+REACT_APP_ALGOLIA_WRITE_API_KEY=
+
+
 - `yarn start`
+
 
 ### STAP-3
 - `cd backend`
@@ -369,17 +379,46 @@ This project does not have a mongoDB connection setup. Set up the connection bas
 - use your Cradincial in.env file
 
 ```
-PORT = 8000
-DB_URL = ""
-JWT_SECRET_KEY = ""
-JWT_EXPIRES = 7d
-ACTIVATION_SECRET = 
-SMPT_HOST = 'smtp.gmail.com'
-SMPT_PORT = 465
-SMPT_PASSWORD = 
-SMPT_MAIL =
-STRIPE_API_KEY = 
-STRIPE_SECRET_KEY = 
+PORT=8000
+REACT_APP_FRONT_END_URL=
+# REACT_APP_FRONT_END_URL=
+REACT_APP_SERVER=
+REACT_APP_BACKEND_URL=
+STRIPE_SECRET_KEY=
+STRIPE_API_KEY=
+ACTIVATION_SECRET=
+DB_URL=
+JWT_SECRET_KEY=
+JWT_REFRESH_SECRET_KEY=
+JWT_RESET_PASSWORD_SECRET=m
+JWT_ACCESS_TOKEN_EXPIRES=
+JWT_REFRESH_TOKEN_EXPIRES=
+SMPT_HOST=
+SMPT_PORT=
+SMPT_SERVICE=
+SMPT_MAIL=
+SMPT_PASSWORD=
+NODE_ENV=
+
+//OAuth2.0
+GOOGLE_CLIENT_ID=
+//vnpay
+VNP_TMNCODE=
+VNP_HASHSECRET=
+VNP_URL=
+//chatbot
+HUBSPOT_TOKEN=
+DIALOGFLOW_PROJECT_ID=
+DIALOGFLOW_TOKEN=
+
+//upload image
+CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
+
+//suggestion search
+ALGOLIA_APP_ID=
+ALGOLIA_WRITE_API_KEY=
 ```
 - `yarn start`
 
