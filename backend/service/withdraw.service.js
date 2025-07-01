@@ -4,7 +4,7 @@ const sendMail = require("../utils/sendMail");
 const ErrorHandler = require("../utils/ErrorHandler");
 
 const withdrawService = {
-  async withdrawRequest(amount, seller, res, next) {
+  async createWithdrawRequest(amount, seller, res, next) {
     try {
       const data = { seller, amount };
 

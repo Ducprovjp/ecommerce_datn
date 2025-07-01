@@ -25,11 +25,33 @@ const productService = {
         return next(new ErrorHandler("Shop Id is invalid!", 400));
       }
 
-      if (!files || files.length === 0) {
+      // Xử lý hình ảnh
+      let imageUrls = [];
+      
+      // Nếu có files được upload qua multer (trường hợp update với file mới)
+      if (files && files.length > 0) {
+        imageUrls = files.map((file) => file.path);
+      }
+      
+      // Nếu có imageUrls được gửi từ FormData (trường hợp create với URLs đã upload trước)
+      if (productData.imageUrls) {
+        // imageUrls có thể là string hoặc array
+        if (typeof productData.imageUrls === 'string') {
+          try {
+            imageUrls = JSON.parse(productData.imageUrls);
+          } catch (e) {
+            imageUrls = [productData.imageUrls];
+          }
+        } else if (Array.isArray(productData.imageUrls)) {
+          imageUrls = productData.imageUrls;
+        }
+      }
+      
+      // Kiểm tra có hình ảnh không
+      if (!imageUrls || imageUrls.length === 0) {
         return next(new ErrorHandler("No images uploaded!", 400));
       }
 
-      const imageUrls = files.map((file) => file.path);
       productData.images = imageUrls;
       productData.shop = shop;
 

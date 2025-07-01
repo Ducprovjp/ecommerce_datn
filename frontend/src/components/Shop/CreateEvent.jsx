@@ -1,27 +1,30 @@
-import React, { useEffect, useState } from "react";
-import { AiOutlinePlusCircle } from "react-icons/ai";
+import React, { useEffect, useRef, useState } from "react";
+import { AiOutlineLoading3Quarters, AiOutlinePlusCircle } from "react-icons/ai";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { categoriesData } from "../../static/data";
 import { toast } from "react-toastify";
 import { createevent } from "../../redux/actions/event";
+import { categoriesData } from "../../static/data";
 
 const CreateEvent = () => {
   const { seller } = useSelector((state) => state.seller);
   const { success, error } = useSelector((state) => state.events);
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const fileInputRef = useRef(null);
 
   const [images, setImages] = useState([]);
+  const [imageBlobs, setImageBlobs] = useState([]);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
   const [tags, setTags] = useState("");
-  const [originalPrice, setOriginalPrice] = useState();
-  const [discountPrice, setDiscountPrice] = useState();
-  const [stock, setStock] = useState();
+  const [originalPrice, setOriginalPrice] = useState("");
+  const [discountPrice, setDiscountPrice] = useState("");
+  const [stock, setStock] = useState("");
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleStartDateChange = (e) => {
     const startDate = new Date(e.target.value);
@@ -49,29 +52,104 @@ const CreateEvent = () => {
   useEffect(() => {
     if (error) {
       toast.error(error);
+      setIsSubmitting(false);
     }
     if (success) {
       toast.success("Event created successfully!");
+      setIsSubmitting(false);
       navigate("/dashboard-events");
       window.location.reload();
     }
-  }, [dispatch, error, success]);
+  }, [dispatch, error, success, navigate]);
 
   const handleImageChange = (e) => {
     e.preventDefault();
+    const files = Array.from(e.target.files);
 
-    let files = Array.from(e.target.files);
-    setImages((prevImages) => [...prevImages, ...files]);
+    const newFiles = files.filter((file) => {
+      return !images.some(
+        (existingFile) =>
+          existingFile.name === file.name &&
+          existingFile.size === file.size
+      );
+    });
+
+    const newBlobs = newFiles.map((file) => URL.createObjectURL(file));
+
+    setImages((prevImages) => [...prevImages, ...newFiles]);
+    setImageBlobs((prevBlobs) => [...prevBlobs, ...newBlobs]);
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const handleRemoveImage = (e, index) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const newImages = [...images];
+    const newBlobs = [...imageBlobs];
+
+    URL.revokeObjectURL(newBlobs[index]);
+    newImages.splice(index, 1);
+    newBlobs.splice(index, 1);
+
+    setImages(newImages);
+    setImageBlobs(newBlobs);
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    const newForm = new FormData();
+    // Validation
+    if (!name) {
+      toast.error("Please enter event name!");
+      return;
+    }
+    if (!description) {
+      toast.error("Please enter event description!");
+      return;
+    }
+    if (!category || category === "Choose a category") {
+      toast.error("Please select a category!");
+      return;
+    }
+    if (!discountPrice) {
+      toast.error("Please enter discount price!");
+      return;
+    }
+    if (!stock) {
+      toast.error("Please enter event stock!");
+      return;
+    }
+    if (!startDate) {
+      toast.error("Please select start date!");
+      return;
+    }
+    if (!endDate) {
+      toast.error("Please select end date!");
+      return;
+    }
+    if (images.length === 0) {
+      toast.error("Please upload at least one image!");
+      return;
+    }
 
+    setIsSubmitting(true);
+
+    const newForm = new FormData();
+    
+    // Append images
     images.forEach((image) => {
       newForm.append("images", image);
     });
+    
+    // Append other data
     newForm.append("name", name);
     newForm.append("description", description);
     newForm.append("category", category);
@@ -82,13 +160,13 @@ const CreateEvent = () => {
     newForm.append("shopId", seller._id);
     newForm.append("start_Date", startDate.toISOString());
     newForm.append("Finish_Date", endDate.toISOString());
+    
     dispatch(createevent(newForm));
   };
 
   return (
-    <div className="w-[90%] 800px:w-[50%] bg-white  shadow h-[80vh] rounded-[4px] p-3 overflow-y-scroll">
+    <div className="w-[90%] 800px:w-[50%] bg-white shadow h-[80vh] rounded-[4px] p-3 overflow-y-scroll">
       <h5 className="text-[30px] font-Poppins text-center">Create Event</h5>
-      {/* create event form */}
       <form onSubmit={handleSubmit}>
         <br />
         <div>
@@ -157,7 +235,7 @@ const CreateEvent = () => {
           <label className="pb-2">Original Price</label>
           <input
             type="number"
-            name="price"
+            name="originalPrice"
             value={originalPrice}
             className="mt-2 appearance-none block w-full px-3 h-[35px] border border-gray-300 rounded-[3px] placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
             onChange={(e) => setOriginalPrice(e.target.value)}
@@ -171,7 +249,7 @@ const CreateEvent = () => {
           </label>
           <input
             type="number"
-            name="price"
+            name="discountPrice"
             value={discountPrice}
             className="mt-2 appearance-none block w-full px-3 h-[35px] border border-gray-300 rounded-[3px] placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
             onChange={(e) => setDiscountPrice(e.target.value)}
@@ -185,7 +263,7 @@ const CreateEvent = () => {
           </label>
           <input
             type="number"
-            name="price"
+            name="stock"
             value={stock}
             className="mt-2 appearance-none block w-full px-3 h-[35px] border border-gray-300 rounded-[3px] placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
             onChange={(e) => setStock(e.target.value)}
@@ -199,13 +277,13 @@ const CreateEvent = () => {
           </label>
           <input
             type="date"
-            name="price"
+            name="startDate"
             id="start-date"
             value={startDate ? startDate.toISOString().slice(0, 10) : ""}
             className="mt-2 appearance-none block w-full px-3 h-[35px] border border-gray-300 rounded-[3px] placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
             onChange={handleStartDateChange}
             min={today}
-            placeholder="Enter your event product stock..."
+            placeholder="Enter your event start date..."
           />
         </div>
         <br />
@@ -215,13 +293,13 @@ const CreateEvent = () => {
           </label>
           <input
             type="date"
-            name="price"
+            name="endDate"
             id="end-date"
             value={endDate ? endDate.toISOString().slice(0, 10) : ""}
             className="mt-2 appearance-none block w-full px-3 h-[35px] border border-gray-300 rounded-[3px] placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
             onChange={handleEndDateChange}
             min={minEndDate}
-            placeholder="Enter your event product stock..."
+            placeholder="Enter your event end date..."
           />
         </div>
         <br />
@@ -231,33 +309,57 @@ const CreateEvent = () => {
           </label>
           <input
             type="file"
-            name=""
+            name="images"
             id="upload"
             className="hidden"
             multiple
             onChange={handleImageChange}
+            ref={fileInputRef}
+            accept="image/*"
           />
-          <div className="w-full flex items-center flex-wrap">
+          <div className="w-full flex items-center flex-wrap gap-2">
             <label htmlFor="upload">
-              <AiOutlinePlusCircle size={30} className="mt-3" color="#555" />
+              <AiOutlinePlusCircle size={30} className="mt-3 cursor-pointer" color="#555" />
             </label>
             {images &&
-              images.map((i) => (
-                <img
-                  src={URL.createObjectURL(i)}
-                  key={i}
-                  alt=""
-                  className="h-[120px] w-[120px] object-cover m-2"
-                />
+              images.map((img, index) => (
+                <div key={index} className="relative w-24 h-24">
+                  <img
+                    src={imageBlobs[index]}
+                    alt={`event-${index}`}
+                    className="w-full h-full object-cover rounded border"
+                  />
+                  <button
+                    type="button"
+                    onClick={(e) => handleRemoveImage(e, index)}
+                    className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
+                    style={{ transform: "translate(50%, -50%)" }}
+                  >
+                    ×
+                  </button>
+                </div>
               ))}
           </div>
           <br />
           <div>
-            <input
+            <button
               type="submit"
-              value="Create"
-              className="mt-2 cursor-pointer appearance-none text-center block w-full px-3 h-[35px] border border-gray-300 rounded-[3px] placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-            />
+              disabled={isSubmitting}
+              className={`mt-2 cursor-pointer appearance-none text-center block w-full px-3 h-[35px] border rounded-[3px] focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
+                isSubmitting
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-blue-500 text-white hover:bg-blue-600"
+              }`}
+            >
+              {isSubmitting ? (
+                <div className="flex items-center justify-center">
+                  <AiOutlineLoading3Quarters className="animate-spin mr-2" />
+                  Creating...
+                </div>
+              ) : (
+                "Create"
+              )}
+            </button>
           </div>
         </div>
       </form>

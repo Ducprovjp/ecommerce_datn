@@ -1,3 +1,4 @@
+// product.controller.js
 const express = require("express");
 const { isSeller, isAuthenticated, isAdmin } = require("../middleware/auth");
 const catchAsyncErrors = require("../middleware/catchAsyncErrors");
@@ -11,6 +12,7 @@ router.post(
   "/upload-image",
   upload.array("images"),
   catchAsyncErrors(async (req, res, next) => {
+    console.log("req.files in upload-image:", req.files); // Thêm log
     await productService.uploadImage(req.files, res, next);
   })
 );
@@ -20,12 +22,14 @@ router.post(
   "/create-product",
   upload.array("images"),
   catchAsyncErrors(async (req, res, next) => {
+    console.log("req.files in create-product:", req.files); // Thêm log
+    console.log("req.body in create-product:", req.body); // Thêm log
     const productData = req.body;
     await productService.createProduct(productData, req.files, res, next);
   })
 );
 
-// Update product
+// Các route khác giữ nguyên
 router.put(
   "/update-product/:id",
   upload.array("images"),
@@ -36,7 +40,6 @@ router.put(
   })
 );
 
-// Get all products of a shop
 router.get(
   "/get-all-products-shop/:id",
   catchAsyncErrors(async (req, res, next) => {
@@ -45,7 +48,6 @@ router.get(
   })
 );
 
-// Delete product of a shop
 router.delete(
   "/delete-shop-product/:id",
   isSeller,
@@ -55,7 +57,6 @@ router.delete(
   })
 );
 
-// Get all products
 router.get(
   "/get-all-products",
   catchAsyncErrors(async (req, res, next) => {
@@ -64,7 +65,6 @@ router.get(
   })
 );
 
-// Review for a product
 router.put(
   "/create-new-review",
   isAuthenticated,
@@ -74,7 +74,6 @@ router.put(
   })
 );
 
-// All products for admin
 router.get(
   "/admin-all-products",
   isAuthenticated,
