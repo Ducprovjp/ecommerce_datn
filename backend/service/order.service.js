@@ -185,7 +185,7 @@ const orderService = {
             if (!product) {
               await session.abortTransaction();
               session.endSession();
-              return res.redirect(`${process.env.REACT_APP_FRONT_END_URL}/order/failure`);
+              return res.redirect(`${process.env.REACT_APP_FRONT_END_URL}/order/success`);
             }
             if (product.stock < item.qty) {
               await session.abortTransaction();
