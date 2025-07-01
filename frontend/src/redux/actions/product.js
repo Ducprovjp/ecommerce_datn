@@ -1,14 +1,17 @@
-import { getRequest, postRequest, putRequest, deleteRequest } from "../../request/api";
+// product.js (Redux Action)
+import { deleteRequest, getRequest, putFormDataRequest, uploadFileRequest } from "../../request/api";
 
-// create product
-export const createProduct = (newForm) => async (dispatch) => {
+export const createProduct = (formData) => async (dispatch) => {
   try {
     dispatch({ type: "productCreateRequest" });
 
-    const res = await postRequest("/product/create-product", newForm);
+    // Sử dụng uploadFileRequest để gửi FormData
+    const res = await uploadFileRequest("/product/create-product", formData);
+    
     if (!res.success) {
       throw new Error(res.message || "Failed to create product");
     }
+    
     dispatch({
       type: "productCreateSuccess",
       payload: res.product,
@@ -22,15 +25,17 @@ export const createProduct = (newForm) => async (dispatch) => {
   }
 };
 
-// update product of a shop
 export const updateProduct = (id, updatedFormData) => async (dispatch) => {
   try {
     dispatch({ type: "updateProductRequest" });
 
-    const res = await putRequest(`/product/update-product/${id}`, updatedFormData);
+    // Sử dụng putFormDataRequest để gửi FormData
+    const res = await putFormDataRequest(`/product/update-product/${id}`, updatedFormData);
+    
     if (!res.success) {
       throw new Error(res.message || "Failed to update product");
     }
+    
     dispatch({
       type: "updateProductSuccess",
       payload: res.product,
@@ -44,7 +49,6 @@ export const updateProduct = (id, updatedFormData) => async (dispatch) => {
   }
 };
 
-// get All Products of a shop
 export const getAllProductsShop = (id) => async (dispatch) => {
   try {
     dispatch({ type: "getAllProductsShopRequest" });
@@ -66,7 +70,6 @@ export const getAllProductsShop = (id) => async (dispatch) => {
   }
 };
 
-// delete product of a shop
 export const deleteProduct = (id) => async (dispatch) => {
   try {
     dispatch({ type: "deleteProductRequest" });
@@ -88,7 +91,6 @@ export const deleteProduct = (id) => async (dispatch) => {
   }
 };
 
-// get all products
 export const getAllProducts = () => async (dispatch) => {
   try {
     dispatch({ type: "getAllProductsRequest" });

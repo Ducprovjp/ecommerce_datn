@@ -13,17 +13,43 @@ const eventService = {
         return next(new ErrorHandler("Shop Id is invalid!", 400));
       }
 
-      const imageUrls = files.map((file) => `${file.filename}`);
+      // Xử lý hình ảnh giống như product service
+      let imageUrls = [];
+      
+      // Nếu có files được upload qua multer (trường hợp upload với file mới)
+      if (files && files.length > 0) {
+        imageUrls = files.map((file) => file.path);
+      }
+      
+      // Nếu có imageUrls được gửi từ FormData (trường hợp create với URLs đã upload trước)
+      if (eventData.imageUrls) {
+        // imageUrls có thể là string hoặc array
+        if (typeof eventData.imageUrls === 'string') {
+          try {
+            imageUrls = JSON.parse(eventData.imageUrls);
+          } catch (e) {
+            imageUrls = [eventData.imageUrls];
+          }
+        } else if (Array.isArray(eventData.imageUrls)) {
+          imageUrls = eventData.imageUrls;
+        }
+      }
+      
+      // Kiểm tra có hình ảnh không
+      // if (!imageUrls || imageUrls.length === 0) {
+      //   return next(new ErrorHandler("No images uploaded!", 400));
+      // }
+
       eventData.images = imageUrls;
       eventData.shop = shop;
 
       const event = await Event.create(eventData);
       res.status(201).json({
         success: true,
-        product: event,
+        event: event, // Sửa từ 'product' thành 'event'
       });
     } catch (error) {
-      return next(new ErrorHandler(error, 400));
+      return next(new ErrorHandler(error.message, 400));
     }
   },
 
@@ -35,7 +61,7 @@ const eventService = {
         events,
       });
     } catch (error) {
-      return next(new ErrorHandler(error, 400));
+      return next(new ErrorHandler(error.message, 400));
     }
   },
 
@@ -47,22 +73,37 @@ const eventService = {
         events,
       });
     } catch (error) {
-      return next(new ErrorHandler(error, 400));
+      return next(new ErrorHandler(error.message, 400));
     }
   },
 
   async deleteShopEvent(eventId, res, next) {
     try {
       const eventData = await Event.findById(eventId);
-      eventData.images.forEach((imageUrl) => {
-        const filename = imageUrl;
-        const filePath = `uploads/${filename}`;
-        fs.unlink(filePath, (err) => {
-          if (err) {
-            console.log(err);
+      if (!eventData) {
+        return next(new ErrorHandler("Event not found with this id!", 404));
+      }
+
+      // Xóa hình ảnh từ cloudinary hoặc local storage
+      if (eventData.images && eventData.images.length > 0) {
+        eventData.images.forEach((imageUrl) => {
+          // Nếu dùng cloudinary, imageUrl sẽ là full URL
+          // Nếu dùng local storage, cần xử lý khác
+          if (imageUrl.includes('cloudinary')) {
+            // Xử lý xóa từ cloudinary nếu cần
+            console.log('Should delete from cloudinary:', imageUrl);
+          } else {
+            // Xử lý xóa file local
+            const filename = imageUrl;
+            const filePath = `uploads/${filename}`;
+            fs.unlink(filePath, (err) => {
+              if (err) {
+                console.log(err);
+              }
+            });
           }
         });
-      });
+      }
 
       const event = await Event.findByIdAndDelete(eventId);
       if (!event) {
@@ -74,7 +115,7 @@ const eventService = {
         message: "Event Deleted successfully!",
       });
     } catch (error) {
-      return next(new ErrorHandler(error, 400));
+      return next(new ErrorHandler(error.message, 400));
     }
   },
 
@@ -93,12 +134,16 @@ const eventService = {
   async createNewReview({ user, rating, comment, productId, orderId }, reqUser, res, next) {
     try {
       const event = await Event.findById(productId);
+      if (!event) {
+        return next(new ErrorHandler("Event not found!", 404));
+      }
+
       const review = { user, rating, comment, productId };
-      const isReviewed = event.reviews.find((rev) => rev.user._id === reqUser._id);
+      const isReviewed = event.reviews.find((rev) => rev.user._id.toString() === reqUser._id.toString());
 
       if (isReviewed) {
         event.reviews.forEach((rev) => {
-          if (rev.user._id === reqUser._id) {
+          if (rev.user._id.toString() === reqUser._id.toString()) {
             rev.rating = rating;
             rev.comment = comment;
             rev.user = user;
@@ -126,7 +171,7 @@ const eventService = {
         message: "Reviewed successfully!",
       });
     } catch (error) {
-      return next(new ErrorHandler(error, 400));
+      return next(new ErrorHandler(error.message, 400));
     }
   }
 };

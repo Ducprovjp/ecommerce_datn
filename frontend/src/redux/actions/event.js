@@ -1,4 +1,4 @@
-import { getRequest, postRequest, deleteRequest } from "../../request/api";
+import { deleteRequest, getRequest, uploadFileRequest } from "../../request/api";
 
 // create event
 export const createevent = (newForm) => async (dispatch) => {
@@ -7,7 +7,7 @@ export const createevent = (newForm) => async (dispatch) => {
       type: "eventCreateRequest",
     });
 
-    const res = await postRequest("/event/create-event", newForm);
+    const res = await uploadFileRequest("/event/create-event", newForm);
     if (!res.success) {
       throw new Error(res.message || "Failed to create event");
     }

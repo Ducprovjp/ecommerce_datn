@@ -1,10 +1,10 @@
 import React, { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { Link } from "react-router-dom";
+import { toast } from "react-toastify";
+import { addTocart } from "../../redux/actions/cart";
 import styles from "../../styles/styles";
 import CountDown from "./CountDown";
-import { Link } from "react-router-dom";
-import { useDispatch, useSelector } from "react-redux";
-import { addTocart } from "../../redux/actions/cart";
-import { toast } from "react-toastify";
 
 const EventCard = ({ active, data }) => {
   const { cart } = useSelector((state) => state.cart);
@@ -31,7 +31,7 @@ const EventCard = ({ active, data }) => {
 
   return (
     <div
-      className={`${styles.section} w-full block bg-white rounded-lg ${
+      className={`w-full block bg-white rounded-lg ${
         active ? "unset" : "mb-12"
       } lg:flex p-2`}
     >
@@ -39,7 +39,7 @@ const EventCard = ({ active, data }) => {
         <img src={data.images[0]} alt="" />
       </div>
 
-      <div className="w-full lg:[w-50%] flex flex-col justify-center">
+      <div className="w-full lg:[w-50%] flex flex-col justify-center ml-5">
         <h2 className={`${styles.productTitle}`}>{data.name}</h2>
         {/* <p>{data.description}</p> */}
 

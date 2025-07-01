@@ -5,12 +5,12 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  TextField,
-  Typography,
   FormControl,
   InputLabel,
-  Select,
   MenuItem,
+  Select,
+  TextField,
+  Typography,
 } from "@material-ui/core";
 import { DataGrid } from "@material-ui/data-grid";
 import React, { useEffect, useState } from "react";
@@ -18,14 +18,14 @@ import { AiOutlineDelete, AiOutlineEdit, AiOutlineEye } from "react-icons/ai";
 import { useDispatch, useSelector } from "react-redux";
 import { Link } from "react-router-dom";
 import {
+  createProduct,
   deleteProduct,
   getAllProductsShop,
   updateProduct,
 } from "../../redux/actions/product";
-import Loader from "../Layout/Loader";
-import axios from "axios";
+import { uploadFileRequest } from "../../request/api";
 import { categoriesData } from "../../static/data";
-import { postRequest } from "../../request/api";
+import Loader from "../Layout/Loader";
 
 const AllProducts = () => {
   const { products, isLoading } = useSelector((state) => state.products);
@@ -43,7 +43,7 @@ const AllProducts = () => {
     originalPrice: "",
     discountPrice: "",
     stock: "",
-    images: [],
+    imageUrls: [], // Đổi tên để rõ ràng hơn
   });
 
   useEffect(() => {
@@ -67,7 +67,7 @@ const AllProducts = () => {
       originalPrice: product.originalPrice,
       discountPrice: product.discountPrice,
       stock: product.stock,
-      images: product.images || [],
+      imageUrls: product.images || [], // URL của hình ảnh hiện tại
     });
     setOpen(true);
   };
@@ -85,7 +85,7 @@ const AllProducts = () => {
     }
     updateFormData.append("discountPrice", formData.discountPrice);
     updateFormData.append("stock", formData.stock);
-    updateFormData.append("oldImages", JSON.stringify(formData.images));
+    updateFormData.append("oldImages", JSON.stringify(formData.imageUrls));
 
     dispatch(updateProduct(selectedProduct._id, updateFormData));
     setOpen(false);
@@ -93,9 +93,9 @@ const AllProducts = () => {
   };
 
   const handleRemoveImage = (index) => {
-    const newImages = [...formData.images];
-    newImages.splice(index, 1);
-    setFormData({ ...formData, images: newImages });
+    const newImageUrls = [...formData.imageUrls];
+    newImageUrls.splice(index, 1);
+    setFormData({ ...formData, imageUrls: newImageUrls });
   };
 
   const uploadImageToServer = async (files) => {
@@ -105,29 +105,71 @@ const AllProducts = () => {
     }
 
     try {
-      const res = await postRequest(
-        "/product/upload-image",
-        uploadFormData,
-      );
-
+      const res = await uploadFileRequest("/product/upload-image", uploadFormData);
       if (res.success) {
-        setFormData({
-          ...formData,
-          images: [...formData.images, ...res.imageUrls],
-        });
+        return res.imageUrls; // Trả về danh sách URL hình ảnh
       } else {
-        alert("Failed to upload images");
+        alert("Failed to upload images: " + res.message);
+        return [];
       }
     } catch (error) {
       alert("Error uploading images: " + error.message);
+      return [];
     }
   };
 
-  const handleAddImage = (e) => {
-    const files = e.target.files; // Lấy tất cả file được chọn
+  const handleAddImage = async (e) => {
+    const files = Array.from(e.target.files);
     if (files && files.length > 0) {
-      uploadImageToServer(files); // Truyền danh sách file
+      const imageUrls = await uploadImageToServer(files);
+      if (imageUrls.length > 0) {
+        setFormData({
+          ...formData,
+          imageUrls: [...formData.imageUrls, ...imageUrls], // Thêm URL vào danh sách
+        });
+      }
     }
+  };
+
+  const handleCreateProduct = async () => {
+    // Kiểm tra có hình ảnh không
+    if (!formData.imageUrls || formData.imageUrls.length === 0) {
+      alert("Please upload at least one image!");
+      return;
+    }
+
+    const createFormData = new FormData();
+    createFormData.append("name", formData.name);
+    createFormData.append("description", formData.description);
+    createFormData.append("category", formData.category);
+    if (formData.originalPrice) {
+      createFormData.append("originalPrice", formData.originalPrice);
+    }
+    if (formData.tags) {
+      createFormData.append("tags", formData.tags);
+    }
+    createFormData.append("discountPrice", formData.discountPrice);
+    createFormData.append("stock", formData.stock);
+    createFormData.append("shopId", seller._id);
+    
+    // Thêm từng URL hình ảnh vào FormData
+    formData.imageUrls.forEach((url, index) => {
+      createFormData.append(`imageUrls[${index}]`, url);
+    });
+
+    dispatch(createProduct(createFormData));
+    setFormData({
+      name: "",
+      description: "",
+      category: "",
+      tags: "",
+      originalPrice: "",
+      discountPrice: "",
+      stock: "",
+      imageUrls: [],
+    });
+    setOpen(false);
+    window.location.reload();
   };
 
   const columns = [
@@ -206,6 +248,27 @@ const AllProducts = () => {
         <Loader />
       ) : (
         <div className="w-full mx-8 pt-1 mt-10 bg-white">
+          {/* <Button
+            onClick={() => {
+              setSelectedProduct(null);
+              setFormData({
+                name: "",
+                description: "",
+                category: "",
+                tags: "",
+                originalPrice: "",
+                discountPrice: "",
+                stock: "",
+                imageUrls: [],
+              });
+              setOpen(true);
+            }}
+            color="primary"
+            variant="contained"
+            style={{ marginBottom: "16px" }}
+          >
+            Create Product
+          </Button> */}
           <DataGrid
             rows={rows}
             columns={columns}
@@ -214,14 +277,14 @@ const AllProducts = () => {
             autoHeight
           />
 
-          {/* Modal update */}
+          {/* Modal create/update */}
           <Dialog
             open={open}
             onClose={() => setOpen(false)}
             maxWidth="md"
             fullWidth
           >
-            <DialogTitle>Update Product</DialogTitle>
+            <DialogTitle>{selectedProduct ? "Update Product" : "Create Product"}</DialogTitle>
             <DialogContent>
               <TextField
                 fullWidth
@@ -242,7 +305,7 @@ const AllProducts = () => {
                   setFormData({ ...formData, description: e.target.value })
                 }
               />
-              <FormControl fullWidth>
+              <FormControl fullWidth margin="normal">
                 <InputLabel id="demo-simple-select-label">Category</InputLabel>
                 <Select
                   labelId="demo-simple-select-label"
@@ -305,10 +368,10 @@ const AllProducts = () => {
                 Current Images:
               </Typography>
               <div className="flex flex-wrap gap-3 mt-2">
-                {formData.images.map((img, index) => (
+                {formData.imageUrls.map((imgUrl, index) => (
                   <div key={index} className="relative w-24 h-24">
                     <img
-                      src={img}
+                      src={imgUrl}
                       alt={`product-${index}`}
                       className="w-full h-full object-cover rounded border"
                     />
@@ -321,13 +384,12 @@ const AllProducts = () => {
                     </button>
                   </div>
                 ))}
-                {/* Nút thêm ảnh mới */}
                 <label className="relative w-24 h-24 border border-dashed border-gray-400 flex items-center justify-center cursor-pointer rounded">
                   <span className="text-2xl text-gray-500">+</span>
                   <input
                     type="file"
                     accept="image/*"
-                    multiple // Thêm thuộc tính multiple
+                    multiple
                     onChange={handleAddImage}
                     className="absolute inset-0 opacity-0 cursor-pointer"
                   />
@@ -339,11 +401,11 @@ const AllProducts = () => {
                 Cancel
               </Button>
               <Button
-                onClick={handleUpdate}
+                onClick={selectedProduct ? handleUpdate : handleCreateProduct}
                 color="primary"
                 variant="contained"
               >
-                Update
+                {selectedProduct ? "Update" : "Create"}
               </Button>
             </DialogActions>
           </Dialog>

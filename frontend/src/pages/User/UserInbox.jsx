@@ -1,20 +1,22 @@
 import React, { useEffect, useRef, useState } from "react";
-import Header from "../../components/Layout/Header";
-import { useSelector } from "react-redux";
-import socketIO from "socket.io-client";
-import { format } from "timeago.js";
-import { useNavigate } from "react-router-dom";
 import {
-  AiOutlineArrowRight,
   AiOutlineArrowLeft,
+  AiOutlineArrowRight,
   AiOutlineSend,
 } from "react-icons/ai";
 import { TfiGallery } from "react-icons/tfi";
-import styles from "../../styles/styles";
-import { getRequest, postRequest, putRequest } from "../../request/api";
+import { useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import socketIO from "socket.io-client";
+import { format } from "timeago.js";
+import Header from "../../components/Layout/Header";
+import { getRequest, postRequest, putRequest } from "../../request/api";
+import styles from "../../styles/styles";
 
-const socketId = socketIO(process.env.ENDPOINT, { transports: ["websocket"] });
+// Sử dụng ENDPOINT đúng
+const ENDPOINT = "http://localhost:4000";
+const socketId = socketIO(ENDPOINT, { transports: ["websocket"] });
 
 const UserInbox = () => {
   const { user } = useSelector((state) => state.user);
@@ -31,22 +33,33 @@ const UserInbox = () => {
   const scrollRef = useRef(null);
   const navigate = useNavigate();
 
+  // Socket connection và listen getMessage
   useEffect(() => {
     socketId.on("getMessage", (data) => {
+      console.log("Received message:", data);
       setArrivalMessage({
         sender: data.senderId,
         text: data.text,
+        images: data.images,
+        conversationId: data.conversationId,
         createdAt: Date.now(),
       });
     });
+
+    // Cleanup
+    return () => {
+      socketId.off("getMessage");
+    };
   }, []);
 
+  // Xử lý arrival message
   useEffect(() => {
-    arrivalMessage &&
-      currentChat?.members.includes(arrivalMessage.sender) &&
+    if (arrivalMessage && currentChat?.members.includes(arrivalMessage.sender)) {
       setMessages((prev) => [...prev, arrivalMessage]);
+    }
   }, [arrivalMessage, currentChat]);
 
+  // Fetch conversations
   useEffect(() => {
     const getConversation = async () => {
       try {
@@ -61,8 +74,9 @@ const UserInbox = () => {
       }
     };
     getConversation();
-  }, [user, messages]);
+  }, [user]);
 
+  // Add user to socket
   useEffect(() => {
     if (user) {
       const userId = user?._id;
@@ -73,16 +87,32 @@ const UserInbox = () => {
     }
   }, [user]);
 
+  // Join conversation room khi chọn chat
+  useEffect(() => {
+    if (currentChat?._id) {
+      socketId.emit("joinConversation", currentChat._id);
+    }
+    
+    return () => {
+      if (currentChat?._id) {
+        socketId.emit("leaveConversation", currentChat._id);
+      }
+    };
+  }, [currentChat]);
+
   const onlineCheck = (chat) => {
     const chatMembers = chat.members.find((member) => member !== user?._id);
     const online = onlineUsers.find((user) => user.userId === chatMembers);
     return online ? true : false;
   };
 
+  // Get messages khi chọn conversation
   useEffect(() => {
     const getMessage = async () => {
+      if (!currentChat?._id) return;
+      
       try {
-        const res = await getRequest(`/message/get-all-messages/${currentChat?._id}`);
+        const res = await getRequest(`/message/get-all-messages/${currentChat._id}`);
         if (!res.success) {
           throw new Error(res.message || "Failed to fetch messages");
         }
@@ -98,28 +128,37 @@ const UserInbox = () => {
   const sendMessageHandler = async (e) => {
     e.preventDefault();
 
+    if (!newMessage.trim()) return;
+
     const message = {
       sender: user._id,
       text: newMessage,
       conversationId: currentChat._id,
     };
+
     const receiverId = currentChat.members.find((member) => member !== user?._id);
 
-    socketId.emit("sendMessage", {
-      senderId: user._id,
-      receiverId,
-      text: newMessage,
-    });
-
     try {
-      if (newMessage !== "") {
-        const res = await postRequest("/message/create-new-message", message);
-        if (!res.success) {
-          throw new Error(res.message || "Failed to send message");
-        }
-        setMessages([...messages, res.message]);
-        await updateLastMessage();
+      // Gửi message qua API trước
+      const res = await postRequest("/message/create-new-message", message);
+      if (!res.success) {
+        throw new Error(res.message || "Failed to send message");
       }
+
+      // Thêm message vào UI ngay lập tức
+      setMessages(prev => [...prev, res.message]);
+
+      // Emit qua socket sau khi save thành công
+      socketId.emit("sendMessage", {
+        senderId: user._id,
+        receiverId,
+        text: newMessage,
+        conversationId: currentChat._id,
+      });
+
+      // Update last message
+      await updateLastMessage();
+      
     } catch (error) {
       console.error("Send message error:", error);
       toast.error(error.message || "Failed to send message");
@@ -127,20 +166,30 @@ const UserInbox = () => {
   };
 
   const updateLastMessage = async () => {
-    socketId.emit("updateLastMessage", {
-      lastMessage: newMessage,
-      lastMessageId: user._id,
-    });
-
     try {
+      socketId.emit("updateLastMessage", {
+        lastMessage: newMessage,
+        lastMessageId: user._id,
+        conversationId: currentChat._id,
+      });
+
       const res = await putRequest(`/conversation/update-last-message/${currentChat._id}`, {
         lastMessage: newMessage,
         lastMessageId: user._id,
       });
+      
       if (!res.success) {
         throw new Error(res.message || "Failed to update last message");
       }
+      
       setNewMessage("");
+      
+      // Refresh conversations để update last message
+      const conversationsRes = await getRequest(`/conversation/get-all-conversation-user/${user?._id}`);
+      if (conversationsRes.success) {
+        setConversations(conversationsRes.conversations);
+      }
+      
     } catch (error) {
       console.error("Update last message error:", error);
       toast.error(error.message || "Failed to update last message");
@@ -149,6 +198,8 @@ const UserInbox = () => {
 
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
+    if (!file) return;
+    
     setImages(file);
     await imageSendingHandler(file);
   };
@@ -162,20 +213,27 @@ const UserInbox = () => {
 
     const receiverId = currentChat.members.find((member) => member !== user._id);
 
-    socketId.emit("sendMessage", {
-      senderId: user._id,
-      receiverId,
-      images: file,
-    });
-
     try {
+      // Gửi image qua API
       const res = await postRequest("/message/create-new-message", formData);
       if (!res.success) {
         throw new Error(res.message || "Failed to send image");
       }
+
+      // Thêm message vào UI
+      setMessages(prev => [...prev, res.message]);
+
+      // Emit qua socket
+      socketId.emit("sendMessage", {
+        senderId: user._id,
+        receiverId,
+        images: res.message.images, // Dùng URL từ server response
+        conversationId: currentChat._id,
+      });
+
       setImages(null);
-      setMessages([...messages, res.message]);
       await updateLastMessageForImage();
+      
     } catch (error) {
       console.error("Send image error:", error);
       toast.error(error.message || "Failed to send image");
@@ -191,6 +249,13 @@ const UserInbox = () => {
       if (!res.success) {
         throw new Error(res.message || "Failed to update last message for image");
       }
+      
+      // Refresh conversations
+      const conversationsRes = await getRequest(`/conversation/get-all-conversation-user/${user?._id}`);
+      if (conversationsRes.success) {
+        setConversations(conversationsRes.conversations);
+      }
+      
     } catch (error) {
       console.error("Update last message for image error:", error);
       toast.error(error.message || "Failed to update last message for image");
@@ -288,7 +353,6 @@ const MessageList = ({
         if (!res.success) {
           throw new Error(res.message || "Failed to fetch shop info");
         }
-        console.log("Shop data:", res.shop);
         setUser(res.shop);
       } catch (error) {
         console.error("Fetch shop info error:", error);
@@ -388,7 +452,7 @@ const SellerInbox = ({
               )}
               {item.images && (
                 <img
-                  src={item.images}
+                  src={`${process.env.REACT_APP_SERVER}/${item.images}`}
                   alt="Message image"
                   className="w-[300px] h-[300px] object-cover rounded-[10px] ml-2 mb-2"
                 />
