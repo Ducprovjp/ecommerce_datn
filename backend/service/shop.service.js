@@ -8,26 +8,18 @@ const { OAuth2Client } = require("google-auth-library");
 
 const shopService = {
   async createShop(req, res, next) {
-    const { name, email, password, address, phoneNumber, zipCode } = req.body;
+    const { email, password, name, phoneNumber, province, district, ward, address1 } = req.body;
     console.log("Received shop creation request:", {
-      name,
       email,
       hasFile: !!req.file,
-      address,
-      phoneNumber,
-      zipCode,
     });
-
-    if (!name) return next(new ErrorHandler("Name is required", 400));
+  
     if (!email) return next(new ErrorHandler("Email is required", 400));
     if (!password) return next(new ErrorHandler("Password is required", 400));
     if (password.length < 6) {
       return next(new ErrorHandler("Password must be at least 6 characters", 400));
     }
-    if (!address) return next(new ErrorHandler("Address is required", 400));
-    if (!phoneNumber) return next(new ErrorHandler("Phone number is required", 400));
-    if (!zipCode) return next(new ErrorHandler("Zip code is required", 400));
-
+  
     const sellerEmail = await Shop.findOne({ email });
     if (sellerEmail) {
       if (req.file) {
@@ -39,14 +31,27 @@ const shopService = {
       }
       return next(new ErrorHandler("Shop already exists", 400));
     }
-
+  
     let fileUrl = "default-avatar.png";
     if (req.file) {
       fileUrl = req.file.path;
       console.log("Uploaded file URL:", fileUrl);
     }
-
-    const seller = { name, email, password, avatar: fileUrl, address, phoneNumber, zipCode };
+  
+    const seller = {
+      email,
+      password,
+      name,
+      phoneNumber,
+      avatar: fileUrl,
+      addresses: province && district && ward && address1 ? [{
+        province,
+        district,
+        ward,
+        address1,
+        addressType: "Default"
+      }] : []
+    };
 
     const createActivationToken = (seller) => {
       if (!process.env.ACTIVATION_SECRET) {
@@ -97,7 +102,7 @@ const shopService = {
       const newSeller = jwt.verify(activation_token, process.env.ACTIVATION_SECRET);
       console.log("Decoded token:", newSeller);
 
-      const { name, email, password, avatar, zipCode, address, phoneNumber } = newSeller;
+      const { name, email, password, avatar, zipCode, addresses } = newSeller;
       const existingSeller = await Shop.findOne({ email });
       if (existingSeller) {
         return next(new ErrorHandler("Shop already exists", 400));
@@ -110,8 +115,8 @@ const shopService = {
         password: password || undefined,
         avatar: avatar || "default-avatar.png",
         zipCode,
-        address,
-        phoneNumber,
+        addresses: addresses || [],
+        isProfileComplete: addresses && addresses.length > 0
       });
 
       console.log("Shop created:", seller.email);
@@ -180,6 +185,7 @@ const shopService = {
             email,
             name,
             avatar: picture || "default-avatar.png",
+            addresses: []
           });
         }
       }
@@ -302,26 +308,43 @@ const shopService = {
     }
   },
 
-  async updateSellerInfo({ name, description, address, phoneNumber, zipCode }, seller, res, next) {
+  async updateSellerInfo({ name, phoneNumber, description, addresses }, seller, res, next) {
     try {
-      const shop = await Shop.findOne(seller._id);
+      const shop = await Shop.findById(seller._id);
       if (!shop) {
-        return next(new ErrorHandler("User not found", 400));
+        return next(new ErrorHandler("Shop not found", 400));
       }
-
-      shop.name = name;
-      shop.description = description;
-      shop.address = address;
-      shop.phoneNumber = phoneNumber;
-      shop.zipCode = zipCode;
-
+  
+      shop.name = name || shop.name;
+      shop.phoneNumber = phoneNumber || shop.phoneNumber;
+      shop.description = description || shop.description;
+      
+      // Update or add address
+      if (addresses && addresses.length > 0) {
+        const newAddress = addresses[0];
+        // Ensure all required address fields are provided
+        if (!newAddress.province || !newAddress.district || !newAddress.ward || !newAddress.address1) {
+          return next(new ErrorHandler("All address fields are required", 400));
+        }
+        if (shop.addresses.length > 0) {
+          // Update existing address
+          shop.addresses[0] = newAddress;
+        } else {
+          // Add new address
+          shop.addresses.push(newAddress);
+        }
+      }
+  
+      shop.isProfileComplete = true;
+  
       await shop.save();
       res.status(201).json({
         success: true,
         shop,
       });
     } catch (error) {
-      return next(new ErrorHandler(error.message, 500));
+      console.error("Update seller info error:", error);
+      return next(new ErrorHandler(error.message || "Failed to update shop info", 500));
     }
   },
 

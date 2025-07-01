@@ -1,33 +1,30 @@
 import React, { useState } from "react";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
-import styles from "../../styles/styles";
-import { Link, useNavigate } from "react-router-dom";
-import { postRequest } from "../../request/api";
-import { toast } from "react-toastify";
 import { RxAvatar } from "react-icons/rx";
+import { Link, useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
+import { postRequest } from "../../request/api";
+import styles from "../../styles/styles";
 
 const ShopCreate = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
-  const [name, setName] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [address, setAddress] = useState("");
-  const [zipCode, setZipCode] = useState("");
-  const [avatar, setAvatar] = useState(null);
   const [password, setPassword] = useState("");
+  const [avatar, setAvatar] = useState(null);
   const [visible, setVisible] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (!email || !password) {
+      toast.error("Vui lòng điền đầy đủ email và mật khẩu");
+      return;
+    }
+
     const newForm = new FormData();
-    newForm.append("file", avatar);
-    newForm.append("name", name);
+    if (avatar) newForm.append("file", avatar);
     newForm.append("email", email);
     newForm.append("password", password);
-    newForm.append("zipCode", zipCode);
-    newForm.append("address", address);
-    newForm.append("phoneNumber", phoneNumber);
 
     try {
       const res = await postRequest("/shop/create-shop", newForm);
@@ -35,15 +32,10 @@ const ShopCreate = () => {
         throw new Error(res.message || "Failed to create shop");
       }
       toast.success(res.message);
-      setName("");
       setEmail("");
       setPassword("");
       setAvatar(null);
-      setZipCode("");
-      setAddress("");
-      setPhoneNumber("");
       navigate("/shop-login");
-      window.location.reload();
     } catch (error) {
       console.error("Create shop error:", error);
       toast.error(error.message || "Failed to create shop");
@@ -67,44 +59,6 @@ const ShopCreate = () => {
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div>
               <label
-                htmlFor="name"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Shop Name
-              </label>
-              <div className="mt-1">
-                <input
-                  type="text"
-                  name="name"
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label
-                htmlFor="phoneNumber"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Phone Number
-              </label>
-              <div className="mt-1">
-                <input
-                  type="text"
-                  name="phoneNumber"
-                  required
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label
                 htmlFor="email"
                 className="block text-sm font-medium text-gray-700"
               >
@@ -118,44 +72,6 @@ const ShopCreate = () => {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label
-                htmlFor="address"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Address
-              </label>
-              <div className="mt-1">
-                <input
-                  type="text"
-                  name="address"
-                  required
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label
-                htmlFor="zipCode"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Zip Code
-              </label>
-              <div className="mt-1">
-                <input
-                  type="text"
-                  name="zipCode"
-                  required
-                  value={zipCode}
-                  onChange={(e) => setZipCode(e.target.value)}
                   className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 />
               </div>
@@ -199,7 +115,7 @@ const ShopCreate = () => {
                 htmlFor="avatar"
                 className="block text-sm font-medium text-gray-700"
               >
-                Avatar
+                Avatar (Optional)
               </label>
               <div className="mt-2 flex items-center">
                 <span className="inline-block h-8 w-8 rounded-full overflow-hidden">

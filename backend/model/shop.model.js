@@ -5,7 +5,6 @@ const jwt = require("jsonwebtoken");
 const shopSchema = new mongoose.Schema({
   name: {
     type: String,
-    required: [true, "Please enter your shop name!"],
   },
   email: {
     type: String,
@@ -20,13 +19,8 @@ const shopSchema = new mongoose.Schema({
   description: {
     type: String,
   },
-  address: {
-    type: String,
-    required: true,
-  },
   phoneNumber: {
     type: String,
-    required: true,
   },
   role: {
     type: String,
@@ -35,10 +29,35 @@ const shopSchema = new mongoose.Schema({
   avatar: {
     type: String,
     required: true,
+    default: "default-avatar.png",
   },
-  zipCode: {
-    type: Number,
-    // required: true,
+  addresses: [
+    {
+      province: {
+        type: String,
+        required: true,
+      },
+      district: {
+        type: String,
+        required: true,
+      },
+      ward: {
+        type: String,
+        required: true,
+      },
+      address1: {
+        type: String,
+        required: true,
+      },
+      addressType: {
+        type: String,
+        default: "Default",
+      },
+    },
+  ],
+  isProfileComplete: {
+    type: Boolean,
+    default: false,
   },
   withdrawMethod: {
     type: Object,
@@ -96,7 +115,7 @@ shopSchema.methods.getRefreshToken = function () {
   });
 };
 
-// comapre password
+// compare password
 shopSchema.methods.comparePassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };

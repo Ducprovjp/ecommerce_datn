@@ -10,9 +10,18 @@ const ErrorHandler = require("../utils/ErrorHandler");
 const orderService = {
   async createOrder(data, res, next) {
     try {
-      const { cart, shippingAddress, user, totalPrice, paymentInfo, couponCode } = data;
+      const {
+        cart,
+        shippingAddress,
+        user,
+        totalPrice,
+        paymentInfo,
+        couponCode,
+      } = data;
       if (!cart || !shippingAddress || !user || !totalPrice || !paymentInfo) {
-        return next(new ErrorHandler("Please provide all required fields", 400));
+        return next(
+          new ErrorHandler("Please provide all required fields", 400)
+        );
       }
 
       if (!Array.isArray(cart) || cart.length === 0) {
@@ -35,19 +44,28 @@ const orderService = {
           ) {
             await session.abortTransaction();
             session.endSession();
-            return next(new ErrorHandler(`Invalid cart item: ${JSON.stringify(item)}`, 400));
+            return next(
+              new ErrorHandler(
+                `Invalid cart item: ${JSON.stringify(item)}`,
+                400
+              )
+            );
           }
 
           const product = await Product.findById(item._id).session(session);
           if (!product) {
             await session.abortTransaction();
             session.endSession();
-            return next(new ErrorHandler(`Product not found: ${item._id}`, 400));
+            return next(
+              new ErrorHandler(`Product not found: ${item._id}`, 400)
+            );
           }
           if (product.stock - product.reservedStock < item.qty) {
             await session.abortTransaction();
             session.endSession();
-            return next(new ErrorHandler(`Product out of stock: ${product.name}`, 400));
+            return next(
+              new ErrorHandler(`Product out of stock: ${product.name}`, 400)
+            );
           }
 
           productUpdates.push({
@@ -58,13 +76,19 @@ const orderService = {
 
         // Validate and update coupon
         if (couponCode) {
-          const coupon = await CouponCode.findOne({ name: couponCode }).session(session);
+          const coupon = await CouponCode.findOne({ name: couponCode }).session(
+            session
+          );
           if (!coupon) {
             await session.abortTransaction();
             session.endSession();
             return next(new ErrorHandler("Coupon code not found", 400));
           }
-          if (!coupon.isActive || coupon.endDate < new Date() || coupon.startDate > new Date()) {
+          if (
+            !coupon.isActive ||
+            coupon.endDate < new Date() ||
+            coupon.startDate > new Date()
+          ) {
             await session.abortTransaction();
             session.endSession();
             return next(new ErrorHandler("Coupon code is not valid", 400));
@@ -72,17 +96,25 @@ const orderService = {
           if (coupon.usageLimit > 0 && coupon.usedCount >= coupon.usageLimit) {
             await session.abortTransaction();
             session.endSession();
-            return next(new ErrorHandler("Coupon code usage limit reached", 400));
+            return next(
+              new ErrorHandler("Coupon code usage limit reached", 400)
+            );
           }
           const isCouponValid = cart.filter(
             (item) =>
               item.shopId === coupon.shopId &&
-              (!coupon.selectedProduct?.length || coupon.selectedProduct.includes(item.name))
+              (!coupon.selectedProduct?.length ||
+                coupon.selectedProduct.includes(item.name))
           );
           if (isCouponValid.length === 0) {
             await session.abortTransaction();
             session.endSession();
-            return next(new ErrorHandler("Coupon code not valid for any items in your cart", 400));
+            return next(
+              new ErrorHandler(
+                "Coupon code not valid for any items in your cart",
+                400
+              )
+            );
           }
           const eligiblePrice = isCouponValid.reduce(
             (acc, item) => acc + item.qty * item.discountPrice,
@@ -91,12 +123,26 @@ const orderService = {
           if (coupon.minAmount && eligiblePrice < coupon.minAmount) {
             await session.abortTransaction();
             session.endSession();
-            return next(new ErrorHandler(`Order total must be at least ${coupon.minAmount.toLocaleString("en-US")} VND`, 400));
+            return next(
+              new ErrorHandler(
+                `Order total must be at least ${coupon.minAmount.toLocaleString(
+                  "en-US"
+                )} VND`,
+                400
+              )
+            );
           }
           if (coupon.maxAmount && eligiblePrice > coupon.maxAmount) {
             await session.abortTransaction();
             session.endSession();
-            return next(new ErrorHandler(`Order total must not exceed ${coupon.maxAmount.toLocaleString("en-US")} VND`, 400));
+            return next(
+              new ErrorHandler(
+                `Order total must not exceed ${coupon.maxAmount.toLocaleString(
+                  "en-US"
+                )} VND`,
+                400
+              )
+            );
           }
           console.log(`Incrementing usedCount for coupon: ${couponCode}`);
           coupon.usedCount += 1;
@@ -112,24 +158,41 @@ const orderService = {
           );
         }
 
-        const order = new Order({
-          cart,
-          shippingAddress,
-          user,
-          totalPrice,
-          paymentInfo,
-          couponCode,
-          paidAt: paymentInfo.status === "succeeded" ? new Date() : null,
-        });
+        // Nhóm cart theo shopId
+        const cartByShop = {};
+        for (const item of cart) {
+          if (!cartByShop[item.shopId]) cartByShop[item.shopId] = [];
+          cartByShop[item.shopId].push(item);
+        }
 
-        await order.save({ session });
+        const createdOrders = [];
+
+        for (const [shopId, items] of Object.entries(cartByShop)) {
+          const shopTotal = items.reduce(
+            (sum, item) => sum + item.discountPrice * item.qty,
+            0
+          );
+
+          const order = new Order({
+            cart: items,
+            shippingAddress,
+            user,
+            totalPrice: shopTotal,
+            paymentInfo,
+            couponCode,
+            paidAt: paymentInfo.status === "succeeded" ? new Date() : null,
+          });
+
+          await order.save({ session });
+          createdOrders.push(order);
+        }
 
         await session.commitTransaction();
         session.endSession();
 
         res.status(200).json({
           success: true,
-          order,
+          orders: createdOrders,
         });
 
         return order;
@@ -170,12 +233,16 @@ const orderService = {
       session.startTransaction();
 
       try {
-        const order = await Order.findOne({ "paymentInfo.orderId": orderId }).session(session);
+        const order = await Order.findOne({
+          "paymentInfo.orderId": orderId,
+        }).session(session);
         if (!order || order.reservationExpiresAt < new Date()) {
           await session.abortTransaction();
           session.endSession();
           console.error("Order not found or expired for orderId:", orderId);
-          return res.redirect(`${process.env.REACT_APP_FRONT_END_URL}/order/failure`);
+          return res.redirect(
+            `${process.env.REACT_APP_FRONT_END_URL}/order/failure`
+          );
         }
 
         if (vnp_Params["vnp_ResponseCode"] === "00") {
@@ -185,13 +252,19 @@ const orderService = {
             if (!product) {
               await session.abortTransaction();
               session.endSession();
-              return res.redirect(`${process.env.REACT_APP_FRONT_END_URL}/order/success`);
+              return res.redirect(
+                `${process.env.REACT_APP_FRONT_END_URL}/order/success`
+              );
             }
             if (product.stock < item.qty) {
               await session.abortTransaction();
               session.endSession();
-              console.error(`Insufficient stock for product: ${product.name}, orderId: ${orderId}`);
-              return res.redirect(`${process.env.REACT_APP_FRONT_END_URL}/order/failure`);
+              console.error(
+                `Insufficient stock for product: ${product.name}, orderId: ${orderId}`
+              );
+              return res.redirect(
+                `${process.env.REACT_APP_FRONT_END_URL}/order/failure`
+              );
             }
             productUpdates.push({
               productId: item._id,
@@ -205,7 +278,9 @@ const orderService = {
               update.productId,
               {
                 $inc: { stock: -update.qty, sold_out: update.qty },
-                $set: { reservedStock: Math.max(0, update.reservedStock - update.qty) },
+                $set: {
+                  reservedStock: Math.max(0, update.reservedStock - update.qty),
+                },
               },
               { session, validateBeforeSave: false }
             );
@@ -213,17 +288,22 @@ const orderService = {
 
           // Update coupon usedCount
           if (order.couponCode) {
-            const coupon = await CouponCode.findOne({ name: order.couponCode }).session(session);
+            const coupon = await CouponCode.findOne({
+              name: order.couponCode,
+            }).session(session);
             if (coupon) {
               const isCouponValid = order.cart.filter(
                 (item) =>
                   item.shopId === coupon.shopId &&
-                  (!coupon.selectedProduct?.length || coupon.selectedProduct.includes(item.name))
+                  (!coupon.selectedProduct?.length ||
+                    coupon.selectedProduct.includes(item.name))
               );
               if (isCouponValid.length === 0) {
                 await session.abortTransaction();
                 session.endSession();
-                return res.redirect(`${process.env.REACT_APP_FRONT_END_URL}/order/failure`);
+                return res.redirect(
+                  `${process.env.REACT_APP_FRONT_END_URL}/order/failure`
+                );
               }
               const eligiblePrice = isCouponValid.reduce(
                 (acc, item) => acc + item.qty * item.discountPrice,
@@ -232,14 +312,20 @@ const orderService = {
               if (coupon.minAmount && eligiblePrice < coupon.minAmount) {
                 await session.abortTransaction();
                 session.endSession();
-                return res.redirect(`${process.env.REACT_APP_FRONT_END_URL}/order/failure`);
+                return res.redirect(
+                  `${process.env.REACT_APP_FRONT_END_URL}/order/failure`
+                );
               }
               if (coupon.maxAmount && eligiblePrice > coupon.maxAmount) {
                 await session.abortTransaction();
                 session.endSession();
-                return res.redirect(`${process.env.REACT_APP_FRONT_END_URL}/order/failure`);
+                return res.redirect(
+                  `${process.env.REACT_APP_FRONT_END_URL}/order/failure`
+                );
               }
-              console.log(`Incrementing usedCount for coupon: ${order.couponCode}`);
+              console.log(
+                `Incrementing usedCount for coupon: ${order.couponCode}`
+              );
               coupon.usedCount += 1;
               await coupon.save({ session });
             }
@@ -269,7 +355,14 @@ const orderService = {
             if (product) {
               await Product.findByIdAndUpdate(
                 item._id,
-                { $set: { reservedStock: Math.max(0, product.reservedStock - item.qty) } },
+                {
+                  $set: {
+                    reservedStock: Math.max(
+                      0,
+                      product.reservedStock - item.qty
+                    ),
+                  },
+                },
                 { session, validateBeforeSave: false }
               );
             }
@@ -299,7 +392,9 @@ const orderService = {
     session.startTransaction();
 
     try {
-      const order = await Order.findOne({ "paymentInfo.orderId": orderId }).session(session);
+      const order = await Order.findOne({
+        "paymentInfo.orderId": orderId,
+      }).session(session);
       if (!order) {
         await session.abortTransaction();
         session.endSession();
@@ -320,7 +415,9 @@ const orderService = {
         );
       }
 
-      await Order.deleteOne({ "paymentInfo.orderId": orderId }).session(session);
+      await Order.deleteOne({ "paymentInfo.orderId": orderId }).session(
+        session
+      );
 
       await session.commitTransaction();
       session.endSession();
@@ -339,7 +436,9 @@ const orderService = {
 
   async getUserOrders(userId, res, next) {
     try {
-      const orders = await Order.find({ "user._id": userId }).sort({ createdAt: -1 });
+      const orders = await Order.find({ "user._id": userId }).sort({
+        createdAt: -1,
+      });
       res.status(200).json({
         success: true,
         orders,
@@ -351,7 +450,9 @@ const orderService = {
 
   async getSellerOrders(shopId, res, next) {
     try {
-      const orders = await Order.find({ "cart.shopId": shopId }).sort({ createdAt: -1 });
+      const orders = await Order.find({ "cart.shopId": shopId }).sort({
+        createdAt: -1,
+      });
       res.status(200).json({
         success: true,
         orders,
@@ -371,7 +472,9 @@ const orderService = {
       const deliveredWards = shipper.deliveredArea.map((area) => area.ward);
       const orders = await Order.find({
         "shippingAddress.ward": { $in: deliveredWards },
-        status: { $in: ["Transferred to delivery partner", "On the way", "Delivered"] },
+        status: {
+          $in: ["Transferred to delivery partner", "On the way", "Delivered"],
+        },
       }).sort({ createdAt: -1 });
 
       res.status(200).json({
@@ -391,7 +494,9 @@ const orderService = {
       }
 
       if (order.shipperId.toString() !== shipper._id.toString()) {
-        return next(new ErrorHandler("You are not authorized to update this order", 403));
+        return next(
+          new ErrorHandler("You are not authorized to update this order", 403)
+        );
       }
 
       const allowedStatuses = [
@@ -402,7 +507,13 @@ const orderService = {
       ];
 
       if (!allowedStatuses.includes(status)) {
-        return next(new ErrorHandler("Invalid status. Allowed statuses are: " + allowedStatuses.join(", "), 400));
+        return next(
+          new ErrorHandler(
+            "Invalid status. Allowed statuses are: " +
+              allowedStatuses.join(", "),
+            400
+          )
+        );
       }
 
       order.status = status;
@@ -439,9 +550,13 @@ const orderService = {
       }
 
       if (status === "Transferred to delivery partner") {
-        const shipper = await Shipper.findOne({ "deliveredArea.ward": order.shippingAddress.ward });
+        const shipper = await Shipper.findOne({
+          "deliveredArea.ward": order.shippingAddress.ward,
+        });
         if (!shipper) {
-          return next(new ErrorHandler("No shipper available for this area", 400));
+          return next(
+            new ErrorHandler("No shipper available for this area", 400)
+          );
         }
         order.shipperId = shipper._id;
       }
@@ -499,7 +614,9 @@ const orderService = {
       }
 
       if (order.status !== "Processing" && order.status !== "Packaging") {
-        return next(new ErrorHandler("Order cannot be cancelled at this stage", 400));
+        return next(
+          new ErrorHandler("Order cannot be cancelled at this stage", 400)
+        );
       }
 
       order.status = status;
@@ -551,7 +668,10 @@ const orderService = {
 
   async getAllOrdersForAdmin(res, next) {
     try {
-      const orders = await Order.find().sort({ deliveredAt: -1, createdAt: -1 });
+      const orders = await Order.find().sort({
+        deliveredAt: -1,
+        createdAt: -1,
+      });
       res.status(201).json({
         success: true,
         orders,
