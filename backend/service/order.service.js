@@ -6,6 +6,11 @@ const Product = require("../model/product.model");
 const Shipper = require("../model/shipper.model");
 const CouponCode = require("../model/coupon.model");
 const ErrorHandler = require("../utils/ErrorHandler");
+const socketIO = require("socket.io-client");
+
+const socket = socketIO(process.env.REACT_APP_SOCKET_URL || "http://localhost:4000", {
+  withCredentials: true,
+});
 
 const orderService = {
   async createOrder(data, res, next) {
@@ -266,131 +271,85 @@ const orderService = {
       }
       return sorted;
     }
-
+  
     let secureHash = vnp_Params["vnp_SecureHash"];
     delete vnp_Params["vnp_SecureHash"];
     delete vnp_Params["vnp_SecureHashType"];
-
+  
     vnp_Params = sortObject(vnp_Params);
     let vnp_HashSecret = process.env.VNP_HASHSECRET;
     let querystring = new URLSearchParams(vnp_Params).toString();
     let hmac = crypto.createHmac("sha512", vnp_HashSecret);
     let calculatedHash = hmac.update(querystring).digest("hex");
-
+  
     if (secureHash === calculatedHash) {
       const orderId = vnp_Params["vnp_TxnRef"];
       const session = await mongoose.startSession();
       session.startTransaction();
-
+  
       try {
-        const order = await Order.findOne({
-          "paymentInfo.orderId": orderId,
-        }).session(session);
+        const order = await Order.findOne({ "paymentInfo.orderId": orderId }).session(session);
         if (!order || order.reservationExpiresAt < new Date()) {
           await session.abortTransaction();
           session.endSession();
           console.error("Order not found or expired for orderId:", orderId);
-          return res.redirect(
-            `${process.env.REACT_APP_FRONT_END_URL}/order/failure`
-          );
+          return res.redirect(`${process.env.REACT_APP_FRONT_END_URL}/order/failure`);
         }
-
+  
         if (vnp_Params["vnp_ResponseCode"] === "00") {
+          // Thanh toán thành công
           const productUpdates = [];
-          for (const item of order.cart) {
-            const product = await Product.findById(item._id).session(session);
-            if (!product) {
-              await session.abortTransaction();
-              session.endSession();
-              return res.redirect(
-                `${process.env.REACT_APP_FRONT_END_URL}/order/success`
-              );
-            }
-            if (product.stock < item.qty) {
-              await session.abortTransaction();
-              session.endSession();
-              console.error(
-                `Insufficient stock for product: ${product.name}, orderId: ${orderId}`
-              );
-              return res.redirect(
-                `${process.env.REACT_APP_FRONT_END_URL}/order/failure`
-              );
-            }
-            productUpdates.push({
-              productId: item._id,
-              qty: item.qty,
-            });
-          }
-
-          // Update product stock
+          // for (const item of order.cart) {
+          //   const product = await Product.findById(item._id).session(session);
+          //   if (!product) {
+          //     await session.abortTransaction();
+          //     session.endSession();
+          //     return res.redirect(`${process.env.REACT_APP_FRONT_END_URL}/order/failure`);
+          //   }
+          //   if (product.stock < item.qty) {
+          //     await session.abortTransaction();
+          //     session.endSession();
+          //     console.error(`Insufficient stock for product: ${product.name}, orderId: ${orderId}`);
+          //     return res.redirect(`${process.env.REACT_APP_FRONT_END_URL}/order/failure`);
+          //   }
+          //   productUpdates.push({
+          //     productId: item._id,
+          //     qty: item.qty,
+          //   });
+          // }
+  
+          // Cập nhật stock và reservedStock
           for (const update of productUpdates) {
             await Product.findByIdAndUpdate(
               update.productId,
               {
                 $inc: { stock: -update.qty, sold_out: update.qty },
-                $set: {
-                  reservedStock: Math.max(0, update.reservedStock - update.qty),
-                },
+                $set: { reservedStock: Math.max(0, update.reservedStock - update.qty) },
               },
               { session, validateBeforeSave: false }
             );
           }
-
-          // Update coupon usedCount
+  
+          // Cập nhật coupon nếu có (lấy từ order đã lưu)
           if (order.couponCode) {
-            const coupon = await CouponCode.findOne({
-              name: order.couponCode,
-            }).session(session);
+            const coupon = await CouponCode.findOne({ name: order.couponCode }).session(session);
             if (coupon) {
-              const isCouponValid = order.cart.filter(
-                (item) =>
-                  item.shopId === coupon.shopId &&
-                  (!coupon.selectedProduct?.length ||
-                    coupon.selectedProduct.includes(item.name))
-              );
-              if (isCouponValid.length === 0) {
-                await session.abortTransaction();
-                session.endSession();
-                return res.redirect(
-                  `${process.env.REACT_APP_FRONT_END_URL}/order/failure`
-                );
-              }
-              const eligiblePrice = isCouponValid.reduce(
-                (acc, item) => acc + item.qty * item.discountPrice,
-                0
-              );
-              if (coupon.minAmount && eligiblePrice < coupon.minAmount) {
-                await session.abortTransaction();
-                session.endSession();
-                return res.redirect(
-                  `${process.env.REACT_APP_FRONT_END_URL}/order/failure`
-                );
-              }
-              if (coupon.maxAmount && eligiblePrice > coupon.maxAmount) {
-                await session.abortTransaction();
-                session.endSession();
-                return res.redirect(
-                  `${process.env.REACT_APP_FRONT_END_URL}/order/failure`
-                );
-              }
-              console.log(
-                `Incrementing usedCount for coupon: ${order.couponCode}`
-              );
+              console.log(`Incrementing usedCount for coupon: ${order.couponCode}`);
               coupon.usedCount += 1;
               await coupon.save({ session });
             }
           }
-
+  
           order.paymentInfo.id = vnp_Params["vnp_TransactionNo"];
           order.paymentInfo.status = "Paid";
           order.paidAt = new Date();
           order.reservationExpiresAt = null;
           await order.save({ session });
-
+  
           console.log("Order updated:", order);
           await session.commitTransaction();
           session.endSession();
-
+  
           const redirectUrl = `${process.env.REACT_APP_FRONT_END_URL}/order/success`;
           res.send(`
             <script>
@@ -399,20 +358,13 @@ const orderService = {
             </script>
           `);
         } else {
-          // Release reserved stock on payment failure
+          // Thanh toán thất bại - giải phóng reservedStock
           for (const item of order.cart) {
             const product = await Product.findById(item._id).session(session);
             if (product) {
               await Product.findByIdAndUpdate(
                 item._id,
-                {
-                  $set: {
-                    reservedStock: Math.max(
-                      0,
-                      product.reservedStock - item.qty
-                    ),
-                  },
-                },
+                { $set: { reservedStock: Math.max(0, product.reservedStock - item.qty) } },
                 { session, validateBeforeSave: false }
               );
             }
@@ -433,7 +385,7 @@ const orderService = {
         res.redirect(`${process.env.REACT_APP_FRONT_END_URL}/order/failure`);
       }
     } else {
-      res.send("Signature verification failed");
+      res.send("Xác minh chữ ký thất bại");
     }
   },
 
@@ -523,7 +475,7 @@ const orderService = {
       const orders = await Order.find({
         "shippingAddress.ward": { $in: deliveredWards },
         status: {
-          $in: ["Transferred to delivery partner", "On the way", "Delivered"],
+          $in: ["Contacting the delivery service", "Transferred to delivery partner", "On the way", "Delivered"],
         },
       }).sort({ createdAt: -1 });
 
@@ -533,6 +485,60 @@ const orderService = {
       });
     } catch (error) {
       return next(new ErrorHandler(error.message, 500));
+    }
+  },
+
+  async acceptOrder(orderId, shipperId, res, next) {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+      const order = await Order.findById(orderId).session(session);
+      if (!order) {
+        await session.abortTransaction();
+        session.endSession();
+        return next(new ErrorHandler("Order not found", 400));
+      }
+
+      if (order.shipperId) {
+        await session.abortTransaction();
+        session.endSession();
+        return next(new ErrorHandler("Order already assigned to a shipper", 400));
+      }
+
+      if (order.status !== "Contacting the delivery service") {
+        await session.abortTransaction();
+        session.endSession();
+        return next(
+          new ErrorHandler("Order is not available for acceptance", 400)
+        );
+      }
+
+      const shipper = await Shipper.findById(shipperId).session(session);
+      if (!shipper) {
+        await session.abortTransaction();
+        session.endSession();
+        return next(new ErrorHandler("Shipper not found", 404));
+      }
+
+      order.shipperId = shipperId;
+      await order.save({ session, validateBeforeSave: false });
+
+      await session.commitTransaction();
+      session.endSession();
+
+      socket.emit("orderAccepted", { orderId, shipperId });
+
+      res.status(200).json({
+        success: true,
+        order,
+        message: "Order accepted successfully",
+      });
+    } catch (error) {
+      await session.abortTransaction();
+      session.endSession();
+      console.error("Error accepting order:", error);
+      return next(new ErrorHandler("Error accepting order", 500));
     }
   },
 
@@ -599,16 +605,35 @@ const orderService = {
         return next(new ErrorHandler("Order not found with this id", 400));
       }
 
-      if (status === "Transferred to delivery partner") {
-        const shipper = await Shipper.findOne({
+      if (status === "Contacting the delivery service") {
+        const shippers = await Shipper.find({
           "deliveredArea.ward": order.shippingAddress.ward,
         });
-        if (!shipper) {
+        if (!shippers.length) {
           return next(
             new ErrorHandler("No shipper available for this area", 400)
           );
         }
-        order.shipperId = shipper._id;
+        // Prepare full order data for socket emission
+        const orderData = {
+          _id: order._id,
+          status: status,
+          cart: order.cart,
+          shippingAddress: order.shippingAddress,
+          user: order.user,
+          totalPrice: order.totalPrice,
+          shopAddress: order.cart[0]?.shopAddress || {}, // Ensure shopAddress is included
+          createdAt: order.createdAt,
+        };
+        socket.emit("findShippers", { orderId, orderData, shippers, ward: order.shippingAddress.ward });
+      }
+
+      if (status === "Transferred to delivery partner") {
+        if (!order.shipperId) {
+          return next(
+            new ErrorHandler("No shipper assigned to this order", 400)
+          );
+        }
       }
 
       order.status = status;

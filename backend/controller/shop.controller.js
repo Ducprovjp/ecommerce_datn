@@ -11,7 +11,6 @@ router.post(
   "/create-shop",
   upload.single("file"),
   catchAsyncErrors(async (req, res, next) => {
-    const { name, email, password, phoneNumber, zipCode, province, district, ward, address1 } = req.body;
     await shopService.createShop(req, res, next);
   })
 );

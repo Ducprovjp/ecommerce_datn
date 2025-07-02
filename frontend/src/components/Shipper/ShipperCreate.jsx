@@ -1,55 +1,84 @@
 import React, { useState } from "react";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
-import styles from "../../styles/styles";
-import { Link, useNavigate } from "react-router-dom";
-import { postRequest } from "../../request/api"; // Import postRequest
-import { toast } from "react-toastify";
 import { RxAvatar } from "react-icons/rx";
+import { Link, useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
+import { uploadFileRequest } from "../../request/api"; // Import uploadFileRequest
+import styles from "../../styles/styles";
 
 const ShipperCreate = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
+  const [password, setPassword] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [address, setAddress] = useState("");
   const [avatar, setAvatar] = useState(null);
-  const [password, setPassword] = useState("");
   const [visible, setVisible] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleFileInputChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Validate file type and size
+      const validTypes = ["image/jpeg", "image/jpg", "image/png"];
+      const maxSize = 2 * 1024 * 1024; // 2MB
+      if (!validTypes.includes(file.type)) {
+        toast.error("Please upload a JPG, JPEG, or PNG file");
+        return;
+      }
+      if (file.size > maxSize) {
+        toast.error("File size must be less than 2MB");
+        return;
+      }
+      setAvatar(file);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
+
+    if (!email || !password || !name.trim()) {
+      toast.error("Please provide email, shipper name, and password");
+      setLoading(false);
+      return;
+    }
 
     const newForm = new FormData();
-    newForm.append("file", avatar);
-    newForm.append("name", name);
-    newForm.append("email", email);
+    if (avatar) newForm.append("file", avatar); // Only append if avatar exists
+    newForm.append("email", email.trim());
+    newForm.append("name", name.trim());
     newForm.append("password", password);
-    newForm.append("address", address);
-    newForm.append("phoneNumber", phoneNumber);
+    newForm.append("phoneNumber", phoneNumber || "");
+    newForm.append("address", address || "");
+
+    // Log FormData for debugging
+    console.log("Submitting shipper creation with:");
+    for (let [key, value] of newForm.entries()) {
+      console.log(`${key}: ${value}`);
+    }
 
     try {
-      const res = await postRequest("/shipper/create-shipper", newForm);
+      const res = await uploadFileRequest("/shipper/create-shipper", newForm);
+      console.log("Create shipper response:", res);
       if (!res.success) {
         throw new Error(res.message || "Failed to create shipper");
       }
       toast.success(res.message);
-      setName("");
       setEmail("");
+      setName("");
       setPassword("");
-      setAvatar(null);
-      setAddress("");
       setPhoneNumber("");
+      setAddress("");
+      setAvatar(null);
       navigate("/shipper-login");
-      window.location.reload();
     } catch (error) {
       console.error("Create shipper error:", error);
       toast.error(error.message || "Failed to create shipper");
+    } finally {
+      setLoading(false);
     }
-  };
-
-  const handleFileInputChange = (e) => {
-    const file = e.target.files[0];
-    setAvatar(file);
   };
 
   return (
@@ -63,65 +92,59 @@ const ShipperCreate = () => {
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div>
-              <label className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="name"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Shipper Name
               </label>
-              <input
-                type="text"
-                required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-              />
+              <div className="mt-1">
+                <input
+                  type="text"
+                  name="name"
+                  autoComplete="off"
+                  required
+                  placeholder="Enter your shipper name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                />
+              </div>
             </div>
-
             <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Phone Number
-              </label>
-              <input
-                type="text"
-                required
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Email Address
               </label>
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-              />
+              <div className="mt-1">
+                <input
+                  type="email"
+                  name="email"
+                  autoComplete="email"
+                  required
+                  placeholder="Enter valid email address"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                />
+              </div>
             </div>
-
             <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Address
-              </label>
-              <input
-                type="text"
-                required
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Password
               </label>
-              <div className="relative">
+              <div className="mt-1 relative">
                 <input
                   type={visible ? "text" : "password"}
+                  name="password"
+                  autoComplete="new-password"
                   required
+                  placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
@@ -141,17 +164,57 @@ const ShipperCreate = () => {
                 )}
               </div>
             </div>
-
             <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Avatar
+              <label
+                htmlFor="phoneNumber"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Phone Number
+              </label>
+              <div className="mt-1">
+                <input
+                  type="text"
+                  name="phoneNumber"
+                  autoComplete="tel"
+                  placeholder="Enter your phone number"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                />
+              </div>
+            </div>
+            <div>
+              <label
+                htmlFor="address"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Address
+              </label>
+              <div className="mt-1">
+                <input
+                  type="text"
+                  name="address"
+                  autoComplete="street-address"
+                  placeholder="Enter your address"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                />
+              </div>
+            </div>
+            <div>
+              <label
+                htmlFor="avatar"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Avatar (Optional)
               </label>
               <div className="mt-2 flex items-center">
                 <span className="inline-block h-8 w-8 rounded-full overflow-hidden">
                   {avatar ? (
                     <img
                       src={URL.createObjectURL(avatar)}
-                      alt="avatar"
+                      alt="Shipper avatar"
                       className="h-full w-full object-cover rounded-full"
                     />
                   ) : (
@@ -165,23 +228,24 @@ const ShipperCreate = () => {
                   <span>Upload a file</span>
                   <input
                     type="file"
+                    name="avatar"
                     id="file-input"
+                    accept=".jpg,.jpeg,.png"
                     onChange={handleFileInputChange}
                     className="sr-only"
                   />
                 </label>
               </div>
             </div>
-
             <div>
               <button
                 type="submit"
-                className="group relative w-full h-[40px] flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                className="group relative w-full h-[40px] flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400"
+                disabled={loading}
               >
-                Submit
+                {loading ? "Submitting..." : "Submit"}
               </button>
             </div>
-
             <div className={`${styles.normalFlex} w-full`}>
               <h4>Already have an account?</h4>
               <Link to="/shipper-login" className="text-blue-600 pl-2">

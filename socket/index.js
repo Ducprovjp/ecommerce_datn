@@ -2,20 +2,26 @@ const socketIO = require("socket.io");
 const http = require("http");
 const express = require("express");
 const cors = require("cors");
+const Order = require("../backend/model/order.model"); // Sửa đường dẫn import
+
 const app = express();
 const server = http.createServer(app);
 const io = socketIO(server, {
   cors: {
-    origin: "*", // Thay bằng domain frontend của bạn
-    methods: ["GET", "POST"]
-  }
+    origin: "http://localhost:3000", // Chỉ định origin của frontend
+    credentials: true,
+    methods: ["GET", "POST"],
+  },
 });
 
 require("dotenv").config({
-  path: "./.env",
+  path: "./.env", // Giữ nguyên cấu hình của bạn
 });
 
-app.use(cors());
+app.use(cors({
+  origin: "http://localhost:3000",
+  credentials: true,
+}));
 app.use(express.json());
 
 app.get("/", (req, res) => {
@@ -25,20 +31,20 @@ app.get("/", (req, res) => {
 let users = [];
 
 const addUser = (userId, socketId) => {
-  // Remove existing user if exists (user might reconnect)
   users = users.filter((user) => user.userId !== userId);
   users.push({ userId, socketId });
+  console.log(`User ${userId} added with socket ${socketId}`);
 };
 
 const removeUser = (socketId) => {
   users = users.filter((user) => user.socketId !== socketId);
+  console.log(`User with socket ${socketId} removed`);
 };
 
 const getUser = (userId) => {
   return users.find((user) => user.userId === userId);
 };
 
-// Define a message object with a seen property
 const createMessage = ({ senderId, receiverId, text, images, conversationId }) => ({
   senderId,
   receiverId,
@@ -46,30 +52,65 @@ const createMessage = ({ senderId, receiverId, text, images, conversationId }) =
   images,
   conversationId,
   seen: false,
-  timestamp: new Date()
+  timestamp: new Date(),
 });
 
 io.on("connection", (socket) => {
   console.log(`User connected: ${socket.id}`);
 
-  // take userId and socketId from user
   socket.on("addUser", (userId) => {
     addUser(userId, socket.id);
     io.emit("getUsers", users);
-    console.log(`User ${userId} added with socket ${socket.id}`);
   });
 
-  // send and get message
+  socket.on("findShippers", async ({ orderId, orderData, shippers, ward }) => {
+    try {
+      console.log(`Find shippers for order ${orderId} in ward ${ward}`);
+      let fullOrderData = orderData;
+      if (!fullOrderData.cart || !fullOrderData.shippingAddress) {
+        const order = await Order.findById(orderId);
+        if (!order) {
+          console.error(`Order ${orderId} not found`);
+          return;
+        }
+        fullOrderData = {
+          _id: order._id,
+          status: order.status,
+          cart: order.cart,
+          shippingAddress: order.shippingAddress,
+          user: order.user,
+          totalPrice: order.totalPrice,
+          shopAddress: order.cart[0]?.shopAddress || {},
+          createdAt: order.createdAt,
+        };
+      }
+      shippers.forEach((shipper) => {
+        const user = getUser(shipper._id);
+        if (user) {
+          console.log(`Notifying shipper ${shipper._id} for order ${orderId}`);
+          io.to(user.socketId).emit("newOrderAvailable", fullOrderData);
+        } else {
+          console.log(`Shipper ${shipper._id} not connected`);
+        }
+      });
+    } catch (error) {
+      console.error(`Error in findShippers for order ${orderId}:`, error.message);
+    }
+  });
+
+  socket.on("orderAccepted", ({ orderId, shipperId }) => {
+    console.log(`Order ${orderId} accepted by shipper ${shipperId}`);
+    users.forEach((user) => {
+      if (user.userId !== shipperId) {
+        io.to(user.socketId).emit("orderAccepted", { orderId });
+      }
+    });
+  });
+
   socket.on("sendMessage", ({ senderId, receiverId, text, images, conversationId }) => {
     const message = createMessage({ senderId, receiverId, text, images, conversationId });
-
     const receiver = getUser(receiverId);
-    const sender = getUser(senderId);
-
     console.log(`Message from ${senderId} to ${receiverId}`);
-    console.log(`Receiver found:`, receiver);
-
-    // Send message to receiver if online
     if (receiver) {
       io.to(receiver.socketId).emit("getMessage", {
         senderId,
@@ -80,8 +121,6 @@ io.on("connection", (socket) => {
         createdAt: Date.now(),
       });
     }
-
-    // Broadcast to conversation room if using rooms
     if (conversationId) {
       socket.to(conversationId).emit("getMessage", {
         senderId,
@@ -94,10 +133,8 @@ io.on("connection", (socket) => {
     }
   });
 
-  // Handle message seen
   socket.on("messageSeen", ({ senderId, receiverId, messageId }) => {
     const sender = getUser(senderId);
-
     if (sender) {
       io.to(sender.socketId).emit("messageSeen", {
         senderId,
@@ -107,9 +144,7 @@ io.on("connection", (socket) => {
     }
   });
 
-  // update and get last message
   socket.on("updateLastMessage", ({ lastMessage, lastMessageId, conversationId }) => {
-    // Broadcast to all users
     io.emit("getLastMessage", {
       lastMessage,
       lastMessageId,
@@ -117,27 +152,21 @@ io.on("connection", (socket) => {
     });
   });
 
-  // Join conversation room
   socket.on("joinConversation", (conversationId) => {
     socket.join(conversationId);
     console.log(`Socket ${socket.id} joined conversation ${conversationId}`);
   });
 
-  // Leave conversation room
   socket.on("leaveConversation", (conversationId) => {
     socket.leave(conversationId);
     console.log(`Socket ${socket.id} left conversation ${conversationId}`);
   });
 
-  // Send message to conversation room
   socket.on("sendMessageToRoom", ({ conversationId, message }) => {
-    // Send to all users in the conversation room
     socket.to(conversationId).emit("receiveMessage", message);
-    // Also send back to sender for confirmation
     socket.emit("messageDelivered", message);
   });
 
-  //when disconnect
   socket.on("disconnect", () => {
     console.log(`User disconnected: ${socket.id}`);
     removeUser(socket.id);
@@ -146,5 +175,5 @@ io.on("connection", (socket) => {
 });
 
 server.listen(process.env.PORT || 4000, () => {
-  console.log(`Server is running on port ${process.env.PORT || 4000}`);
+  console.log(`Socket server is running on port ${process.env.PORT || 4000}`);
 });

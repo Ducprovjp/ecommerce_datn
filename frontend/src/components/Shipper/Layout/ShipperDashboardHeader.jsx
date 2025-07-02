@@ -1,6 +1,6 @@
 import React from "react";
-import { FiPackage } from "react-icons/fi";
 import { BiMessageSquareDetail } from "react-icons/bi";
+import { FiPackage } from "react-icons/fi";
 import { TbTruckDelivery } from "react-icons/tb";
 import { useSelector } from "react-redux";
 import { Link } from "react-router-dom";
@@ -9,11 +9,18 @@ const ShipperDashboardHeader = () => {
   const { shipper } = useSelector((state) => state.shipper);
   return (
     <div className="w-full h-[80px] bg-white shadow sticky top-0 left-0 z-30 flex items-center justify-between px-4">
-      <div>
-        <Link to="/shipper-dashboard">
+      <div className="relative w-40 h-20 rounded-2xl overflow-hidden">
+        <Link to="/">
           <img
-            src="https://shopo.quomodothemes.website/assets/images/logo.svg"
-            alt="Logo"
+            className="w-full h-full object-cover rounded-2xl"
+            src="https://blog.logrocket.com/wp-content/uploads/2023/03/How-NestJS-middleware-works.png"
+            alt=""
+            style={{
+              WebkitMaskImage:
+                "radial-gradient(circle at center, rgba(0,0,0,1) 40%, rgba(0,0,0,0.2) 70%, rgba(0,0,0,0) 100%)",
+              WebkitMaskRepeat: "no-repeat",
+              WebkitMaskSize: "cover",
+            }}
           />
         </Link>
       </div>

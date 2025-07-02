@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { useSelector, useDispatch } from "react-redux";
 import { toast } from "react-toastify";
-import { postRequest } from "../../request/api";
-import PaymentInfo from "./PaymentInfo";
-import CartData from "./CartData";
 import { getAllProducts } from "../../redux/actions/product";
-import styles from "../../styles/styles";
+import { postRequest } from "../../request/api";
+import CartData from "./CartData";
+import PaymentInfo from "./PaymentInfo";
 
 const Payment = () => {
   const [orderData, setOrderData] = useState([]);
@@ -18,6 +17,7 @@ const Payment = () => {
 
   useEffect(() => {
     const orderData = JSON.parse(localStorage.getItem("latestOrder"));
+    console.log("Order data from localStorage:", orderData);
     setOrderData(orderData);
   }, []);
 

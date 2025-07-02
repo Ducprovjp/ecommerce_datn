@@ -69,6 +69,17 @@ router.get(
   })
 );
 
+// Accept order by shipper
+router.put(
+  "/accept-order/:id",
+  isShipper,
+  catchAsyncErrors(async (req, res, next) => {
+    const orderId = req.params.id;
+    const shipperId = req.body.shipperId;
+    await orderService.acceptOrder(orderId, shipperId, res, next);
+  })
+);
+
 // Update order status by shipper
 router.put(
   "/update-order-status-by-shipper/:id",

@@ -36,7 +36,7 @@ const orderSchema = new mongoose.Schema({
     },
   },
   shipperId: {
-    type: Object,
+    type: mongoose.Schema.Types.ObjectId,
     ref: "Shipper",
     default: null,
   },

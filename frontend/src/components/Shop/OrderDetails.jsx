@@ -3,9 +3,14 @@ import { BsFillBagFill } from "react-icons/bs";
 import { useDispatch, useSelector } from "react-redux";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
+import io from "socket.io-client";
 import { getAllOrdersOfShop } from "../../redux/actions/order";
 import { putRequest } from "../../request/api";
 import styles from "../../styles/styles";
+
+const socket = io(process.env.REACT_APP_SOCKET_URL || "http://localhost:4000", {
+  withCredentials: true,
+});
 
 const OrderDetails = () => {
   const { orders, isLoading } = useSelector((state) => state.order);
@@ -16,6 +21,7 @@ const OrderDetails = () => {
 
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
+  const [availableShippers, setAvailableShippers] = useState([]);
   const cancelReasons = [
     "Out of stock or insufficient quantity",
     "Product quality not guaranteed",
@@ -26,7 +32,18 @@ const OrderDetails = () => {
 
   useEffect(() => {
     dispatch(getAllOrdersOfShop(seller._id));
-  }, [dispatch, seller._id]);
+
+    // Listen for available shippers
+    socket.on("availableShippers", ({ orderId, shippers }) => {
+      if (orderId === id) {
+        setAvailableShippers(shippers);
+      }
+    });
+
+    return () => {
+      socket.off("availableShippers");
+    };
+  }, [dispatch, seller._id, id]);
 
   const data = orders && orders.find((item) => item._id === id);
   const [selectedStatus, setSelectedStatus] = useState(data?.status || "");
@@ -64,6 +81,9 @@ const OrderDetails = () => {
       }
       toast.success("Order status updated successfully!");
       setDisplayedStatus(selectedStatus);
+      if (selectedStatus === "Contacting the delivery service") {
+        socket.emit("findShippers", { orderId: id, ward: data?.shippingAddress?.ward });
+      }
       navigate("/dashboard-orders");
     } catch (error) {
       toast.error(error.message);
@@ -245,6 +265,41 @@ const OrderDetails = () => {
           </div>
         )}
       </div>
+
+      {/* Available Shippers */}
+      {data?.status === "Contacting the delivery service" && (
+        <div className="w-full mt-6">
+          <h4 className="text-[20px] font-[600]">Available Shippers</h4>
+          {availableShippers.length === 0 ? (
+            <p className="text-gray-600">No shippers available in this area.</p>
+          ) : (
+            <div className="w-full pt-4">
+              {availableShippers.map((shipper) => (
+                <div
+                  key={shipper._id}
+                  className="w-full bg-white rounded-md shadow-md p-6 mb-4"
+                >
+                  <div className="flex flex-col">
+                    <div className="flex justify-between items-center mb-2">
+                      <div>
+                        <p className="text-xs text-gray-600">
+                          Shipper Name: {shipper.name}
+                        </p>
+                        <p className="text-xs text-gray-600">
+                          Phone: {shipper.phoneNumber.slice(0, 3) + "****" + shipper.phoneNumber.slice(-3)}
+                        </p>
+                        <p className="text-xs text-gray-600">
+                          Delivery Area: {shipper.deliveredArea.map((area) => area.ward).join(", ")}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Order Status */}
       <br />
