@@ -15,12 +15,14 @@ router.post(
   })
 );
 
-// Delete order
+// Cancel order by seller
 router.put(
-  "/delete-order/:id",
+  "/cancel-order-by-seller/:id",
+  isSeller,
   catchAsyncErrors(async (req, res, next) => {
     const orderId = req.params.id;
-    await orderService.deleteOrder(orderId, res, next);
+    const { sellerCancelReason } = req.body;
+    await orderService.cancelOrderBySeller(orderId, sellerCancelReason, res, next);
   })
 );
 
@@ -94,7 +96,7 @@ router.put(
   "/order-refund/:id",
   catchAsyncErrors(async (req, res, next) => {
     const orderId = req.params.id;
-    const { status, refundReason } = req.body; 
+    const { status, refundReason } = req.body;
     await orderService.requestOrderRefund(orderId, status, refundReason, res, next);
   })
 );

@@ -1,35 +1,53 @@
 import React, { useEffect, useState } from "react";
-import styles from "../../styles/styles";
 import { BsFillBagFill } from "react-icons/bs";
+import { useDispatch, useSelector } from "react-redux";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
-import { putRequest } from "../../request/api";
 import { getAllOrdersOfShop } from "../../redux/actions/order";
-import { useDispatch, useSelector } from "react-redux";
-import { Button } from "@material-ui/core";
+import { putRequest } from "../../request/api";
+import styles from "../../styles/styles";
 
-const OrderStatus = () => {
+const OrderDetails = () => {
   const { orders, isLoading } = useSelector((state) => state.order);
   const { seller } = useSelector((state) => state.seller);
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { id } = useParams();
 
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+  const cancelReasons = [
+    "Out of stock or insufficient quantity",
+    "Product quality not guaranteed",
+    "Delivery area out of range",
+    "System or technical error",
+    "Other",
+  ];
+
   useEffect(() => {
     dispatch(getAllOrdersOfShop(seller._id));
-  }, [dispatch]);
+  }, [dispatch, seller._id]);
 
   const data = orders && orders.find((item) => item._id === id);
   const [selectedStatus, setSelectedStatus] = useState(data?.status || "");
   const [displayedStatus, setDisplayedStatus] = useState(data?.status || "");
 
   const orderCancelHandler = async () => {
+    if (!cancelReason) {
+      toast.error("Please select a cancellation reason");
+      return;
+    }
     try {
-      const res = await putRequest(`/order/delete-order/${id}`);
+      const res = await putRequest(`/order/cancel-order-by-seller/${id}`, {
+        sellerCancelReason: cancelReason,
+      });
       if (!res.success) {
         throw new Error(res.message || "Failed to cancel order");
       }
-      toast.success("Order canceled!");
+      toast.success("Order cancelled successfully!");
+      setShowCancelModal(false);
+      setCancelReason("");
+      dispatch(getAllOrdersOfShop(seller._id));
       navigate("/dashboard-orders");
     } catch (error) {
       toast.error(error.message);
@@ -44,7 +62,7 @@ const OrderStatus = () => {
       if (!res.success) {
         throw new Error(res.message || "Failed to update order status");
       }
-      toast.success("Order updated!");
+      toast.success("Order status updated successfully!");
       setDisplayedStatus(selectedStatus);
       navigate("/dashboard-orders");
     } catch (error) {
@@ -60,7 +78,7 @@ const OrderStatus = () => {
       if (!res.success) {
         throw new Error(res.message || "Failed to update refund status");
       }
-      toast.success("Order updated!");
+      toast.success("Refund status updated successfully!");
       setDisplayedStatus(selectedStatus);
       dispatch(getAllOrdersOfShop(seller._id));
     } catch (error) {
@@ -77,23 +95,60 @@ const OrderStatus = () => {
 
   return (
     <div className={`py-4 min-h-screen ${styles.section}`}>
+      {/* Cancellation Modal */}
+      {showCancelModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+            <h3 className="text-lg font-semibold mb-4">Select Cancellation Reason</h3>
+            <select
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              className="w-full border h-[40px] rounded-[5px] mb-4"
+            >
+              <option value="">Select a reason</option>
+              {cancelReasons.map((reason, index) => (
+                <option key={index} value={reason}>
+                  {reason}
+                </option>
+              ))}
+            </select>
+            <div className="flex justify-end gap-4">
+              <button
+                className={`${styles.button} px-4 py-2 bg-gray-300 text-gray-800 !h-[40px] !rounded-[4px] hover:bg-gray-400`}
+                onClick={() => setShowCancelModal(false)}
+              >
+                Close
+              </button>
+              <button
+                className={`${styles.button} !bg-[#f63b60] !rounded-[4px] text-white font-[600] !h-[40px] text-[16px]`}
+                onClick={orderCancelHandler}
+              >
+                Confirm Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Header and Back Button */}
       <div className="w-full flex items-center justify-between">
         <div className="flex items-center">
           <BsFillBagFill size={30} color="crimson" />
-          <h1 className="pl-2 text-[25px]">Order Details</h1>
+          <h1 className="pl-2 text-[25px] font-bold">Order Details</h1>
         </div>
         <Link to="/dashboard-orders">
           <div
-            className={`${styles.button} !bg-[#f63b60] !rounded-[4px] text-[#e94560] font-[600] !h-[45px] text-[18px]`}
+            className={`${styles.button} !bg-[#f63b60] !rounded-[4px] text-white font-[600] !h-[45px] text-[18px]`}
           >
             Order List
           </div>
         </Link>
       </div>
 
+      {/* Order Information */}
       <div className="w-full flex items-center justify-between pt-6">
         <h5 className="text-[#00000084]">
-          order ID: <span>#{data?._id?.slice(0, 8)}</span>
+          Order ID: <span>#{data?._id?.slice(0, 8)}</span>
         </h5>
         <h5 className="text-[#00000084]">
           Placed On: <span>{data?.createdAt?.slice(0, 10)}</span>
@@ -102,92 +157,111 @@ const OrderStatus = () => {
 
       {/* Order Items */}
       <br />
-      <br />
-      <div className="w-full flex justify-between">
+      <h4 className="text-[20px] font-[600]">Order Items</h4>
+      <div className="w-full border-t pt-4">
         {data &&
           data?.cart.map((item, index) => (
             <div className="w-full flex items-start mb-5" key={index}>
               <img
                 src={item.images[0]}
-                alt="Product item order img"
-                className="w-[80px] h-[80px]"
+                alt={item.name}
+                className="w-[80px] h-[80px] object-cover rounded-md"
               />
-              <div className="w-full">
-                <h5 className="pl-3 text-[20px]">{item.name}</h5>
-                <h5 className="pl-3 text-[20px] text-[#00000091]">
-                  {item.discountPrice.toLocaleString("vi-VN") + " VNĐ"} x {item.qty}
+              <div className="w-full pl-3">
+                <h5 className="text-[20px] font-medium">{item.name}</h5>
+                <h5 className="text-[16px] text-[#00000091]">
+                  {item.discountPrice.toLocaleString("en-US")} VND x {item.qty} ={" "}
+                  {(item.discountPrice * item.qty).toLocaleString("en-US")} VND
                 </h5>
               </div>
             </div>
           ))}
-        <div
-          className={`${styles.button} !bg-[#f63b60] !rounded-[4px] text-[#E94560] font-[600] !h-[45px] text-[18px]`}
-          onClick={orderCancelHandler}
-        >
-          Cancel Order
+        <div className="border-t w-full text-right pt-3">
+          <h5 className="text-[18px] font-semibold">
+            Total Price:{" "}
+            <strong>{data?.totalPrice.toLocaleString("en-US")} VND</strong>
+          </h5>
         </div>
       </div>
-      <div className="border-t w-full text-right">
-        <h5>
-          Total Price:{" "}
-          <strong>{data?.totalPrice.toLocaleString("vi-VN") + " VNĐ"}</strong>
-        </h5>
-      </div>
-      <br />
-      <br />
 
-      {/* Shipping Address */}
-      <div className="w-full 800px:flex items-center">
-        <div className="w-full 800px:w-[60%]">
-          <div>
-            <h4 className="pt-3 text-[20px] font-[600]">Shipping Address:</h4>
-            <h4 className="pt-3 text-[20px]">{data?.shippingAddress.address1}</h4>
-            <h4 className="text-[20px]">
+      {/* Shipping, Payment, and Cancel Button */}
+      <br />
+      <div className="w-full 800px:flex gap-6">
+        {/* Shipping Information */}
+        <div className="w-full 800px:w-[40%]">
+          <h4 className="text-[20px] font-[600]">Shipping Information</h4>
+          <div className="pt-3">
+            <h5 className="text-[16px]">
+              <strong>Recipient Name:</strong> {data?.user?.name || "Not specified"}
+            </h5>
+            <h5 className="text-[16px]">
+              <strong>Phone Number:</strong> {data?.user?.phoneNumber || "Not specified"}
+            </h5>
+            <h5 className="text-[16px]">
+              <strong>Address:</strong> {data?.shippingAddress.address1}
+            </h5>
+            <h5 className="text-[16px]">
               {data?.shippingAddress.ward}, {data?.shippingAddress.district},{" "}
               {data?.shippingAddress.province}
-            </h4>
-            <h4 className="text-[20px]">{data?.user?.phoneNumber}</h4>
-          </div>
-          <div>
+            </h5>
             {data?.refundReason && (
-              <h4 className="mt-3 text-[20px] font-[600]">
-                Refund Reason: {data?.refundReason}
-              </h4>
+              <h5 className="text-[16px] pt-2">
+                <strong>Refund Reason:</strong> {data?.refundReason}
+              </h5>
             )}
             {data?.cancelReason && (
-              <h4 className="mt-3 text-[20px] font-[600]">
-                Cancel Reason: {data?.cancelReason}
-              </h4>
+              <h5 className="text-[16px] pt-2">
+                <strong>Buyer Cancel Reason:</strong> {data?.cancelReason}
+              </h5>
+            )}
+            {data?.sellerCancelReason && (
+              <h5 className="text-[16px] pt-2">
+                <strong>Seller Cancel Reason:</strong> {data?.sellerCancelReason}
+              </h5>
             )}
           </div>
         </div>
 
-        <div className="w-full 800px:w-[40%]">
-          <h4 className="pt-3 text-[20px]">Payment Info:</h4>
-          <h4>
-            Status:{" "}
-            {data?.paymentInfo?.status ? data?.paymentInfo?.status : "Not Paid"}
-          </h4>
+        {/* Payment Information */}
+        <div className="w-full 800px:w-[30%]">
+          <h4 className="text-[20px] font-[600]">Payment Information</h4>
+          <div className="pt-3">
+            <h5 className="text-[16px]">
+              <strong>Status:</strong>{" "}
+              {data?.paymentInfo?.status ? data?.paymentInfo?.status : "Not Paid"}
+            </h5>
+          </div>
         </div>
-      </div>
-      <br />
-      <br />
 
-      {/* Order Status */}
-      <div className="flex items-center gap-4">
-        <h4 className="pt-3 text-[20px] font-[600]">Order status:</h4>
-        <div className="border border-gray-300 rounded-[5px] px-3 py-1 bg-gray-100 text-[16px]">
-          {displayedStatus}
-        </div>
-        {data?.status === "Processing refund" && (
-          <div>
-            <h4 className="font-bold">{data?.refundReason}</h4>
+        {/* Cancel Order Button */}
+        {data?.status === "Processing" && (
+          <div className="w-full 800px:w-[30%] flex justify-end pt-3">
+            <div
+              className={`${styles.button} !bg-[#f63b60] !rounded-[4px] text-white font-[600] !h-[45px] text-[18px]`}
+              onClick={() => setShowCancelModal(true)}
+            >
+              Cancel Order
+            </div>
           </div>
         )}
       </div>
-      <div className="mt-2">
-        {data?.status !== "Cancelled" && (
-          <>
+
+      {/* Order Status */}
+      <br />
+      <div className="w-full">
+        <h4 className="text-[20px] font-[600]">Order Status</h4>
+        <div className="flex items-center gap-4 pt-3">
+          <div className="border border-gray-300 rounded-[5px] px-3 py-1 bg-gray-100 text-[16px]">
+            {displayedStatus}
+          </div>
+          {data?.status === "Processing refund" && (
+            <div>
+              <h4 className="text-[16px] font-bold">{data?.refundReason}</h4>
+            </div>
+          )}
+        </div>
+        {data?.status !== "Cancelled" && data?.status !== "Cancelled by Seller" && (
+          <div className="mt-4">
             {data?.status !== "Processing refund" &&
             data?.status !== "Refund Success" ? (
               <select
@@ -197,13 +271,17 @@ const OrderStatus = () => {
               >
                 {[
                   "Processing",
+                  "Confirmed",
                   "Packaging",
+                  "Contacting the delivery service",
                   "Transferred to delivery partner",
                 ]
                   .slice(
                     [
                       "Processing",
+                      "Confirmed",
                       "Packaging",
+                      "Contacting the delivery service",
                       "Transferred to delivery partner",
                     ].indexOf(data?.status)
                   )
@@ -231,7 +309,7 @@ const OrderStatus = () => {
               </select>
             )}
             <div
-              className={`${styles.button} mt-5 !bg-[#16b12e] !rounded-[4px] text-[#E94560] font-[600] !h-[45px] text-[18px]`}
+              className={`${styles.button} mt-5 !bg-[#16b12e] !rounded-[4px] text-white font-[600] !h-[45px] text-[18px]`}
               onClick={
                 data?.status !== "Processing refund"
                   ? orderUpdateHandler
@@ -240,11 +318,11 @@ const OrderStatus = () => {
             >
               Update Status
             </div>
-          </>
+          </div>
         )}
       </div>
     </div>
   );
 };
 
-export default OrderStatus;
+export default OrderDetails;

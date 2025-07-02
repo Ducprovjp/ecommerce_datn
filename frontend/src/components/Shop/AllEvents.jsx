@@ -1,125 +1,90 @@
-import { Button } from "@material-ui/core";
-import { DataGrid } from "@material-ui/data-grid";
 import React, { useEffect } from "react";
 import { AiOutlineDelete, AiOutlineEye } from "react-icons/ai";
 import { useDispatch, useSelector } from "react-redux";
-import { Link } from "react-router-dom";
 import { deleteEvent, getAllEventsShop } from "../../redux/actions/event";
-import { getAllProductsShop } from "../../redux/actions/product";
-import { deleteProduct } from "../../redux/actions/product";
 import Loader from "../Layout/Loader";
 
 const AllEvents = () => {
   const { events, isLoading } = useSelector((state) => state.events);
   const { seller } = useSelector((state) => state.seller);
-
   const dispatch = useDispatch();
 
   useEffect(() => {
     dispatch(getAllEventsShop(seller._id));
-  }, [dispatch]);
+  }, [dispatch, seller._id]);
 
   const handleDelete = (id) => {
     dispatch(deleteEvent(id));
     window.location.reload();
   };
 
-  const columns = [
-    { field: "id", headerName: "Product Id", minWidth: 150, flex: 0.7 },
-    {
-      field: "name",
-      headerName: "Name",
-      minWidth: 180,
-      flex: 1.4,
-    },
-    {
-      field: "price",
-      headerName: "Price",
-      minWidth: 100,
-      flex: 0.6,
-    },
-    {
-      field: "Stock",
-      headerName: "Stock",
-      type: "number",
-      minWidth: 80,
-      flex: 0.5,
-    },
+  // Sắp xếp sự kiện theo createdAt giảm dần
+  const sortedEvents = events
+    ? [...events].sort((a, b) => new Date(b.createdAt.$date) - new Date(a.createdAt.$date))
+    : [];
 
-    {
-      field: "sold",
-      headerName: "Sold out",
-      type: "number",
-      minWidth: 130,
-      flex: 0.6,
-    },
-    {
-      field: "Preview",
-      flex: 0.8,
-      minWidth: 100,
-      headerName: "",
-      type: "number",
-      sortable: false,
-      renderCell: (params) => {
-        return (
-          <>
-            <Link to={`/product/${params.id}?isEvent=true`}>
-              <Button>
-                <AiOutlineEye size={20} />
-              </Button>
-            </Link>
-          </>
-        );
-      },
-    },
-    {
-      field: "Delete",
-      flex: 0.8,
-      minWidth: 120,
-      headerName: "",
-      type: "number",
-      sortable: false,
-      renderCell: (params) => {
-        return (
-          <>
-            <Button onClick={() => handleDelete(params.id)}>
-              <AiOutlineDelete size={20} />
-            </Button>
-          </>
-        );
-      },
-    },
-  ];
-
-  const row = [];
-
-  events &&
-    events.forEach((item) => {
-      row.push({
-        id: item._id,
-        name: item.name,
-        price: item.discountPrice.toLocaleString("vi-VN") + " VNĐ",
-        Stock: item.stock,
-        sold: item.sold_out,
-      });
-    });
+  console.log("Sorted Events:", sortedEvents);
 
   return (
-    <>
+    <div className="w-full p-8">
       {isLoading ? (
         <Loader />
       ) : (
-        <div className="w-full mx-8 pt-1 mt-10 bg-white">
-          <DataGrid
-            rows={row}
-            columns={columns}
-            pageSize={10}
-            disableSelectionOnClick
-            autoHeight
-          />
-        </div>
+        <>
+          <h2 className="text-2xl font-bold mb-6">All Events</h2>
+          {sortedEvents.length === 0 ? (
+            <p className="text-gray-600">No events found.</p>
+          ) : (
+            sortedEvents.map((event) => (
+              <div
+                key={event._id}
+                className="w-full bg-white rounded-md shadow-md p-6 mb-4"
+              >
+                <div className="flex flex-col">
+                  {/* Hiển thị sự kiện */}
+                  <div className="flex items-center mb-4">
+                    <img
+                      src={event.images[0]}
+                      alt={event.name}
+                      className="w-20 h-20 object-cover rounded-md mr-4"
+                    />
+                    <div className="flex-1">
+                      <h4 className="text-sm font-medium">{event.name}</h4>
+                      <p className="text-xs text-gray-600">
+                        Price: {event.discountPrice.toLocaleString("vi-VN")} VNĐ
+                      </p>
+                      <p className="text-xs text-gray-600">
+                        Stock: {event.stock}
+                      </p>
+                      <p className="text-xs text-gray-600">
+                        Sold: {event.sold_out}
+                      </p>
+                    </div>
+                  </div>
+                  {/* Nút hành động */}
+                  <div className="flex justify-end space-x-2">
+                    <a
+                      href={`/product/${event._id}?isEvent=true`}
+                      className="flex items-center bg-[#f63b60] text-white px-4 py-2 rounded-md hover:bg-[#e12c4f]"
+                    >
+                      Preview
+                      <AiOutlineEye className="ml-2" size={20} />
+                    </a>
+                    <button
+                      onClick={() => handleDelete(event._id)}
+                      className="flex items-center bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600"
+                    >
+                      Delete
+                      <AiOutlineDelete className="ml-2" size={20} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </>
       )}
-    </>
+    </div>
   );
 };
 

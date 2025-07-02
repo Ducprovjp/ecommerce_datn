@@ -174,11 +174,11 @@ const ProfileContent = ({ active }) => {
       )}
 
       {/* Track order */}
-      {active === 5 && (
+      {/* {active === 5 && (
         <div>
           <TrackOrder />
         </div>
-      )}
+      )} */}
 
       {/* Change Password */}
       {active === 6 && (

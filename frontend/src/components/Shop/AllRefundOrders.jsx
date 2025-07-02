@@ -1,126 +1,119 @@
-import { Button } from "@material-ui/core";
-import { DataGrid } from "@material-ui/data-grid";
-import React, { useEffect } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { Link } from "react-router-dom";
-import Loader from "../Layout/Loader";
-import { getAllOrdersOfShop } from "../../redux/actions/order";
+import React, { useEffect, useState } from "react";
 import { AiOutlineArrowRight } from "react-icons/ai";
+import { useDispatch, useSelector } from "react-redux";
+import { getAllOrdersOfShop } from "../../redux/actions/order";
+import Loader from "../Layout/Loader";
 
 const AllRefundOrders = () => {
   const { orders, isLoading } = useSelector((state) => state.order);
   const { seller } = useSelector((state) => state.seller);
-
   const dispatch = useDispatch();
+  const [expandedOrders, setExpandedOrders] = useState({});
 
   useEffect(() => {
     dispatch(getAllOrdersOfShop(seller._id));
-  }, [dispatch]);
+  }, [dispatch, seller._id]);
 
-  const refundOrders =
-    orders &&
-    orders.filter(
-      (item) =>
-        item.status === "Processing refund" || item.status === "Refund Success"
-    );
+  const toggleExpand = (orderId) => {
+    setExpandedOrders((prev) => ({
+      ...prev,
+      [orderId]: !prev[orderId],
+    }));
+  };
 
-  const columns = [
-    { field: "id", headerName: "Order ID", minWidth: 150, flex: 0.7 },
+  // Lọc và sắp xếp đơn hoàn tiền
+  const refundOrders = orders
+    ? [...orders]
+        .filter((item) => item.status === "Processing refund" || item.status === "Refund Success")
+        .sort((a, b) => new Date(b.createdAt.$date) - new Date(a.createdAt.$date))
+    : [];
 
-    {
-      field: "itemsName",
-      headerName: "Name",
-      type: "text",
-      minWidth: 200,
-      flex: 1.0,
-    },
-    {
-      field: "status",
-      headerName: "Status",
-      minWidth: 100,
-      flex: 0.5,
-      renderCell: (params) => {
-        const greenStatuses = ["Delivered", "Refund Success"];
-        return (
-          <span
-            className={`font-bold ${
-              greenStatuses.includes(params.value)
-                ? "text-green-600"
-                : "text-yellow-500"
-            }`}
-          >
-            {params.value}
-          </span>
-        );
-      },
-    },
-
-    {
-      field: "itemsQty",
-      headerName: "Items Qty",
-      type: "number",
-      minWidth: 130,
-      flex: 0.7,
-    },
-
-    {
-      field: "total",
-      headerName: "Total",
-      type: "number",
-      minWidth: 130,
-      flex: 0.8,
-    },
-
-    {
-      field: " ",
-      flex: 1,
-      minWidth: 150,
-      headerName: "",
-      type: "number",
-      sortable: false,
-      renderCell: (params) => {
-        return (
-          <>
-            <Link to={`/order/${params.id}`}>
-              <Button>
-                <AiOutlineArrowRight size={20} />
-              </Button>
-            </Link>
-          </>
-        );
-      },
-    },
-  ];
-
-  const row = [];
-
-  refundOrders &&
-    refundOrders.forEach((item) => {
-      row.push({
-        id: item._id,
-        itemsName: item.cart.map((i) => i.name),
-        itemsQty: item.cart.length,
-        total: item.totalPrice.toLocaleString("vi-VN") + " VNĐ",
-        status: item.status,
-      });
-    });
+  console.log("Refund Orders:", refundOrders);
 
   return (
-    <>
+    <div className="w-full p-8">
       {isLoading ? (
         <Loader />
       ) : (
-        <div className="w-full mx-8 pt-1 mt-10 bg-white">
-          <DataGrid
-            rows={row}
-            columns={columns}
-            pageSize={10}
-            disableSelectionOnClick
-            autoHeight
-          />
-        </div>
+        <>
+          <h2 className="text-2xl font-bold mb-6">All Refund Orders</h2>
+          {refundOrders.length === 0 ? (
+            <p className="text-gray-600">No refund orders found.</p>
+          ) : (
+            refundOrders.map((order) => (
+              <div
+                key={order._id}
+                className="w-full bg-white rounded-md shadow-md p-6 mb-4"
+              >
+                <div className="flex flex-col">
+                  {/* Hiển thị sản phẩm */}
+                  <div className="mb-4">
+                    {order.cart
+                      .slice(0, expandedOrders[order._id] ? undefined : 1)
+                      .map((item, index) => (
+                        <div key={index} className="flex items-center mb-4">
+                          <img
+                            src={item.images[0]}
+                            alt={item.name}
+                            className="w-20 h-20 object-cover rounded-md mr-4"
+                          />
+                          <div className="flex-1">
+                            <h4 className="text-sm font-medium">{item.name}</h4>
+                            <p className="text-xs text-gray-600">
+                              Quantity: {item.qty}
+                            </p>
+                            <p className="text-xs text-gray-600">
+                              Price: {(item.discountPrice * item.qty).toLocaleString("vi-VN")} VNĐ
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    {order.cart.length > 1 && (
+                      <button
+                        className="text-blue-600 text-sm font-medium hover:underline"
+                        onClick={() => toggleExpand(order._id)}
+                      >
+                        {expandedOrders[order._id] ? "Show Less" : "View More"}
+                      </button>
+                    )}
+                  </div>
+                  {/* Tên khách hàng, trạng thái và tổng tiền */}
+                  <div className="flex justify-between items-center mb-2">
+                    <div>
+                      <span
+                        className={`font-bold ${
+                          ["Delivered", "Refund Success"].includes(order.status)
+                            ? "text-green-600"
+                            : "text-yellow-500"
+                        }`}
+                      >
+                        Status: {order.status}
+                      </span>
+                      <p className="text-xs text-gray-600 mt-1">
+                      Recipient Name: {order.user?.name || "Unknown Recipient Name"}
+                      </p>
+                    </div>
+                    <span className="text-sm font-semibold">
+                      Total: {order.totalPrice.toLocaleString("vi-VN")} VNĐ
+                    </span>
+                  </div>
+                  {/* Nút chi tiết */}
+                  <div className="flex justify-end">
+                    <a
+                      href={`/order/${order._id}`}
+                      className="flex items-center bg-[#f63b60] text-white px-4 py-2 rounded-md hover:bg-[#e12c4f]"
+                    >
+                      View Details
+                      <AiOutlineArrowRight className="ml-2" size={20} />
+                    </a>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </>
       )}
-    </>
+    </div>
   );
 };
 

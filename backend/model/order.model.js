@@ -54,11 +54,15 @@ const orderSchema = new mongoose.Schema({
   reservationExpiresAt: {
     type: Date,
   },
-  refundReason: { 
+  refundReason: {
     type: String,
     default: null,
   },
   cancelReason: {
+    type: String,
+    default: null,
+  },
+  sellerCancelReason: {
     type: String,
     default: null,
   },

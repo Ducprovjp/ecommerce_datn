@@ -207,6 +207,56 @@ const orderService = {
     }
   },
 
+  async cancelOrderBySeller(orderId, sellerCancelReason, res, next) {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+      const order = await Order.findById(orderId).session(session);
+      if (!order) {
+        await session.abortTransaction();
+        session.endSession();
+        return next(new ErrorHandler("Order not found", 400));
+      }
+
+      if (order.status !== "Processing") {
+        await session.abortTransaction();
+        session.endSession();
+        return next(
+          new ErrorHandler("Order cannot be cancelled at this stage", 400)
+        );
+      }
+
+      // Update product stock
+      for (const item of order.cart) {
+        await Product.findByIdAndUpdate(
+          item._id,
+          { $inc: { stock: item.qty, sold_out: -item.qty } },
+          { session, validateBeforeSave: false }
+        );
+      }
+
+      // Update order status and reason
+      order.status = "Cancelled by Seller";
+      order.sellerCancelReason = sellerCancelReason;
+      await order.save({ session, validateBeforeSave: false });
+
+      await session.commitTransaction();
+      session.endSession();
+
+      res.status(200).json({
+        success: true,
+        order,
+        message: "Order cancelled by seller successfully",
+      });
+    } catch (error) {
+      await session.abortTransaction();
+      session.endSession();
+      console.error("Error cancelling order by seller:", error);
+      return next(new ErrorHandler("Error cancelling order by seller", 500));
+    }
+  },
+
   async handleVNPaySuccess(vnp_Params, res, next) {
     function sortObject(obj) {
       let sorted = {};

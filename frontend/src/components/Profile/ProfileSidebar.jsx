@@ -1,19 +1,18 @@
 import React from "react";
 import { AiOutlineLogin, AiOutlineMessage } from "react-icons/ai";
-import { RiLockPasswordLine } from "react-icons/ri";
 import { HiOutlineReceiptRefund, HiOutlineShoppingBag } from "react-icons/hi";
-import { RxPerson } from "react-icons/rx";
-import { Link, useNavigate } from "react-router-dom";
 import {
-  MdOutlineAdminPanelSettings,
-  MdOutlineTrackChanges,
+  MdOutlineAdminPanelSettings
 } from "react-icons/md";
+import { RiLockPasswordLine } from "react-icons/ri";
+import { RxPerson } from "react-icons/rx";
 import { TbAddressBook } from "react-icons/tb";
+import { useDispatch, useSelector } from "react-redux";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import { useSelector, useDispatch } from "react-redux";
-import { loadUser, logoutUser } from "../../redux/actions/user";
-import Loader from "../Layout/Loader";
+import { loadUser } from "../../redux/actions/user";
 import { postRequest } from "../../request/api";
+import Loader from "../Layout/Loader";
 
 const ProfileSidebar = ({ active, setActive }) => {
   const navigate = useNavigate();
@@ -143,7 +142,7 @@ const ProfileSidebar = ({ active, setActive }) => {
       </div>
 
       {/* Track Order */}
-      <div
+      {/* <div
         className="flex items-center cursor-pointer w-full mb-2 800px:mb-2 rounded-md 800px:hover:bg-cyan-100 800px:hover:scale-105 transition-all duration-200 800px:py-1 800px:px-3"
         onClick={() => setActive(5)}
         aria-label="Track Order"
@@ -162,7 +161,7 @@ const ProfileSidebar = ({ active, setActive }) => {
         >
           Track Order
         </span>
-      </div>
+      </div> */}
 
       {/* Change Password */}
       <div
