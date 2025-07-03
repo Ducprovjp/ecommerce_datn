@@ -135,7 +135,7 @@ const productService = {
 
   async getAllProducts({ minPrice, maxPrice, category, sort, page, limit }, res, next) {
     try {
-      console.log("Query params:", { minPrice, maxPrice, category, sort, page, limit }); // Log để debug
+      // console.log("Query params:", { minPrice, maxPrice, category, sort, page, limit }); // Log để debug
   
       const query = {};
       if (category) {

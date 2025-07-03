@@ -218,7 +218,7 @@ const AllOrders = () => {
                       >
                         Confirm Accept
                       </div>
-                    ) : order.status === "Transferred to delivery partner" && order.shipperId.toString() === shipper._id ? (
+                    ) : ["Transferred to delivery partner", "On the way", "Delivered"].includes(order.status) && order.shipperId?.toString() === shipper._id ? (
                       <a
                         href={`/shipper/order/${order._id}`}
                         className={`${styles.button} !bg-[#f63b60] !rounded-[4px] text-white font-[600] !h-[45px] text-[18px]`}

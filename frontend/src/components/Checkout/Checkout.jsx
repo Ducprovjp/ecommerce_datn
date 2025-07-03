@@ -50,23 +50,27 @@ const Checkout = () => {
   const shopData = cart.reduce((acc, item) => {
     const shopId = item.shopId;
     if (!acc[shopId]) {
-      acc[shopId] = { subtotal: 0, shopAddress: item.shop.address };
+      acc[shopId] = { subtotal: 0, shopAddress: item.shop.addresses[0] };
     }
     acc[shopId].subtotal += item.qty * (item.discountPrice || 0);
     return acc;
   }, {});
 
+  // Tính phí ship cho mỗi shop
   const shippingPerShop = Object.fromEntries(
     Object.entries(shopData).map(([shopId, data]) => {
       const shopAddress = data.shopAddress || {};
-      if (!shopAddress.province || !province) {
-        return [shopId, 30000]; // Mặc định 30,000 VNĐ nếu thiếu địa chỉ
+      if (!province || !district || !ward) {
+        return [shopId, 0]; // Phí ship bằng 0 nếu chưa nhập địa chỉ
+      }
+      if (!shopAddress.province) {
+        return [shopId, 30000]; // Mặc định 30,000 VNĐ nếu thiếu địa chỉ shop
       }
       if (shopAddress.province !== province) {
         return [shopId, 35000]; // Khác tỉnh: 35,000 VNĐ
       }
       if (shopAddress.district !== district || shopAddress.ward !== ward) {
-        return [shopId, 30000]; // Khác quận/huyện hoặc khác phường: 30,000 VNĐ
+        return [shopId, 30000]; // Khác quận/huyện hoặc phường: 30,000 VNĐ
       }
       return [shopId, 20000]; // Cùng phường: 20,000 VNĐ
     })
@@ -78,7 +82,7 @@ const Checkout = () => {
   );
 
   const shipping = Object.values(shippingPerShop).reduce(
-    (acc, fee) => acc + fee,
+    (acc, fee) => acc + (fee || 0),
     0
   );
 
@@ -112,8 +116,12 @@ const Checkout = () => {
       discountPrice: totalDiscount,
       shippingAddress,
       user,
-      couponCodePerShop, // Truyền object couponCodePerShop
+      couponCodePerShop,
+      discountPricePerShop,
+      shippingPerShop, // Đảm bảo lưu shippingPerShop
+      availableCoupons,
     };
+    console.log("Saving orderData to localStorage:", orderData); // Debug
     localStorage.setItem("latestOrder", JSON.stringify(orderData));
     navigate("/payment");
   };
@@ -132,12 +140,9 @@ const Checkout = () => {
     const newDiscounts = {};
     const errors = [];
 
-    console.log("Cart Data:", cart);
-
     for (const [shopId, codes] of Object.entries(tempCouponCodePerShop)) {
       let shopDiscount = 0;
 
-      // Product coupon
       if (codes?.product) {
         const selectedCoupon = availableCoupons.find(
           (coupon) => coupon.name === codes.product && coupon.applyTo === "product"
@@ -166,8 +171,6 @@ const Checkout = () => {
           0
         );
 
-        console.log(`Shop ${shopId}: Product eligiblePrice = ${eligiblePrice}`);
-
         if (selectedCoupon.minAmount && eligiblePrice < selectedCoupon.minAmount) {
           errors.push(
             `Shop ${shopId}: Total product value must be at least ${selectedCoupon.minAmount.toLocaleString("vi-VN")} VNĐ`
@@ -191,7 +194,6 @@ const Checkout = () => {
         shopDiscount += discountAmount;
       }
 
-      // Shipping coupon
       if (codes?.shipping) {
         const selectedCoupon = availableCoupons.find(
           (coupon) => coupon.name === codes.shipping && coupon.applyTo === "shipping"
@@ -203,8 +205,6 @@ const Checkout = () => {
         }
 
         const eligiblePrice = shopData[shopId]?.subtotal || 0;
-        console.log(`Shop ${shopId}: Shipping coupon eligiblePrice (subtotal) = ${eligiblePrice}`);
-
         if (selectedCoupon.minAmount && eligiblePrice < selectedCoupon.minAmount) {
           errors.push(
             `Shop ${shopId}: Total product value must be at least ${selectedCoupon.minAmount.toLocaleString("vi-VN")} VNĐ to apply shipping coupon`
@@ -224,7 +224,7 @@ const Checkout = () => {
         if (selectedCoupon.discountType === "percentage") {
           discountAmount = Math.min(
             (shippingFee * selectedCoupon.value) / 100,
-            50000 // Giới hạn tối đa 50,000 VNĐ
+            50000
           );
         } else {
           discountAmount = Math.min(selectedCoupon.value, 50000);

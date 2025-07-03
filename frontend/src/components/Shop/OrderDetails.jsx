@@ -271,7 +271,7 @@ const OrderDetails = () => {
         <div className="w-full mt-6">
           <h4 className="text-[20px] font-[600]">Available Shippers</h4>
           {availableShippers.length === 0 ? (
-            <p className="text-gray-600">No shippers available in this area.</p>
+            <p className="text-gray-600">No delivery person has accepted the order yet.</p>
           ) : (
             <div className="w-full pt-4">
               {availableShippers.map((shipper) => (
