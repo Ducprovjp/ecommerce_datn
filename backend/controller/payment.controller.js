@@ -25,8 +25,8 @@ router.get(
 router.post(
   "/vnpay",
   catchAsyncErrors(async (req, res, next) => {
-    const { totalPrice, cart, shippingAddress, user } = req.body;
-    await paymentService.processVNPayPayment({ totalPrice, cart, shippingAddress, user }, res, next);
+    const { totalPrice, cart, shippingAddress, user, couponCodePerShop } = req.body;
+    await paymentService.processVNPayPayment({ totalPrice, cart, shippingAddress, user, couponCodePerShop }, res, next);
   })
 );
 

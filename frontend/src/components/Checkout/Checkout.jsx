@@ -112,7 +112,7 @@ const Checkout = () => {
       discountPrice: totalDiscount,
       shippingAddress,
       user,
-      couponCodePerShop,
+      couponCodePerShop, // Truyền object couponCodePerShop
     };
     localStorage.setItem("latestOrder", JSON.stringify(orderData));
     navigate("/payment");

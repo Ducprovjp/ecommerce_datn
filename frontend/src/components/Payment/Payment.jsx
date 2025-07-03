@@ -36,7 +36,7 @@ const Payment = () => {
     shippingAddress: orderData?.shippingAddress,
     user: user && user,
     totalPrice: orderData?.totalPrice,
-    couponCode: orderData?.couponCode, // Include couponCode
+    couponCodePerShop: orderData?.couponCodePerShop, // Truyền couponCodePerShop
   };
 
   const paypalPaymentHandler = async (paymentInfo) => {
@@ -81,11 +81,12 @@ const Payment = () => {
   const vnpayPaymentHandler = async () => {
     try {
       toast.info("Giao dịch VNPay sẽ hết hạn sau 15 phút");
-      const { paymentUrl, orderId } = await createVNPAYPaymentUrl();
+      const { paymentUrl, orderId, orderIds } = await createVNPAYPaymentUrl();
       if (!paymentUrl) {
         throw new Error("No payment URL returned");
       }
-      setVnpayOrderId(orderId);
+      setVnpayOrderId(orderId); // Lưu mainOrderId
+      localStorage.setItem("vnpayOrderIds", JSON.stringify(orderIds)); // Lưu danh sách orderIds
       window.location.href = paymentUrl;
     } catch (error) {
       console.error("VNPAY handler error:", error);

@@ -8,9 +8,12 @@ const CouponCode = require("../model/coupon.model");
 const ErrorHandler = require("../utils/ErrorHandler");
 const socketIO = require("socket.io-client");
 
-const socket = socketIO(process.env.REACT_APP_SOCKET_URL || "http://localhost:4000", {
-  withCredentials: true,
-});
+const socket = socketIO(
+  process.env.REACT_APP_SOCKET_URL || "http://localhost:4000",
+  {
+    withCredentials: true,
+  }
+);
 
 const orderService = {
   async createOrder(data, res, next) {
@@ -283,40 +286,104 @@ const orderService = {
     let calculatedHash = hmac.update(querystring).digest("hex");
   
     if (secureHash === calculatedHash) {
-      const orderId = vnp_Params["vnp_TxnRef"];
+      const mainOrderId = vnp_Params["vnp_TxnRef"];
+      
+      // Lấy orderIds từ vnp_OrderInfo
+      const orderInfo = vnp_Params["vnp_OrderInfo"];
+      let orderIds = [];
+      
+      if (orderInfo && orderInfo.includes('|')) {
+        // Tách orderIds từ OrderInfo: "Thanh toan don hang 123456|order1,order2,order3"
+        const parts = orderInfo.split('|');
+        if (parts.length > 1) {
+          orderIds = parts[1].split(',');
+        }
+      }
+      
+      // Nếu không có orderIds trong OrderInfo, tìm bằng mainOrderId
+      if (orderIds.length === 0) {
+        // Tìm tất cả orders có mainOrderId tương ứng
+        const orders = await Order.find({ "paymentInfo.mainOrderId": mainOrderId });
+        orderIds = orders.map(order => order.paymentInfo.orderId);
+      }
+      
+      console.log("VNPay Transaction Reference:", mainOrderId);
+      console.log("Order IDs found:", orderIds);
+      
       const session = await mongoose.startSession();
       session.startTransaction();
   
       try {
-        const order = await Order.findOne({ "paymentInfo.orderId": orderId }).session(session);
-        if (!order || order.reservationExpiresAt < new Date()) {
+        // Tìm orders bằng orderIds hoặc mainOrderId
+        let orders;
+        if (orderIds.length > 0) {
+          orders = await Order.find({
+            "paymentInfo.orderId": { $in: orderIds },
+          }).session(session);
+        } else {
+          orders = await Order.find({
+            "paymentInfo.mainOrderId": mainOrderId,
+          }).session(session);
+        }
+        
+        console.log("Orders found:", orders.length);
+        
+        if (orders.length === 0) {
           await session.abortTransaction();
           session.endSession();
-          console.error("Order not found or expired for orderId:", orderId);
+          console.error("No orders found for mainOrderId:", mainOrderId);
           return res.redirect(`${process.env.REACT_APP_FRONT_END_URL}/order/failure`);
         }
   
         if (vnp_Params["vnp_ResponseCode"] === "00") {
+          console.log("VNPay Response Code:", vnp_Params["vnp_ResponseCode"]);
           // Thanh toán thành công
           const productUpdates = [];
-          // for (const item of order.cart) {
-          //   const product = await Product.findById(item._id).session(session);
-          //   if (!product) {
-          //     await session.abortTransaction();
-          //     session.endSession();
-          //     return res.redirect(`${process.env.REACT_APP_FRONT_END_URL}/order/failure`);
-          //   }
-          //   if (product.stock < item.qty) {
-          //     await session.abortTransaction();
-          //     session.endSession();
-          //     console.error(`Insufficient stock for product: ${product.name}, orderId: ${orderId}`);
-          //     return res.redirect(`${process.env.REACT_APP_FRONT_END_URL}/order/failure`);
-          //   }
-          //   productUpdates.push({
-          //     productId: item._id,
-          //     qty: item.qty,
-          //   });
-          // }
+          
+          for (const order of orders) {
+            // Kiểm tra và cập nhật stock
+            for (const item of order.cart) {
+              const product = await Product.findById(item._id).session(session);
+              if (!product) {
+                await session.abortTransaction();
+                session.endSession();
+                return res.redirect(`${process.env.REACT_APP_FRONT_END_URL}/order/failure`);
+              }
+              const availableStock = product.stock - Math.max(0, product.reservedStock);
+              if (availableStock < item.qty) {
+                await session.abortTransaction();
+                session.endSession();
+                console.error(`Insufficient stock for product: ${product.name}, orderId: ${order.paymentInfo.orderId}`);
+                return res.redirect(`${process.env.REACT_APP_FRONT_END_URL}/order/failure`);
+              }
+              productUpdates.push({
+                productId: item._id,
+                qty: item.qty,
+                reservedStock: product.reservedStock,
+              });
+            }
+  
+            // Cập nhật coupon nếu có
+            if (order.couponCode) {
+              const coupon = await CouponCode.findOne({
+                name: order.couponCode,
+              }).session(session);
+              if (coupon) {
+                console.log(
+                  `Incrementing usedCount for coupon: ${order.couponCode}`
+                );
+                coupon.usedCount += 1;
+                await coupon.save({ session });
+              }
+            }
+  
+            // Cập nhật trạng thái đơn hàng
+            order.paymentInfo.id = vnp_Params["vnp_TransactionNo"];
+            order.paymentInfo.status = "Paid";
+            order.paidAt = new Date();
+            order.reservationExpiresAt = null;
+            await order.save({ session });
+          }
   
           // Cập nhật stock và reservedStock
           for (const update of productUpdates) {
@@ -324,29 +391,14 @@ const orderService = {
               update.productId,
               {
                 $inc: { stock: -update.qty, sold_out: update.qty },
-                $set: { reservedStock: Math.max(0, update.reservedStock - update.qty) },
+                $set: {
+                  reservedStock: Math.max(0, update.reservedStock - update.qty),
+                },
               },
               { session, validateBeforeSave: false }
             );
           }
   
-          // Cập nhật coupon nếu có (lấy từ order đã lưu)
-          if (order.couponCode) {
-            const coupon = await CouponCode.findOne({ name: order.couponCode }).session(session);
-            if (coupon) {
-              console.log(`Incrementing usedCount for coupon: ${order.couponCode}`);
-              coupon.usedCount += 1;
-              await coupon.save({ session });
-            }
-          }
-  
-          order.paymentInfo.id = vnp_Params["vnp_TransactionNo"];
-          order.paymentInfo.status = "Paid";
-          order.paidAt = new Date();
-          order.reservationExpiresAt = null;
-          await order.save({ session });
-  
-          console.log("Order updated:", order);
           await session.commitTransaction();
           session.endSession();
   
@@ -354,26 +406,36 @@ const orderService = {
           res.send(`
             <script>
               localStorage.setItem("cartItems", JSON.stringify([]));
+              localStorage.setItem("latestOrder", JSON.stringify([]));
               window.location.href = "${redirectUrl}";
             </script>
           `);
         } else {
-          // Thanh toán thất bại - giải phóng reservedStock
-          for (const item of order.cart) {
-            const product = await Product.findById(item._id).session(session);
-            if (product) {
-              await Product.findByIdAndUpdate(
-                item._id,
-                { $set: { reservedStock: Math.max(0, product.reservedStock - item.qty) } },
-                { session, validateBeforeSave: false }
-              );
+          // Thanh toán thất bại
+          for (const order of orders) {
+            for (const item of order.cart) {
+              const product = await Product.findById(item._id).session(session);
+              if (product) {
+                await Product.findByIdAndUpdate(
+                  item._id,
+                  {
+                    $set: {
+                      reservedStock: Math.max(
+                        0,
+                        product.reservedStock - item.qty
+                      ),
+                    },
+                  },
+                  { session, validateBeforeSave: false }
+                );
+              }
             }
+            await Order.findOneAndUpdate(
+              { "paymentInfo.orderId": order.paymentInfo.orderId },
+              { "paymentInfo.status": "Failed", reservationExpiresAt: null },
+              { session }
+            );
           }
-          await Order.findOneAndUpdate(
-            { "paymentInfo.orderId": orderId },
-            { "paymentInfo.status": "Failed", reservationExpiresAt: null },
-            { session }
-          );
           await session.commitTransaction();
           session.endSession();
           res.redirect(`${process.env.REACT_APP_FRONT_END_URL}/order/failure`);
@@ -394,45 +456,47 @@ const orderService = {
     session.startTransaction();
 
     try {
-      const order = await Order.findOne({
-        "paymentInfo.orderId": orderId,
+      const orders = await Order.find({
+        "paymentInfo.orderId": { $regex: `^${orderId}_` },
       }).session(session);
-      if (!order) {
+      if (orders.length === 0) {
         await session.abortTransaction();
         session.endSession();
-        return next(new ErrorHandler("Order not found", 400));
+        return next(new ErrorHandler("Orders not found", 400));
       }
 
-      if (order.paymentInfo.status === "Paid") {
-        await session.abortTransaction();
-        session.endSession();
-        return next(new ErrorHandler("Order already paid, cannot cancel", 400));
-      }
+      for (const order of orders) {
+        if (order.paymentInfo.status === "Paid") {
+          await session.abortTransaction();
+          session.endSession();
+          return next(
+            new ErrorHandler("Order already paid, cannot cancel", 400)
+          );
+        }
 
-      for (const item of order.cart) {
-        await Product.findByIdAndUpdate(
-          item._id,
-          { $inc: { reservedStock: -item.qty } },
-          { session, validateBeforeSave: false }
-        );
-      }
+        for (const item of order.cart) {
+          await Product.findByIdAndUpdate(
+            item._id,
+            { $inc: { reservedStock: -item.qty } },
+            { session, validateBeforeSave: false }
+          );
+        }
 
-      await Order.deleteOne({ "paymentInfo.orderId": orderId }).session(
-        session
-      );
+        await Order.deleteOne({ _id: order._id }).session(session);
+      }
 
       await session.commitTransaction();
       session.endSession();
 
       res.status(200).json({
         success: true,
-        message: "VNPay order cancelled successfully",
+        message: "VNPay orders cancelled successfully",
       });
     } catch (error) {
       await session.abortTransaction();
       session.endSession();
-      console.error("Error cancelling VNPay order:", error);
-      return next(new ErrorHandler("Error cancelling VNPay order", 500));
+      console.error("Error cancelling VNPay orders:", error);
+      return next(new ErrorHandler("Error cancelling VNPay orders", 500));
     }
   },
 
@@ -475,7 +539,12 @@ const orderService = {
       const orders = await Order.find({
         "shippingAddress.ward": { $in: deliveredWards },
         status: {
-          $in: ["Contacting the delivery service", "Transferred to delivery partner", "On the way", "Delivered"],
+          $in: [
+            "Contacting the delivery service",
+            "Transferred to delivery partner",
+            "On the way",
+            "Delivered",
+          ],
         },
       }).sort({ createdAt: -1 });
 
@@ -503,7 +572,9 @@ const orderService = {
       if (order.shipperId) {
         await session.abortTransaction();
         session.endSession();
-        return next(new ErrorHandler("Order already assigned to a shipper", 400));
+        return next(
+          new ErrorHandler("Order already assigned to a shipper", 400)
+        );
       }
 
       if (order.status !== "Contacting the delivery service") {
@@ -625,7 +696,12 @@ const orderService = {
           shopAddress: order.cart[0]?.shopAddress || {}, // Ensure shopAddress is included
           createdAt: order.createdAt,
         };
-        socket.emit("findShippers", { orderId, orderData, shippers, ward: order.shippingAddress.ward });
+        socket.emit("findShippers", {
+          orderId,
+          orderData,
+          shippers,
+          ward: order.shippingAddress.ward,
+        });
       }
 
       if (status === "Transferred to delivery partner") {

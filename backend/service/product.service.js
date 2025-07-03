@@ -179,7 +179,7 @@ const productService = {
       const totalPages = Math.ceil(totalProducts / limitNum);
   
       // Debug: Log danh sách _id của sản phẩm trả về
-      console.log("Products IDs:", products.map(p => p._id));
+      // console.log("Products IDs:", products.map(p => p._id));
   
       res.status(200).json({
         success: true,
