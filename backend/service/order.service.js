@@ -534,25 +534,24 @@ const orderService = {
       if (!shipper) {
         return next(new ErrorHandler("Shipper not found", 404));
       }
-
+  
       const deliveredWards = shipper.deliveredArea.map((area) => area.ward);
       const orders = await Order.find({
         "shippingAddress.ward": { $in: deliveredWards },
-        status: {
-          $in: [
-            "Contacting the delivery service",
-            "Transferred to delivery partner",
-            "On the way",
-            "Delivered",
-          ],
-        },
+        $or: [
+          { status: "Contacting the delivery service", shipperId: { $in: [null, shipperId] } }, // Lấy đơn chưa có shipper hoặc của shipper hiện tại
+          { status: { $in: ["Transferred to delivery partner", "On the way", "Delivered"] }, shipperId: shipperId }, // Lấy đơn của shipper ở trạng thái sau khi được giao
+        ],
       }).sort({ createdAt: -1 });
-
+  
+      console.log(`Orders fetched for shipper ${shipperId}:`, orders.map(o => ({ _id: o._id, status: o.status, shipperId: o.shipperId })));
+  
       res.status(200).json({
         success: true,
         orders,
       });
     } catch (error) {
+      console.error(`Error fetching orders for shipper ${shipperId}:`, error.message);
       return next(new ErrorHandler(error.message, 500));
     }
   },

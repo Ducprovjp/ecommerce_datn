@@ -19,7 +19,7 @@ const AllOrders = () => {
   const { shipper } = useSelector((state) => state.shipper);
   const dispatch = useDispatch();
   const [expandedOrders, setExpandedOrders] = useState({});
-  const [availableOrders, setAvailableOrders] = useState(orders || []);
+  const [availableOrders, setAvailableOrders] = useState([]);
   const [filterStatus, setFilterStatus] = useState("all");
 
   useEffect(() => {
@@ -41,9 +41,13 @@ const AllOrders = () => {
       toast.info("New order available in your delivery area!");
     });
 
-    socket.on("orderAccepted", ({ orderId }) => {
-      setAvailableOrders((prev) => prev.filter((order) => order._id !== orderId));
-      toast.info("An order was accepted by another shipper.");
+    socket.on("orderAccepted", ({ orderId, shipperId }) => {
+      console.log(`Order ${orderId} accepted by shipper ${shipperId}`);
+      if (shipperId !== shipper._id) {
+        setAvailableOrders((prev) => prev.filter((order) => order._id !== orderId));
+        toast.info("An order was accepted by another shipper.");
+      }
+      dispatch(getAllOrdersOfShipper(shipper._id)); // Refresh order list
     });
 
     return () => {
@@ -53,19 +57,22 @@ const AllOrders = () => {
   }, [dispatch, shipper._id]);
 
   useEffect(() => {
+    console.log("Available orders updated:", availableOrders);
     setAvailableOrders(orders || []);
   }, [orders]);
 
   const handleAcceptOrder = async (orderId) => {
     try {
+      console.log(`Shipper ${shipper._id} accepting order ${orderId}`);
       const res = await putRequest(`/order/accept-order/${orderId}`, { shipperId: shipper._id });
       if (!res.success) {
         throw new Error(res.message || "Failed to accept order");
       }
-      toast.success("Order accepted successfully!");
+      toast.success("Order accepted successfully! Waiting for seller to confirm.");
       socket.emit("orderAccepted", { orderId, shipperId: shipper._id });
-      dispatch(getAllOrdersOfShipper(shipper._id));
+      dispatch(getAllOrdersOfShipper(shipper._id)); // Refresh order list
     } catch (error) {
+      console.error("Error accepting order:", error);
       toast.error(error.message);
     }
   };
@@ -226,6 +233,10 @@ const AllOrders = () => {
                         View Details
                         <AiOutlineArrowRight className="ml-2" size={20} />
                       </a>
+                    ) : order.status === "Contacting the delivery service" && order.shipperId?.toString() === shipper._id ? (
+                      <div className="text-gray-600 text-[16px]">
+                        Waiting for seller to confirm
+                      </div>
                     ) : null}
                   </div>
                 </div>

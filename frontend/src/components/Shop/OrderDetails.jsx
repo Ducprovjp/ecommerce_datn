@@ -5,7 +5,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import io from "socket.io-client";
 import { getAllOrdersOfShop } from "../../redux/actions/order";
-import { putRequest } from "../../request/api";
+import { getRequest, putRequest } from "../../request/api"; // Sử dụng getRequest từ api.js
 import styles from "../../styles/styles";
 
 const socket = io(process.env.REACT_APP_SOCKET_URL || "http://localhost:4000", {
@@ -22,6 +22,8 @@ const OrderDetails = () => {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [availableShippers, setAvailableShippers] = useState([]);
+  const [showShipperModal, setShowShipperModal] = useState(false);
+  const [selectedShipper, setSelectedShipper] = useState(null);
   const cancelReasons = [
     "Out of stock or insufficient quantity",
     "Product quality not guaranteed",
@@ -33,21 +35,61 @@ const OrderDetails = () => {
   useEffect(() => {
     dispatch(getAllOrdersOfShop(seller._id));
 
+    // Register seller with socket
+    console.log(`Registering seller ${seller._id} with socket`);
+    socket.emit("addUser", seller._id);
+
     // Listen for available shippers
     socket.on("availableShippers", ({ orderId, shippers }) => {
       if (orderId === id) {
+        console.log(`Received availableShippers for order ${orderId}:`, shippers);
         setAvailableShippers(shippers);
+      }
+    });
+
+    // Listen for order accepted by shipper
+    socket.on("orderAcceptedByShipper", ({ orderId, shipper }) => {
+      if (orderId === id) {
+        console.log(`Received orderAcceptedByShipper for order ${orderId} with shipper ${shipper._id}`);
+        setSelectedShipper(shipper);
+        setShowShipperModal(true);
+        toast.success("A shipper has accepted the order!");
+        dispatch(getAllOrdersOfShop(seller._id)); // Refresh order list
       }
     });
 
     return () => {
       socket.off("availableShippers");
+      socket.off("orderAcceptedByShipper");
     };
   }, [dispatch, seller._id, id]);
 
   const data = orders && orders.find((item) => item._id === id);
   const [selectedStatus, setSelectedStatus] = useState(data?.status || "");
   const [displayedStatus, setDisplayedStatus] = useState(data?.status || "");
+
+  // Load shipper info if order has shipperId
+  useEffect(() => {
+    if (data?.shipperId && !selectedShipper) {
+      const fetchShipperInfo = async () => {
+        try {
+          console.log(`Fetching shipper info for shipper ${data.shipperId}`);
+          const res = await getRequest(`/shipper/get-shipper-info/${data.shipperId}`);
+          if (res.code === -1) {
+            console.error("Failed to fetch shipper info:", res.message);
+            toast.error("Failed to load shipper information");
+            return;
+          }
+          console.log(`Fetched shipper info for shipper ${data.shipperId}:`, res);
+          setSelectedShipper(res);
+        } catch (error) {
+          console.error("Error fetching shipper info:", error.message);
+          toast.error("Error loading shipper information");
+        }
+      };
+      fetchShipperInfo();
+    }
+  }, [data?.shipperId]);
 
   const orderCancelHandler = async () => {
     if (!cancelReason) {
@@ -84,7 +126,7 @@ const OrderDetails = () => {
       if (selectedStatus === "Contacting the delivery service") {
         socket.emit("findShippers", { orderId: id, ward: data?.shippingAddress?.ward });
       }
-      navigate("/dashboard-orders");
+      dispatch(getAllOrdersOfShop(seller._id)); // Refresh order list
     } catch (error) {
       toast.error(error.message);
     }
@@ -144,6 +186,33 @@ const OrderDetails = () => {
                 onClick={orderCancelHandler}
               >
                 Confirm Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Shipper Acceptance Modal */}
+      {showShipperModal && selectedShipper && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+            <h3 className="text-lg font-semibold mb-4">Order Accepted by Shipper</h3>
+            <p className="text-[16px]">
+              <strong>Shipper Name:</strong> {selectedShipper.shipper.name || "Unknown"}
+            </p>
+            <p className="text-[16px]">
+              <strong>Phone Number:</strong> {selectedShipper.shipper.phoneNumber || "Not specified"}
+            </p>
+            <p className="text-[16px]">
+              <strong>Delivery Area:</strong>{" "}
+              {selectedShipper.deliveredArea?.map((area) => area.ward).join(", ") || "Not specified"}
+            </p>
+            <div className="flex justify-end gap-4 mt-4">
+              <button
+                className={`${styles.button} px-4 py-2 bg-gray-300 text-gray-800 !h-[40px] !rounded-[4px] hover:bg-gray-400`}
+                onClick={() => setShowShipperModal(false)}
+              >
+                Close
               </button>
             </div>
           </div>
@@ -265,6 +334,27 @@ const OrderDetails = () => {
           </div>
         )}
       </div>
+
+      {/* Shipper Information */}
+      {(data?.shipperId && selectedShipper && ["Transferred to delivery partner", "On the way", "Delivered"].includes(data?.status)) && (
+        <div className="w-full mt-6">
+          <h4 className="text-[20px] font-[600]">Shipper Information</h4>
+          <div className="w-full pt-4">
+            <div className="w-full bg-white rounded-md shadow-md p-6">
+              <p className="text-[16px]">
+                <strong>Shipper Name:</strong> {selectedShipper.shipper.name || "Unknown"}
+              </p>
+              <p className="text-[16px]">
+                <strong>Phone Number:</strong> {selectedShipper.shipper.phoneNumber || "Not specified"}
+              </p>
+              <p className="text-[16px]">
+                <strong>Delivery Area:</strong>{" "}
+                {selectedShipper.shipper.deliveredArea?.map((area) => area.ward).join(", ") || "Not specified"}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Available Shippers */}
       {data?.status === "Contacting the delivery service" && (

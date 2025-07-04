@@ -2,20 +2,21 @@ const socketIO = require("socket.io");
 const http = require("http");
 const express = require("express");
 const cors = require("cors");
-const Order = require("../backend/model/order.model"); // Sửa đường dẫn import
+const Order = require("../backend/model/order.model");
+const Shipper = require("../backend/model/shipper.model");
 
 const app = express();
 const server = http.createServer(app);
 const io = socketIO(server, {
   cors: {
-    origin: "http://localhost:3000", // Chỉ định origin của frontend
+    origin: "http://localhost:3000",
     credentials: true,
     methods: ["GET", "POST"],
   },
 });
 
 require("dotenv").config({
-  path: "./.env", // Giữ nguyên cấu hình của bạn
+  path: "./.env",
 });
 
 app.use(cors({
@@ -33,16 +34,18 @@ let users = [];
 const addUser = (userId, socketId) => {
   users = users.filter((user) => user.userId !== userId);
   users.push({ userId, socketId });
-  console.log(`User ${userId} added with socket ${socketId}`);
+  console.log(`User ${userId} added with socket ${socketId}. Current users:`, users);
 };
 
 const removeUser = (socketId) => {
   users = users.filter((user) => user.socketId !== socketId);
-  console.log(`User with socket ${socketId} removed`);
+  console.log(`User with socket ${socketId} removed. Current users:`, users);
 };
 
 const getUser = (userId) => {
-  return users.find((user) => user.userId === userId);
+  const user = users.find((user) => user.userId === userId);
+  console.log(`Looking for user ${userId}:`, user);
+  return user;
 };
 
 const createMessage = ({ senderId, receiverId, text, images, conversationId }) => ({
@@ -98,13 +101,44 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("orderAccepted", ({ orderId, shipperId }) => {
+  socket.on("orderAccepted", async ({ orderId, shipperId }) => {
     console.log(`Order ${orderId} accepted by shipper ${shipperId}`);
-    users.forEach((user) => {
-      if (user.userId !== shipperId) {
-        io.to(user.socketId).emit("orderAccepted", { orderId });
+    try {
+      const order = await Order.findById(orderId);
+      if (!order) {
+        console.error(`Order ${orderId} not found`);
+        return;
       }
-    });
+      const shipper = await Shipper.findById(shipperId);
+      if (!shipper) {
+        console.error(`Shipper ${shipperId} not found`);
+        return;
+      }
+      const shopId = order.cart[0].shopId;
+      const shopUser = getUser(shopId);
+      if (shopUser) {
+        console.log(`Notifying seller ${shopId} about order ${orderId} with shipper ${shipper._id}`);
+        io.to(shopUser.socketId).emit("orderAcceptedByShipper", {
+          orderId,
+          shipper: {
+            _id: shipper._id,
+            name: shipper.name,
+            phoneNumber: shipper.phoneNumber,
+            deliveredArea: shipper.deliveredArea,
+          },
+        });
+      } else {
+        console.error(`Seller ${shopId} not connected`);
+      }
+      users.forEach((user) => {
+        if (user.userId !== shipperId) {
+          console.log(`Notifying user ${user.userId} that order ${orderId} was accepted`);
+          io.to(user.socketId).emit("orderAccepted", { orderId, shipperId });
+        }
+      });
+    } catch (error) {
+      console.error(`Error in orderAccepted for order ${orderId}:`, error.message);
+    }
   });
 
   socket.on("sendMessage", ({ senderId, receiverId, text, images, conversationId }) => {
