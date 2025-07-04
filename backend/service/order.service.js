@@ -413,14 +413,8 @@ const orderService = {
           await session.commitTransaction();
           session.endSession();
 
-          const redirectUrl = `${process.env.REACT_APP_FRONT_END_URL}/order/success`;
-          res.send(`
-            <script>
-              localStorage.setItem("cartItems", JSON.stringify([]));
-              localStorage.setItem("latestOrder", JSON.stringify([]));
-              window.location.href = "${redirectUrl}";
-            </script>
-          `);
+          const redirectUrl = `${process.env.REACT_APP_FRONT_END_URL}/order/success?clearCart=true&payment=vnpay`;
+          res.redirect(redirectUrl);
         } else {
           // Thanh toán thất bại
           for (const order of orders) {
