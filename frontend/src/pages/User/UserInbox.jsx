@@ -11,7 +11,12 @@ import { toast } from "react-toastify";
 import socketIO from "socket.io-client";
 import { format } from "timeago.js";
 import Header from "../../components/Layout/Header";
-import { getRequest, postRequest, putRequest } from "../../request/api";
+import {
+  getRequest,
+  postRequest,
+  putRequest,
+  uploadFileRequest,
+} from "../../request/api";
 import styles from "../../styles/styles";
 
 // Sử dụng ENDPOINT đúng
@@ -54,7 +59,10 @@ const UserInbox = () => {
 
   // Xử lý arrival message
   useEffect(() => {
-    if (arrivalMessage && currentChat?.members.includes(arrivalMessage.sender)) {
+    if (
+      arrivalMessage &&
+      currentChat?.members.includes(arrivalMessage.sender)
+    ) {
       setMessages((prev) => [...prev, arrivalMessage]);
     }
   }, [arrivalMessage, currentChat]);
@@ -63,7 +71,9 @@ const UserInbox = () => {
   useEffect(() => {
     const getConversation = async () => {
       try {
-        const res = await getRequest(`/conversation/get-all-conversation-user/${user?._id}`);
+        const res = await getRequest(
+          `/conversation/get-all-conversation-user/${user?._id}`
+        );
         if (!res.success) {
           throw new Error(res.message || "Failed to fetch conversations");
         }
@@ -92,7 +102,7 @@ const UserInbox = () => {
     if (currentChat?._id) {
       socketId.emit("joinConversation", currentChat._id);
     }
-    
+
     return () => {
       if (currentChat?._id) {
         socketId.emit("leaveConversation", currentChat._id);
@@ -110,9 +120,11 @@ const UserInbox = () => {
   useEffect(() => {
     const getMessage = async () => {
       if (!currentChat?._id) return;
-      
+
       try {
-        const res = await getRequest(`/message/get-all-messages/${currentChat._id}`);
+        const res = await getRequest(
+          `/message/get-all-messages/${currentChat._id}`
+        );
         if (!res.success) {
           throw new Error(res.message || "Failed to fetch messages");
         }
@@ -136,7 +148,9 @@ const UserInbox = () => {
       conversationId: currentChat._id,
     };
 
-    const receiverId = currentChat.members.find((member) => member !== user?._id);
+    const receiverId = currentChat.members.find(
+      (member) => member !== user?._id
+    );
 
     try {
       // Gửi message qua API trước
@@ -146,7 +160,7 @@ const UserInbox = () => {
       }
 
       // Thêm message vào UI ngay lập tức
-      setMessages(prev => [...prev, res.message]);
+      setMessages((prev) => [...prev, res.message]);
 
       // Emit qua socket sau khi save thành công
       socketId.emit("sendMessage", {
@@ -158,7 +172,6 @@ const UserInbox = () => {
 
       // Update last message
       await updateLastMessage();
-      
     } catch (error) {
       console.error("Send message error:", error);
       toast.error(error.message || "Failed to send message");
@@ -173,23 +186,27 @@ const UserInbox = () => {
         conversationId: currentChat._id,
       });
 
-      const res = await putRequest(`/conversation/update-last-message/${currentChat._id}`, {
-        lastMessage: newMessage,
-        lastMessageId: user._id,
-      });
-      
+      const res = await putRequest(
+        `/conversation/update-last-message/${currentChat._id}`,
+        {
+          lastMessage: newMessage,
+          lastMessageId: user._id,
+        }
+      );
+
       if (!res.success) {
         throw new Error(res.message || "Failed to update last message");
       }
-      
+
       setNewMessage("");
-      
+
       // Refresh conversations để update last message
-      const conversationsRes = await getRequest(`/conversation/get-all-conversation-user/${user?._id}`);
+      const conversationsRes = await getRequest(
+        `/conversation/get-all-conversation-user/${user?._id}`
+      );
       if (conversationsRes.success) {
         setConversations(conversationsRes.conversations);
       }
-      
     } catch (error) {
       console.error("Update last message error:", error);
       toast.error(error.message || "Failed to update last message");
@@ -199,7 +216,7 @@ const UserInbox = () => {
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    
+
     setImages(file);
     await imageSendingHandler(file);
   };
@@ -211,17 +228,22 @@ const UserInbox = () => {
     formData.append("text", newMessage);
     formData.append("conversationId", currentChat._id);
 
-    const receiverId = currentChat.members.find((member) => member !== user._id);
+    const receiverId = currentChat.members.find(
+      (member) => member !== user._id
+    );
 
     try {
       // Gửi image qua API
-      const res = await postRequest("/message/create-new-message", formData);
+      const res = await uploadFileRequest(
+        "/message/create-new-message",
+        formData
+      );
       if (!res.success) {
         throw new Error(res.message || "Failed to send image");
       }
 
       // Thêm message vào UI
-      setMessages(prev => [...prev, res.message]);
+      setMessages((prev) => [...prev, res.message]);
 
       // Emit qua socket
       socketId.emit("sendMessage", {
@@ -233,7 +255,6 @@ const UserInbox = () => {
 
       setImages(null);
       await updateLastMessageForImage();
-      
     } catch (error) {
       console.error("Send image error:", error);
       toast.error(error.message || "Failed to send image");
@@ -242,20 +263,26 @@ const UserInbox = () => {
 
   const updateLastMessageForImage = async () => {
     try {
-      const res = await putRequest(`/conversation/update-last-message/${currentChat._id}`, {
-        lastMessage: "Photo",
-        lastMessageId: user._id,
-      });
+      const res = await putRequest(
+        `/conversation/update-last-message/${currentChat._id}`,
+        {
+          lastMessage: "Photo",
+          lastMessageId: user._id,
+        }
+      );
       if (!res.success) {
-        throw new Error(res.message || "Failed to update last message for image");
+        throw new Error(
+          res.message || "Failed to update last message for image"
+        );
       }
-      
+
       // Refresh conversations
-      const conversationsRes = await getRequest(`/conversation/get-all-conversation-user/${user?._id}`);
+      const conversationsRes = await getRequest(
+        `/conversation/get-all-conversation-user/${user?._id}`
+      );
       if (conversationsRes.success) {
         setConversations(conversationsRes.conversations);
       }
-      
     } catch (error) {
       console.error("Update last message for image error:", error);
       toast.error(error.message || "Failed to update last message for image");
@@ -452,7 +479,7 @@ const SellerInbox = ({
               )}
               {item.images && (
                 <img
-                  src={`${process.env.REACT_APP_SERVER}/${item.images}`}
+                  src={item.images}
                   alt="Message image"
                   className="w-[300px] h-[300px] object-cover rounded-[10px] ml-2 mb-2"
                 />

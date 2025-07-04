@@ -10,10 +10,11 @@ const LoginPage = () => {
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
-      // const from = location.state?.from?.pathname || "/";
-      navigate("/", { replace: true });
+      // Đọc đường dẫn trước đó (from) nếu có, mặc định về "/"
+      const from = location.state?.from?.pathname || "/";
+      navigate(from, { replace: true });
     }
-  }, [isLoading, isAuthenticated, navigate]);
+  }, [isLoading, isAuthenticated, navigate, location.state]);
 
   return (
     <div>

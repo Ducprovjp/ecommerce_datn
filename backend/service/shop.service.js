@@ -6,7 +6,6 @@ const sendMail = require("../utils/sendMail");
 const sendShopToken = require("../utils/shopToken");
 const { OAuth2Client } = require("google-auth-library");
 
-
 const shopService = {
   async createShop(req, res, next) {
     const { email, password, name, phoneNumber } = req.body;
@@ -15,15 +14,18 @@ const shopService = {
       name,
       password: password ? "[REDACTED]" : undefined,
       hasFile: !!req.file,
-      phoneNumber
+      phoneNumber,
     });
 
     if (!email) return next(new ErrorHandler("Email is required", 400));
     if (!password) return next(new ErrorHandler("Password is required", 400));
     if (password.length < 6) {
-      return next(new ErrorHandler("Password must be at least 6 characters", 400));
+      return next(
+        new ErrorHandler("Password must be at least 6 characters", 400)
+      );
     }
-    if (!name || name.trim() === "") return next(new ErrorHandler("Shop name is required", 400));
+    if (!name || name.trim() === "")
+      return next(new ErrorHandler("Shop name is required", 400));
 
     const existingShop = await Shop.findOne({ email });
     if (existingShop) {
@@ -48,14 +50,16 @@ const shopService = {
       password,
       name: name.trim(),
       phoneNumber: phoneNumber || "",
-      avatar: fileUrl
+      avatar: fileUrl,
     };
 
     const createActivationToken = (seller) => {
       if (!process.env.ACTIVATION_SECRET) {
         throw new Error("ACTIVATION_SECRET chưa được cấu hình");
       }
-      return jwt.sign(seller, process.env.ACTIVATION_SECRET, { expiresIn: "5m" });
+      return jwt.sign(seller, process.env.ACTIVATION_SECRET, {
+        expiresIn: "5m",
+      });
     };
 
     const activationToken = createActivationToken(seller);
@@ -98,7 +102,10 @@ const shopService = {
         throw new Error("ACTIVATION_SECRET chưa được cấu hình");
       }
 
-      const newSeller = jwt.verify(activation_token, process.env.ACTIVATION_SECRET);
+      const newSeller = jwt.verify(
+        activation_token,
+        process.env.ACTIVATION_SECRET
+      );
       console.log("Decoded token:", newSeller);
 
       const { name, email, password, avatar, phoneNumber } = newSeller;
@@ -166,14 +173,16 @@ const shopService = {
             name,
             avatar: picture || "default-avatar.png",
             addresses: [],
-            isProfileComplete: false
+            isProfileComplete: false,
           });
         }
       }
       sendShopToken(seller, 201, res);
     } catch (error) {
       console.error("Lỗi xác thực Google:", error);
-      return next(new ErrorHandler("Google authentication failed: " + error.message, 400));
+      return next(
+        new ErrorHandler("Google authentication failed: " + error.message, 400)
+      );
     }
   },
 
@@ -185,7 +194,7 @@ const shopService = {
 
       const user = await Shop.findOne({ email }).select("+password");
       if (!user) {
-        return next(new ErrorHandler("User doesn't exist", 400));
+        return next(new ErrorHandler("Seller doesn't exist", 400));
       }
 
       const isPasswordValid = await user.comparePassword(password);
@@ -205,7 +214,10 @@ const shopService = {
     }
 
     try {
-      const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET_KEY);
+      const decoded = jwt.verify(
+        refreshToken,
+        process.env.JWT_REFRESH_SECRET_KEY
+      );
       const shop = await Shop.findById(decoded.id);
       if (!shop || shop.refreshToken !== refreshToken) {
         return next(new ErrorHandler("Invalid refresh token", 401));
@@ -220,7 +232,10 @@ const shopService = {
     try {
       if (refreshToken) {
         try {
-          const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET_KEY);
+          const decoded = jwt.verify(
+            refreshToken,
+            process.env.JWT_REFRESH_SECRET_KEY
+          );
           const shop = await Shop.findById(decoded.id);
           if (shop && shop.refreshToken === refreshToken) {
             shop.refreshToken = null;
@@ -268,7 +283,10 @@ const shopService = {
 
   async updateAvatar(req, res, next) {
     try {
-      console.log("Cập nhật avatar request nhận được cho seller:", req.seller?.id);
+      console.log(
+        "Cập nhật avatar request nhận được cho seller:",
+        req.seller?.id
+      );
       const seller = await Shop.findById(req.seller.id);
       if (!seller) {
         console.log("Không tìm thấy seller:", req.seller.id);
@@ -307,11 +325,18 @@ const shopService = {
       });
     } catch (error) {
       console.error("Lỗi cập nhật avatar:", error);
-      return next(new ErrorHandler(error.message || "Failed to update avatar", 500));
+      return next(
+        new ErrorHandler(error.message || "Failed to update avatar", 500)
+      );
     }
   },
 
-  async updateSellerInfo({ name, phoneNumber, description, addresses }, seller, res, next) {
+  async updateSellerInfo(
+    { name, phoneNumber, description, addresses },
+    seller,
+    res,
+    next
+  ) {
     try {
       const shop = await Shop.findById(seller._id);
       if (!shop) {
@@ -326,7 +351,12 @@ const shopService = {
       if (addresses && addresses.length > 0) {
         const newAddress = addresses[0];
         // Đảm bảo tất cả các trường địa chỉ bắt buộc được cung cấp
-        if (!newAddress.province || !newAddress.district || !newAddress.ward || !newAddress.address1) {
+        if (
+          !newAddress.province ||
+          !newAddress.district ||
+          !newAddress.ward ||
+          !newAddress.address1
+        ) {
           return next(new ErrorHandler("All address fields are required", 400));
         }
         if (shop.addresses.length > 0) {
@@ -347,7 +377,9 @@ const shopService = {
       });
     } catch (error) {
       console.error("Lỗi cập nhật thông tin seller:", error);
-      return next(new ErrorHandler(error.message || "Failed to update shop info", 500));
+      return next(
+        new ErrorHandler(error.message || "Failed to update shop info", 500)
+      );
     }
   },
 
@@ -408,7 +440,7 @@ const shopService = {
     } catch (error) {
       return next(new ErrorHandler(error.message, 500));
     }
-  }
+  },
 };
 
 module.exports = shopService;

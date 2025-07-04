@@ -274,45 +274,47 @@ const orderService = {
       }
       return sorted;
     }
-  
+
     let secureHash = vnp_Params["vnp_SecureHash"];
     delete vnp_Params["vnp_SecureHash"];
     delete vnp_Params["vnp_SecureHashType"];
-  
+
     vnp_Params = sortObject(vnp_Params);
     let vnp_HashSecret = process.env.VNP_HASHSECRET;
     let querystring = new URLSearchParams(vnp_Params).toString();
     let hmac = crypto.createHmac("sha512", vnp_HashSecret);
     let calculatedHash = hmac.update(querystring).digest("hex");
-  
+
     if (secureHash === calculatedHash) {
       const mainOrderId = vnp_Params["vnp_TxnRef"];
-      
+
       // Lấy orderIds từ vnp_OrderInfo
       const orderInfo = vnp_Params["vnp_OrderInfo"];
       let orderIds = [];
-      
-      if (orderInfo && orderInfo.includes('|')) {
+
+      if (orderInfo && orderInfo.includes("|")) {
         // Tách orderIds từ OrderInfo: "Thanh toan don hang 123456|order1,order2,order3"
-        const parts = orderInfo.split('|');
+        const parts = orderInfo.split("|");
         if (parts.length > 1) {
-          orderIds = parts[1].split(',');
+          orderIds = parts[1].split(",");
         }
       }
-      
+
       // Nếu không có orderIds trong OrderInfo, tìm bằng mainOrderId
       if (orderIds.length === 0) {
         // Tìm tất cả orders có mainOrderId tương ứng
-        const orders = await Order.find({ "paymentInfo.mainOrderId": mainOrderId });
-        orderIds = orders.map(order => order.paymentInfo.orderId);
+        const orders = await Order.find({
+          "paymentInfo.mainOrderId": mainOrderId,
+        });
+        orderIds = orders.map((order) => order.paymentInfo.orderId);
       }
-      
+
       console.log("VNPay Transaction Reference:", mainOrderId);
       console.log("Order IDs found:", orderIds);
-      
+
       const session = await mongoose.startSession();
       session.startTransaction();
-  
+
       try {
         // Tìm orders bằng orderIds hoặc mainOrderId
         let orders;
@@ -325,21 +327,23 @@ const orderService = {
             "paymentInfo.mainOrderId": mainOrderId,
           }).session(session);
         }
-        
+
         console.log("Orders found:", orders.length);
-        
+
         if (orders.length === 0) {
           await session.abortTransaction();
           session.endSession();
           console.error("No orders found for mainOrderId:", mainOrderId);
-          return res.redirect(`${process.env.REACT_APP_FRONT_END_URL}/order/failure`);
+          return res.redirect(
+            `${process.env.REACT_APP_FRONT_END_URL}/order/failure`
+          );
         }
-  
+
         if (vnp_Params["vnp_ResponseCode"] === "00") {
           console.log("VNPay Response Code:", vnp_Params["vnp_ResponseCode"]);
           // Thanh toán thành công
           const productUpdates = [];
-          
+
           for (const order of orders) {
             // Kiểm tra và cập nhật stock
             for (const item of order.cart) {
@@ -347,14 +351,21 @@ const orderService = {
               if (!product) {
                 await session.abortTransaction();
                 session.endSession();
-                return res.redirect(`${process.env.REACT_APP_FRONT_END_URL}/order/failure`);
+                return res.redirect(
+                  `${process.env.REACT_APP_FRONT_END_URL}/order/failure`
+                );
               }
-              const availableStock = product.stock - Math.max(0, product.reservedStock);
+              const availableStock =
+                product.stock - Math.max(0, product.reservedStock);
               if (availableStock < item.qty) {
                 await session.abortTransaction();
                 session.endSession();
-                console.error(`Insufficient stock for product: ${product.name}, orderId: ${order.paymentInfo.orderId}`);
-                return res.redirect(`${process.env.REACT_APP_FRONT_END_URL}/order/failure`);
+                console.error(
+                  `Insufficient stock for product: ${product.name}, orderId: ${order.paymentInfo.orderId}`
+                );
+                return res.redirect(
+                  `${process.env.REACT_APP_FRONT_END_URL}/order/failure`
+                );
               }
               productUpdates.push({
                 productId: item._id,
@@ -362,7 +373,7 @@ const orderService = {
                 reservedStock: product.reservedStock,
               });
             }
-  
+
             // Cập nhật coupon nếu có
             if (order.couponCode) {
               const coupon = await CouponCode.findOne({
@@ -376,7 +387,7 @@ const orderService = {
                 await coupon.save({ session });
               }
             }
-  
+
             // Cập nhật trạng thái đơn hàng
             order.paymentInfo.id = vnp_Params["vnp_TransactionNo"];
             order.paymentInfo.status = "Paid";
@@ -384,7 +395,7 @@ const orderService = {
             order.reservationExpiresAt = null;
             await order.save({ session });
           }
-  
+
           // Cập nhật stock và reservedStock
           for (const update of productUpdates) {
             await Product.findByIdAndUpdate(
@@ -398,10 +409,10 @@ const orderService = {
               { session, validateBeforeSave: false }
             );
           }
-  
+
           await session.commitTransaction();
           session.endSession();
-  
+
           const redirectUrl = `${process.env.REACT_APP_FRONT_END_URL}/order/success`;
           res.send(`
             <script>
@@ -534,24 +545,46 @@ const orderService = {
       if (!shipper) {
         return next(new ErrorHandler("Shipper not found", 404));
       }
-  
+
       const deliveredWards = shipper.deliveredArea.map((area) => area.ward);
       const orders = await Order.find({
         "shippingAddress.ward": { $in: deliveredWards },
         $or: [
-          { status: "Contacting the delivery service", shipperId: { $in: [null, shipperId] } }, // Lấy đơn chưa có shipper hoặc của shipper hiện tại
-          { status: { $in: ["Transferred to delivery partner", "On the way", "Delivered"] }, shipperId: shipperId }, // Lấy đơn của shipper ở trạng thái sau khi được giao
+          {
+            status: "Contacting the delivery service",
+            shipperId: { $in: [null, shipperId] },
+          }, // Lấy đơn chưa có shipper hoặc của shipper hiện tại
+          {
+            status: {
+              $in: [
+                "Transferred to delivery partner",
+                "On the way",
+                "Delivered",
+              ],
+            },
+            shipperId: shipperId,
+          }, // Lấy đơn của shipper ở trạng thái sau khi được giao
         ],
       }).sort({ createdAt: -1 });
-  
-      console.log(`Orders fetched for shipper ${shipperId}:`, orders.map(o => ({ _id: o._id, status: o.status, shipperId: o.shipperId })));
-  
+
+      console.log(
+        `Orders fetched for shipper ${shipperId}:`,
+        orders.map((o) => ({
+          _id: o._id,
+          status: o.status,
+          shipperId: o.shipperId,
+        }))
+      );
+
       res.status(200).json({
         success: true,
         orders,
       });
     } catch (error) {
-      console.error(`Error fetching orders for shipper ${shipperId}:`, error.message);
+      console.error(
+        `Error fetching orders for shipper ${shipperId}:`,
+        error.message
+      );
       return next(new ErrorHandler(error.message, 500));
     }
   },
@@ -732,6 +765,25 @@ const orderService = {
     const shop = await Shop.findById(seller.id);
     shop.availableBalance += order.totalPrice;
     await shop.save();
+  },
+
+  async cancelShipperForOrder(orderId, res, next) {
+    try {
+      const order = await Order.findById(orderId);
+      if (!order) {
+        return next(new ErrorHandler("Order not found", 400));
+      }
+      order.shipperId = null;
+      // Có thể log lại lịch sử shipper cũ nếu muốn
+      await order.save({ validateBeforeSave: false });
+      res.status(200).json({
+        success: true,
+        order,
+        message: "Đã hủy giao đơn cho shipper thành công!",
+      });
+    } catch (error) {
+      return next(new ErrorHandler(error.message, 500));
+    }
   },
 
   async requestOrderRefund(orderId, status, refundReason, res, next) {

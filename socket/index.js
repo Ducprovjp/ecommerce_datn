@@ -70,8 +70,10 @@ io.on("connection", (socket) => {
     try {
       console.log(`Find shippers for order ${orderId} in ward ${ward}`);
       let fullOrderData = orderData;
+      console.log("Initial order data:", fullOrderData);
       if (!fullOrderData.cart || !fullOrderData.shippingAddress) {
         const order = await Order.findById(orderId);
+        console.log("Order data fetched from database:", order);
         if (!order) {
           console.error(`Order ${orderId} not found`);
           return;

@@ -1,6 +1,11 @@
 const express = require("express");
 const catchAsyncErrors = require("../middleware/catchAsyncErrors");
-const { isAuthenticated, isSeller, isShipper, isAdmin } = require("../middleware/auth");
+const {
+  isAuthenticated,
+  isSeller,
+  isShipper,
+  isAdmin,
+} = require("../middleware/auth");
 const orderService = require("../service/order.service");
 
 const router = express.Router();
@@ -11,7 +16,11 @@ router.post(
   // isAuthenticated,
   catchAsyncErrors(async (req, res, next) => {
     const { cart, shippingAddress, user, totalPrice, paymentInfo } = req.body;
-    await orderService.createOrder({ cart, shippingAddress, user, totalPrice, paymentInfo }, res, next);
+    await orderService.createOrder(
+      { cart, shippingAddress, user, totalPrice, paymentInfo },
+      res,
+      next
+    );
   })
 );
 
@@ -22,7 +31,12 @@ router.put(
   catchAsyncErrors(async (req, res, next) => {
     const orderId = req.params.id;
     const { sellerCancelReason } = req.body;
-    await orderService.cancelOrderBySeller(orderId, sellerCancelReason, res, next);
+    await orderService.cancelOrderBySeller(
+      orderId,
+      sellerCancelReason,
+      res,
+      next
+    );
   })
 );
 
@@ -87,7 +101,13 @@ router.put(
   catchAsyncErrors(async (req, res, next) => {
     const orderId = req.params.id;
     const { status } = req.body;
-    await orderService.updateOrderStatusByShipper(orderId, status, req.shipper, res, next);
+    await orderService.updateOrderStatusByShipper(
+      orderId,
+      status,
+      req.shipper,
+      res,
+      next
+    );
   })
 );
 
@@ -98,7 +118,22 @@ router.put(
   catchAsyncErrors(async (req, res, next) => {
     const orderId = req.params.id;
     const { status } = req.body;
-    await orderService.updateOrderStatus(orderId, status, req.seller, res, next);
+    await orderService.updateOrderStatus(
+      orderId,
+      status,
+      req.seller,
+      res,
+      next
+    );
+  })
+);
+
+router.put(
+  "/cancel-shipper/:id",
+  isSeller,
+  catchAsyncErrors(async (req, res, next) => {
+    const orderId = req.params.id;
+    await orderService.cancelShipperForOrder(orderId, res, next);
   })
 );
 
@@ -108,7 +143,13 @@ router.put(
   catchAsyncErrors(async (req, res, next) => {
     const orderId = req.params.id;
     const { status, refundReason } = req.body;
-    await orderService.requestOrderRefund(orderId, status, refundReason, res, next);
+    await orderService.requestOrderRefund(
+      orderId,
+      status,
+      refundReason,
+      res,
+      next
+    );
   })
 );
 
