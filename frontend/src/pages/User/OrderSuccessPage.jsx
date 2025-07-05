@@ -31,7 +31,7 @@ const OrderSuccessPage = () => {
   };
 
   const handleContinueShopping = () => {
-    navigate("/");
+    navigate("/products");
   };
 
   const defaultOptions = {
@@ -49,23 +49,24 @@ const OrderSuccessPage = () => {
       <div className="flex flex-col items-center justify-center py-12 min-h-[70vh] bg-gray-50">
         <Lottie options={defaultOptions} width={300} height={300} />
         <h5 className="text-center mb-4 text-[25px] text-[#000000a1]">
-          Đặt hàng thành công 😍
+          Order placed successfully 😍
         </h5>
         <p className="text-center text-gray-600 mb-8">
-          Cảm ơn bạn đã mua sắm. Đơn hàng của bạn đã được xử lý thành công.
+          Thank you for shopping with us. Your order has been processed
+          successfully.
         </p>
         <div className="flex gap-4">
           <button
             onClick={handleGoToOrders}
             className="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition duration-200"
           >
-            Xem đơn hàng
+            View Orders
           </button>
           <button
             onClick={handleContinueShopping}
             className="bg-gray-200 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-300 transition duration-200"
           >
-            Tiếp tục mua sắm
+            Continue Shopping
           </button>
         </div>
       </div>

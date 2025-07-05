@@ -266,6 +266,7 @@ const orderService = {
   },
 
   async handleVNPaySuccess(vnp_Params, res, next) {
+    console.log("VNPay callback params:", vnp_Params);
     function sortObject(obj) {
       let sorted = {};
       let keys = Object.keys(obj).sort();
@@ -355,18 +356,20 @@ const orderService = {
                   `${process.env.REACT_APP_FRONT_END_URL}/order/failure`
                 );
               }
-              const availableStock =
-                product.stock - Math.max(0, product.reservedStock);
-              if (availableStock < item.qty) {
+
+              // Bỏ kiểm tra availableStock vì đã được reserve từ trước
+              // Chỉ cần đảm bảo product tồn tại và có đủ reservedStock
+              if (product.reservedStock < item.qty) {
                 await session.abortTransaction();
                 session.endSession();
                 console.error(
-                  `Insufficient stock for product: ${product.name}, orderId: ${order.paymentInfo.orderId}`
+                  `Insufficient reserved stock for product: ${product.name}, orderId: ${order.paymentInfo.orderId}`
                 );
                 return res.redirect(
                   `${process.env.REACT_APP_FRONT_END_URL}/order/failure`
                 );
               }
+
               productUpdates.push({
                 productId: item._id,
                 qty: item.qty,
