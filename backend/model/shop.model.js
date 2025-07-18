@@ -3,42 +3,54 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
 const shopSchema = new mongoose.Schema({
+  googleId: { type: String, unique: true, sparse: true },
   name: {
     type: String,
     required: [true, "Please enter your shop name!"],
+    trim: true
   },
   email: {
     type: String,
-    required: [true, "Please enter your shop email address"],
+    required: [true, "Please enter your shop email address!"],
   },
   password: {
     type: String,
-    required: [true, "Please enter your password"],
     minLength: [6, "Password should be greater than 6 characters"],
     select: false,
   },
-  description: {
-    type: String,
-  },
-  address: {
-    type: String,
-    required: true,
-  },
   phoneNumber: {
     type: String,
-    required: true,
   },
+  addresses: [
+    {
+      province: {
+        type: String,
+      },
+      district: {
+        type: String,
+      },
+      ward: {
+        type: String,
+      },
+      address1: {
+        type: String,
+      },
+      addressType: {
+        type: String,
+      },
+    },
+  ],
   role: {
     type: String,
     default: "Seller",
   },
   avatar: {
     type: String,
-    required: true,
+    default: "default-avatar.png",
   },
-  zipCode: {
-    type: Number,
-    // required: true,
+  isProfileComplete: {
+    type: Boolean,
+    default: false,
   },
   withdrawMethod: {
     type: Object,
@@ -72,17 +84,21 @@ const shopSchema = new mongoose.Schema({
   },
   resetPasswordToken: String,
   resetPasswordTime: Date,
+  refreshToken: {
+    type: String,
+    default: null,
+  },
 });
 
 // Hash password
 shopSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) {
+  if (!this.isModified("password") || !this.password) {
     next();
   }
   this.password = await bcrypt.hash(this.password, 10);
 });
 
-// jwt token
+// JWT token
 shopSchema.methods.getJwtToken = function () {
   return jwt.sign({ id: this._id }, process.env.JWT_SECRET_KEY, {
     expiresIn: process.env.JWT_ACCESS_TOKEN_EXPIRES,
@@ -92,11 +108,11 @@ shopSchema.methods.getJwtToken = function () {
 // JWT refresh token
 shopSchema.methods.getRefreshToken = function () {
   return jwt.sign({ id: this._id }, process.env.JWT_REFRESH_SECRET_KEY, {
-    expiresIn: process.env.JWT_REFRESH_TOKEN_EXPIRES, 
+    expiresIn: process.env.JWT_REFRESH_TOKEN_EXPIRES,
   });
 };
 
-// comapre password
+// Compare password
 shopSchema.methods.comparePassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };

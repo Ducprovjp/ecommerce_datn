@@ -1,86 +1,86 @@
 import React, { useState } from "react";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
 import "./App.css";
 import Store from "./redux/store";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
 import {
-  LoginPage,
-  SignupPage,
   ActivationPage,
-  HomePage,
-  ProductsPage,
   BestSellingPage,
+  CheckoutPage,
   EventsPage,
   FAQPage,
-  CheckoutPage,
-  PaymentPage,
-  OrderSuccessPage,
-  OrderFailurePage,
-  ProductDetailsPage,
-  ProfilePage,
+  ForgotPasswordPage,
+  HomePage,
+  LoginPage,
   OrderDetailsPage,
+  OrderFailurePage,
+  OrderSuccessPage,
+  PaymentPage,
+  ProductDetailsPage,
+  ProductsPage,
+  ProfilePage,
+  ResetPasswordPage,
+  SignupPage,
   TrackOrderPage,
   UserInbox,
-  ForgotPasswordPage,
-  ResetPasswordPage,
 } from "./routes/Routes";
 import {
-  ShopDashboardPage,
-  ShopCreateProduct,
-  ShopAllProducts,
-  ShopCreateEvents,
-  ShopAllEvents,
+  SellerActivationPage,
   ShopAllCoupouns,
-  ShopPreviewPage,
+  ShopAllEvents,
   ShopAllOrders,
-  ShopOrderDetails,
+  ShopAllProducts,
   ShopAllRefunds,
+  ShopCreateEvents,
+  ShopCreatePage,
+  ShopCreateProduct,
+  ShopDashboardPage,
+  ShopInboxPage,
+  ShopLoginPage,
+  ShopOrderDetails,
+  ShopPreviewPage,
   ShopSettingsPage,
   ShopWithDrawMoneyPage,
-  ShopInboxPage,
-  ShopCreatePage,
-  SellerActivationPage,
-  ShopLoginPage,
 } from "./routes/ShopRoutes";
 
 import {
+  ShipperActivationPage,
   ShipperAllOrders,
-  ShipperInboxPage,
-  ShipperHomePage,
-  ShipperPreviewPage,
-  ShipperSettingsPage,
+  ShipperCreatePage,
   ShipperDashboardPage,
   ShipperDeliveredArea,
-  ShipperOrderDetails,
-  ShipperCreatePage,
+  ShipperHomePage,
+  ShipperInboxPage,
   ShipperLoginPage,
-  ShipperActivationPage,
+  ShipperOrderDetails,
+  ShipperPreviewPage,
+  ShipperSettingsPage,
 } from "./routes/ShipperRoutes";
 
 import {
-  AdminDashboardPage,
-  AdminDashboardUsers,
-  AdminDashboardSellers,
-  AdminDashboardOrders,
-  AdminDashboardProducts,
   AdminDashboardEvents,
-  AdminDashboardWithdraw,
+  AdminDashboardOrders,
+  AdminDashboardPage,
+  AdminDashboardProducts,
+  AdminDashboardSellers,
   AdminDashboardShippers,
+  AdminDashboardUsers,
+  AdminDashboardWithdraw,
 } from "./routes/AdminRoutes";
 
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
-import { useEffect } from "react";
-import { loadSeller, loadShipper, loadUser } from "./redux/actions/user";
-import ProtectedRoute from "./routes/ProtectedRoute";
-import ProtectedAdminRoute from "./routes/ProtectedAdminRoute";
-import SellerProtectedRoute from "./routes/SellerProtectedRoute";
-import ShipperProtectedRoute from "./routes/ShipperProtectedRoute";
-import { ShopHomePage } from "./ShopRoutes";
-import { getAllProducts } from "./redux/actions/product";
-import { getAllEvents } from "./redux/actions/event";
-import axios from "axios";
 import { Elements } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
+import axios from "axios";
+import { useEffect } from "react";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { ShopHomePage } from "./ShopRoutes";
+import { getAllEvents } from "./redux/actions/event";
+import { getAllProducts } from "./redux/actions/product";
+import { loadSeller, loadShipper, loadUser } from "./redux/actions/user";
+import ProtectedAdminRoute from "./routes/ProtectedAdminRoute";
+import ProtectedRoute from "./routes/ProtectedRoute";
+import SellerProtectedRoute from "./routes/SellerProtectedRoute";
+import ShipperProtectedRoute from "./routes/ShipperProtectedRoute";
 
 const App = () => {
   const [stripeApikey, setStripeApiKey] = useState("");

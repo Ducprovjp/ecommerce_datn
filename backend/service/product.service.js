@@ -135,7 +135,7 @@ const productService = {
 
   async getAllProducts({ minPrice, maxPrice, category, sort, page, limit }, res, next) {
     try {
-      console.log("Query params:", { minPrice, maxPrice, category, sort, page, limit }); // Log để debug
+      // console.log("Query params:", { minPrice, maxPrice, category, sort, page, limit }); // Log để debug
   
       const query = {};
       if (category) {
@@ -179,7 +179,7 @@ const productService = {
       const totalPages = Math.ceil(totalProducts / limitNum);
   
       // Debug: Log danh sách _id của sản phẩm trả về
-      console.log("Products IDs:", products.map(p => p._id));
+      // console.log("Products IDs:", products.map(p => p._id));
   
       res.status(200).json({
         success: true,

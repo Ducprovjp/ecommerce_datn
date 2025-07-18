@@ -8,33 +8,32 @@ const { OAuth2Client } = require("google-auth-library");
 
 const shopService = {
   async createShop(req, res, next) {
-    const { name, email, password, address, phoneNumber, zipCode } = req.body;
+    const { email, password, name, phoneNumber } = req.body;
     console.log("Received shop creation request:", {
-      name,
       email,
+      name,
+      password: password ? "[REDACTED]" : undefined,
       hasFile: !!req.file,
-      address,
       phoneNumber,
-      zipCode,
     });
 
-    if (!name) return next(new ErrorHandler("Name is required", 400));
     if (!email) return next(new ErrorHandler("Email is required", 400));
     if (!password) return next(new ErrorHandler("Password is required", 400));
     if (password.length < 6) {
-      return next(new ErrorHandler("Password must be at least 6 characters", 400));
+      return next(
+        new ErrorHandler("Password must be at least 6 characters", 400)
+      );
     }
-    if (!address) return next(new ErrorHandler("Address is required", 400));
-    if (!phoneNumber) return next(new ErrorHandler("Phone number is required", 400));
-    if (!zipCode) return next(new ErrorHandler("Zip code is required", 400));
+    if (!name || name.trim() === "")
+      return next(new ErrorHandler("Shop name is required", 400));
 
-    const sellerEmail = await Shop.findOne({ email });
-    if (sellerEmail) {
+    const existingShop = await Shop.findOne({ email });
+    if (existingShop) {
       if (req.file) {
         try {
           await cloudinary.uploader.destroy(req.file.filename);
         } catch (err) {
-          console.error("Error deleting image from Cloudinary:", err);
+          console.error("Lỗi xóa ảnh trên Cloudinary:", err);
         }
       }
       return next(new ErrorHandler("Shop already exists", 400));
@@ -46,13 +45,21 @@ const shopService = {
       console.log("Uploaded file URL:", fileUrl);
     }
 
-    const seller = { name, email, password, avatar: fileUrl, address, phoneNumber, zipCode };
+    const seller = {
+      email,
+      password,
+      name: name.trim(),
+      phoneNumber: phoneNumber || "",
+      avatar: fileUrl,
+    };
 
     const createActivationToken = (seller) => {
       if (!process.env.ACTIVATION_SECRET) {
-        throw new Error("ACTIVATION_SECRET not configured");
+        throw new Error("ACTIVATION_SECRET chưa được cấu hình");
       }
-      return jwt.sign(seller, process.env.ACTIVATION_SECRET, { expiresIn: "5m" });
+      return jwt.sign(seller, process.env.ACTIVATION_SECRET, {
+        expiresIn: "5m",
+      });
     };
 
     const activationToken = createActivationToken(seller);
@@ -60,7 +67,7 @@ const shopService = {
     const activationUrl = `${domain}/seller/activation/${activationToken}`;
     const message = `Hello ${seller.name}, please click on the link to activate your shop: <a href="${activationUrl}" style="text-decoration: underline; color: blue; font-weight: bold;">ACTIVATE</a>`;
 
-    console.log("Sending activation email to:", seller.email);
+    console.log("Gửi email kích hoạt đến:", seller.email);
     try {
       await sendMail({
         email: seller.email,
@@ -75,10 +82,11 @@ const shopService = {
       if (req.file) {
         try {
           await cloudinary.uploader.destroy(req.file.filename);
-        } catch (err) {
-          console.error("Error deleting image from Cloudinary:", err);
+        } catch (err2) {
+          console.error("Lỗi xóa ảnh trên Cloudinary:", err2);
         }
       }
+      console.error("Lỗi gửi email:", err);
       return next(new ErrorHandler("Failed to send activation email", 500));
     }
   },
@@ -91,59 +99,43 @@ const shopService = {
 
     try {
       if (!process.env.ACTIVATION_SECRET) {
-        throw new Error("ACTIVATION_SECRET not configured");
+        throw new Error("ACTIVATION_SECRET chưa được cấu hình");
       }
 
-      const newSeller = jwt.verify(activation_token, process.env.ACTIVATION_SECRET);
+      const newSeller = jwt.verify(
+        activation_token,
+        process.env.ACTIVATION_SECRET
+      );
       console.log("Decoded token:", newSeller);
 
-      const { name, email, password, avatar, zipCode, address, phoneNumber } = newSeller;
+      const { name, email, password, avatar, phoneNumber } = newSeller;
+      if (!name || name.trim() === "") {
+        return next(new ErrorHandler("Shop name is required in token", 400));
+      }
+
       const existingSeller = await Shop.findOne({ email });
       if (existingSeller) {
         return next(new ErrorHandler("Shop already exists", 400));
       }
 
-      console.log("Creating shop:", email);
+      console.log("Tạo shop:", email);
       const seller = await Shop.create({
-        name,
+        name: name.trim(),
         email,
         password: password || undefined,
+        phoneNumber: phoneNumber || "",
         avatar: avatar || "default-avatar.png",
-        zipCode,
-        address,
-        phoneNumber,
+        isProfileComplete: false, // Chưa có địa chỉ nên chưa hoàn thiện
       });
 
-      console.log("Shop created:", seller.email);
+      console.log("Shop đã được tạo:", seller.email);
       sendShopToken(seller, 201, res);
     } catch (err) {
-      console.error("Activation error:", err);
+      console.error("Lỗi kích hoạt:", err);
       if (err.name === "TokenExpiredError") {
         return next(new ErrorHandler("Activation token has expired", 400));
       }
-      return next(new ErrorHandler("Invalid activation token", 400));
-    }
-  },
-
-  async loginShop(email, password, res, next) {
-    try {
-      if (!email || !password) {
-        return next(new ErrorHandler("Please provide all fields", 400));
-      }
-
-      const user = await Shop.findOne({ email }).select("+password");
-      if (!user) {
-        return next(new ErrorHandler("User doesn't exist", 400));
-      }
-
-      const isPasswordValid = await user.comparePassword(password);
-      if (!isPasswordValid) {
-        return next(new ErrorHandler("Incorrect password", 400));
-      }
-
-      sendShopToken(user, 201, res);
-    } catch (error) {
-      return next(new ErrorHandler(error.message, 500));
+      return next(new ErrorHandler("Activation failed: " + err.message, 400));
     }
   },
 
@@ -174,19 +166,45 @@ const shopService = {
           if (picture) seller.avatar = picture;
           await seller.save();
         } else {
-          console.log("Creating new seller:", email);
+          console.log("Tạo seller mới:", email);
           seller = await Shop.create({
             googleId,
             email,
             name,
             avatar: picture || "default-avatar.png",
+            addresses: [],
+            isProfileComplete: false,
           });
         }
       }
       sendShopToken(seller, 201, res);
     } catch (error) {
-      console.error("Google authentication error:", error);
-      return next(new ErrorHandler("Google authentication failed: " + error.message, 400));
+      console.error("Lỗi xác thực Google:", error);
+      return next(
+        new ErrorHandler("Google authentication failed: " + error.message, 400)
+      );
+    }
+  },
+
+  async loginShop(email, password, res, next) {
+    try {
+      if (!email || !password) {
+        return next(new ErrorHandler("Please provide all fields", 400));
+      }
+
+      const user = await Shop.findOne({ email }).select("+password");
+      if (!user) {
+        return next(new ErrorHandler("Seller doesn't exist", 400));
+      }
+
+      const isPasswordValid = await user.comparePassword(password);
+      if (!isPasswordValid) {
+        return next(new ErrorHandler("Incorrect password", 400));
+      }
+
+      sendShopToken(user, 201, res);
+    } catch (error) {
+      return next(new ErrorHandler(error.message, 500));
     }
   },
 
@@ -196,7 +214,10 @@ const shopService = {
     }
 
     try {
-      const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET_KEY);
+      const decoded = jwt.verify(
+        refreshToken,
+        process.env.JWT_REFRESH_SECRET_KEY
+      );
       const shop = await Shop.findById(decoded.id);
       if (!shop || shop.refreshToken !== refreshToken) {
         return next(new ErrorHandler("Invalid refresh token", 401));
@@ -211,14 +232,17 @@ const shopService = {
     try {
       if (refreshToken) {
         try {
-          const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET_KEY);
+          const decoded = jwt.verify(
+            refreshToken,
+            process.env.JWT_REFRESH_SECRET_KEY
+          );
           const shop = await Shop.findById(decoded.id);
           if (shop && shop.refreshToken === refreshToken) {
             shop.refreshToken = null;
             await shop.save({ validateBeforeSave: false });
           }
         } catch (error) {
-          // If refresh token is invalid, no action needed
+          // Nếu refresh token không hợp lệ, không cần làm gì
         }
       }
       res.status(200).json({
@@ -259,31 +283,34 @@ const shopService = {
 
   async updateAvatar(req, res, next) {
     try {
-      console.log("Update avatar request received for seller:", req.seller?.id);
+      console.log(
+        "Cập nhật avatar request nhận được cho seller:",
+        req.seller?.id
+      );
       const seller = await Shop.findById(req.seller.id);
       if (!seller) {
-        console.log("Seller not found:", req.seller.id);
+        console.log("Không tìm thấy seller:", req.seller.id);
         return next(new ErrorHandler("Seller not found", 404));
       }
 
       if (!req.file) {
-        console.log("No image provided in request");
+        console.log("Không có ảnh được cung cấp trong request");
         return next(new ErrorHandler("No image provided", 400));
       }
 
-      console.log("Cloudinary file details:", req.file);
+      console.log("Chi tiết file Cloudinary:", req.file);
       if (seller.avatar && seller.avatar !== "default-avatar.png") {
         try {
           const publicId = seller.avatar.split("/").pop().split(".")[0];
           await cloudinary.uploader.destroy(`avatars/${publicId}`);
-          console.log("Deleted old avatar from Cloudinary:", publicId);
+          console.log("Xóa avatar cũ từ Cloudinary:", publicId);
         } catch (err) {
-          console.error("Error deleting old avatar from Cloudinary:", err);
+          console.error("Lỗi xóa avatar cũ từ Cloudinary:", err);
         }
       }
 
       const fileUrl = req.file.path;
-      console.log("New avatar uploaded to Cloudinary:", fileUrl);
+      console.log("Avatar mới được tải lên Cloudinary:", fileUrl);
 
       const updatedSeller = await Shop.findByIdAndUpdate(
         req.seller.id,
@@ -291,29 +318,57 @@ const shopService = {
         { new: true }
       );
 
-      console.log("Avatar updated for seller:", updatedSeller.email);
+      console.log("Avatar đã được cập nhật cho seller:", updatedSeller.email);
       res.status(200).json({
         success: true,
         seller: updatedSeller,
       });
     } catch (error) {
-      console.error("Update avatar error:", error);
-      return next(new ErrorHandler(error.message || "Failed to update avatar", 500));
+      console.error("Lỗi cập nhật avatar:", error);
+      return next(
+        new ErrorHandler(error.message || "Failed to update avatar", 500)
+      );
     }
   },
 
-  async updateSellerInfo({ name, description, address, phoneNumber, zipCode }, seller, res, next) {
+  async updateSellerInfo(
+    { name, phoneNumber, description, addresses },
+    seller,
+    res,
+    next
+  ) {
     try {
-      const shop = await Shop.findOne(seller._id);
+      const shop = await Shop.findById(seller._id);
       if (!shop) {
-        return next(new ErrorHandler("User not found", 400));
+        return next(new ErrorHandler("Shop not found", 400));
       }
 
-      shop.name = name;
-      shop.description = description;
-      shop.address = address;
-      shop.phoneNumber = phoneNumber;
-      shop.zipCode = zipCode;
+      shop.name = name || shop.name;
+      shop.phoneNumber = phoneNumber || shop.phoneNumber;
+      shop.description = description || shop.description;
+
+      // Cập nhật hoặc thêm địa chỉ
+      if (addresses && addresses.length > 0) {
+        const newAddress = addresses[0];
+        // Đảm bảo tất cả các trường địa chỉ bắt buộc được cung cấp
+        if (
+          !newAddress.province ||
+          !newAddress.district ||
+          !newAddress.ward ||
+          !newAddress.address1
+        ) {
+          return next(new ErrorHandler("All address fields are required", 400));
+        }
+        if (shop.addresses.length > 0) {
+          // Cập nhật địa chỉ hiện tại
+          shop.addresses[0] = newAddress;
+        } else {
+          // Thêm địa chỉ mới
+          shop.addresses.push(newAddress);
+        }
+      }
+
+      shop.isProfileComplete = true;
 
       await shop.save();
       res.status(201).json({
@@ -321,7 +376,10 @@ const shopService = {
         shop,
       });
     } catch (error) {
-      return next(new ErrorHandler(error.message, 500));
+      console.error("Lỗi cập nhật thông tin seller:", error);
+      return next(
+        new ErrorHandler(error.message || "Failed to update shop info", 500)
+      );
     }
   },
 
@@ -382,7 +440,7 @@ const shopService = {
     } catch (error) {
       return next(new ErrorHandler(error.message, 500));
     }
-  }
+  },
 };
 
 module.exports = shopService;

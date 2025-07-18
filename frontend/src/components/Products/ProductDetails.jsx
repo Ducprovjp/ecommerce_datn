@@ -106,11 +106,14 @@ const ProductDetails = ({ data }) => {
           navigate(`/inbox?${checkRes.conversation._id}`);
         } else {
           // Nếu không, tạo cuộc trò chuyện mới
-          const res = await postRequest("/conversation/create-new-conversation", {
-            groupTitle,
-            userId,
-            sellerId,
-          });
+          const res = await postRequest(
+            "/conversation/create-new-conversation",
+            {
+              groupTitle,
+              userId,
+              sellerId,
+            }
+          );
           if (!res.success) {
             throw new Error(res.message || "Failed to create conversation");
           }
@@ -147,7 +150,9 @@ const ProductDetails = ({ data }) => {
                     data.images.map((i, index) => (
                       <div
                         key={index}
-                        className={`${select === index ? "border-2 border-blue-500" : ""} cursor-pointer flex-shrink-0`}
+                        className={`${
+                          select === index ? "border-2 border-blue-500" : ""
+                        } cursor-pointer flex-shrink-0`}
                       >
                         <img
                           src={i}
@@ -335,7 +340,7 @@ const ProductDetailsInfo = ({
             data.reviews.map((item, index) => (
               <div className="w-full flex my-2" key={index}>
                 <img
-                  src={`${process.env.REACT_APP_BACKEND_URL}/${item.user.avatar}`}
+                  src={item.user.avatar}
                   alt={`${item.user.name} avatar`}
                   className="w-[50px] h-[50px] rounded-full"
                 />

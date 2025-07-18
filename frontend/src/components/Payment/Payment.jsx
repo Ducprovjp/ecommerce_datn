@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { useSelector, useDispatch } from "react-redux";
 import { toast } from "react-toastify";
-import { postRequest } from "../../request/api";
-import PaymentInfo from "./PaymentInfo";
-import CartData from "./CartData";
 import { getAllProducts } from "../../redux/actions/product";
-import styles from "../../styles/styles";
+import { postRequest } from "../../request/api";
+import CartData from "./CartData";
+import PaymentInfo from "./PaymentInfo";
+import { clearCart } from "../../redux/actions/cart";
 
 const Payment = () => {
   const [orderData, setOrderData] = useState([]);
@@ -18,6 +18,7 @@ const Payment = () => {
 
   useEffect(() => {
     const orderData = JSON.parse(localStorage.getItem("latestOrder"));
+    console.log("Order data from localStorage:", orderData);
     setOrderData(orderData);
   }, []);
 
@@ -36,7 +37,7 @@ const Payment = () => {
     shippingAddress: orderData?.shippingAddress,
     user: user && user,
     totalPrice: orderData?.totalPrice,
-    couponCode: orderData?.couponCode, // Include couponCode
+    couponCodePerShop: orderData?.couponCodePerShop, // Truyền couponCodePerShop
   };
 
   const paypalPaymentHandler = async (paymentInfo) => {
@@ -49,19 +50,22 @@ const Payment = () => {
 
       const res = await postRequest("/order/create-order", order);
       if (!res.success) {
-        throw new Error(res.message || "Sản phẩm tạm thời hết hàng hoặc đã được giữ chỗ");
+        throw new Error(
+          res.message || "Sản phẩm tạm thời hết hàng hoặc đã được giữ chỗ"
+        );
       }
 
       setOpen(false);
       navigate("/order/success");
       toast.success("Order successful!");
-      localStorage.setItem("cartItems", JSON.stringify([]));
-      localStorage.setItem("latestOrder", JSON.stringify([]));
-      // dispatch(getAllProducts())
+      dispatch(clearCart());
+      // dispatch(getAllProducts());
       window.location.reload();
     } catch (error) {
       console.error("PayPal order error:", error);
-      toast.error(error.message || "Sản phẩm tạm thời hết hàng hoặc đã được giữ chỗ");
+      toast.error(
+        error.message || "Sản phẩm tạm thời hết hàng hoặc đã được giữ chỗ"
+      );
     }
   };
 
@@ -69,7 +73,9 @@ const Payment = () => {
     try {
       const res = await postRequest("/payment/vnpay", order);
       if (!res.success) {
-        throw new Error(res.message || "Sản phẩm tạm thời hết hàng hoặc đã được giữ chỗ");
+        throw new Error(
+          res.message || "Sản phẩm tạm thời hết hàng hoặc đã được giữ chỗ"
+        );
       }
       return { paymentUrl: res.paymentUrl, orderId: res.orderId };
     } catch (error) {
@@ -81,15 +87,18 @@ const Payment = () => {
   const vnpayPaymentHandler = async () => {
     try {
       toast.info("Giao dịch VNPay sẽ hết hạn sau 15 phút");
-      const { paymentUrl, orderId } = await createVNPAYPaymentUrl();
+      const { paymentUrl, orderId, orderIds } = await createVNPAYPaymentUrl();
       if (!paymentUrl) {
         throw new Error("No payment URL returned");
       }
-      setVnpayOrderId(orderId);
+      setVnpayOrderId(orderId); // Lưu mainOrderId
+      localStorage.setItem("vnpayOrderIds", JSON.stringify(orderIds)); // Lưu danh sách orderIds
       window.location.href = paymentUrl;
     } catch (error) {
       console.error("VNPAY handler error:", error);
-      toast.error(error.message || "Sản phẩm tạm thời hết hàng hoặc đã được giữ chỗ");
+      toast.error(
+        error.message || "Sản phẩm tạm thời hết hàng hoặc đã được giữ chỗ"
+      );
     }
   };
 
@@ -102,19 +111,21 @@ const Payment = () => {
 
       const res = await postRequest("/order/create-order", order);
       if (!res.success) {
-        throw new Error(res.message || "Sản phẩm tạm thời hết hàng hoặc đã được giữ chỗ");
+        throw new Error(
+          res.message || "Sản phẩm tạm thời hết hàng hoặc đã được giữ chỗ"
+        );
       }
 
       setOpen(false);
       navigate("/order/success");
       toast.success("Order successful!");
-      localStorage.setItem("cartItems", JSON.stringify([]));
-      localStorage.setItem("latestOrder", JSON.stringify([]));
-      dispatch(getAllProducts())
-      // window.location.reload();
+      dispatch(clearCart());
+      dispatch(getAllProducts());
     } catch (error) {
       console.error("COD order error:", error);
-      toast.error(error.message || "Sản phẩm tạm thời hết hàng hoặc đã được giữ chỗ");
+      toast.error(
+        error.message || "Sản phẩm tạm thời hết hàng hoặc đã được giữ chỗ"
+      );
     }
   };
 

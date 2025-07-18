@@ -85,7 +85,12 @@ router.put(
   isShipper,
   catchAsyncErrors(async (req, res, next) => {
     const { name, phoneNumber, address } = req.body;
-    await shipperService.updateShipperInfo({ name, phoneNumber, address }, req.shipper, res, next);
+    await shipperService.updateShipperInfo(
+      { name, phoneNumber, address },
+      req.shipper,
+      res,
+      next
+    );
   })
 );
 
@@ -94,7 +99,12 @@ router.post(
   "/update-shipper-delivered-area",
   isShipper,
   catchAsyncErrors(async (req, res, next) => {
-    await shipperService.updateShipperDeliveredArea(req.body, req.shipper, res, next);
+    await shipperService.updateShipperDeliveredArea(
+      req.body,
+      req.shipper,
+      res,
+      next
+    );
   })
 );
 
@@ -104,7 +114,12 @@ router.delete(
   isShipper,
   catchAsyncErrors(async (req, res, next) => {
     const deliveredAreaId = req.params.id;
-    await shipperService.deleteShipperDeliveredArea(req.shipper._id, deliveredAreaId, res, next);
+    await shipperService.deleteShipmentDeliveredArea(
+      req.shipper._id,
+      deliveredAreaId,
+      res,
+      next
+    );
   })
 );
 

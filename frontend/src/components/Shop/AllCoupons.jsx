@@ -19,6 +19,7 @@ const AllCoupons = () => {
   const [selectedProducts, setSelectedProducts] = useState([]);
   const [value, setValue] = useState(null);
   const [discountType, setDiscountType] = useState("percentage");
+  const [applyTo, setApplyTo] = useState("product");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [usageLimit, setUsageLimit] = useState(0);
@@ -49,7 +50,7 @@ const AllCoupons = () => {
       if (!res.success) {
         throw new Error(res.message || "Failed to delete coupon");
       }
-      toast.success("Coupon deleted successfully!");
+      toast.success("Xóa mã giảm giá thành công!");
       window.location.reload();
     } catch (error) {
       console.error("Delete coupon error:", error);
@@ -60,7 +61,7 @@ const AllCoupons = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (new Date(endDate) < new Date()) {
-      toast.error("End date must be after the current date!");
+      toast.error("Ngày hết hạn phải sau ngày hiện tại!");
       return;
     }
     try {
@@ -71,6 +72,7 @@ const AllCoupons = () => {
         selectedProduct: selectedProducts.length > 0 ? selectedProducts : [],
         value,
         discountType,
+        applyTo,
         startDate: startDate ? new Date(startDate) : new Date(),
         endDate: new Date(endDate),
         usageLimit,
@@ -81,7 +83,7 @@ const AllCoupons = () => {
       if (!res.success) {
         throw new Error(res.message || "Failed to create coupon");
       }
-      toast.success("Coupon created successfully!");
+      toast.success("Tạo mã giảm giá thành công!");
       setOpen(false);
       window.location.reload();
     } catch (error) {
@@ -92,35 +94,43 @@ const AllCoupons = () => {
 
   const columns = [
     { field: "id", headerName: "ID", minWidth: 150, flex: 0.7 },
-    { field: "name", headerName: "Coupon Code", minWidth: 180, flex: 1.4 },
-    { field: "discountType", headerName: "Type", minWidth: 100, flex: 0.6 },
+    { field: "name", headerName: "Mã giảm giá", minWidth: 180, flex: 1.4 },
+    { field: "discountType", headerName: "Loại", minWidth: 100, flex: 0.6 },
     {
       field: "value",
-      headerName: "Value",
+      headerName: "Giá trị",
       minWidth: 100,
       flex: 0.6,
       renderCell: (params) =>
         params.row.discountType === "percentage"
           ? `${params.value}%`
-          : `${params.value.toLocaleString("en-US")} VND`,
+          : `${params.value.toLocaleString("vi-VN")} VNĐ`,
+    },
+    {
+      field: "applyTo",
+      headerName: "Áp dụng cho",
+      minWidth: 120,
+      flex: 0.7,
+      renderCell: (params) =>
+        params.value === "product" ? "Sản phẩm" : "Phí ship",
     },
     {
       field: "endDate",
-      headerName: "Expiry",
+      headerName: "Hết hạn",
       minWidth: 120,
       flex: 0.7,
       renderCell: (params) => new Date(params.value).toLocaleDateString(),
     },
     {
       field: "usageLimit",
-      headerName: "Usage Limit",
+      headerName: "Giới hạn sử dụng",
       minWidth: 100,
       flex: 0.6,
-      renderCell: (params) => params.value || "Unlimited",
+      renderCell: (params) => params.value || "Không giới hạn",
     },
     {
       field: "usedCount",
-      headerName: "Used Count",
+      headerName: "Số lần đã dùng",
       minWidth: 100,
       flex: 0.6,
     },
@@ -143,6 +153,7 @@ const AllCoupons = () => {
     name: item.name,
     discountType: item.discountType || "percentage",
     value: item.value,
+    applyTo: item.applyTo,
     endDate: item.endDate,
     usageLimit: item.usageLimit,
     usedCount: item.usedCount,
@@ -159,7 +170,7 @@ const AllCoupons = () => {
               className={`${styles.button} !w-max !h-[45px] px-3 !rounded-[5px] mr-3 mb-3`}
               onClick={() => setOpen(true)}
             >
-              <span className="text-white">Create Coupon</span>
+              <span className="text-white">Tạo mã giảm giá</span>
             </div>
           </div>
           <DataGrid
@@ -180,12 +191,12 @@ const AllCoupons = () => {
                   />
                 </div>
                 <h5 className="text-[30px] font-Poppins text-center">
-                  Create Coupon
+                  Tạo mã giảm giá
                 </h5>
                 <form onSubmit={handleSubmit} aria-required={true}>
                   <div>
                     <label className="pb-2">
-                      Coupon Code <span className="text-red-500">*</span>
+                      Mã giảm giá <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
@@ -194,13 +205,13 @@ const AllCoupons = () => {
                       value={name}
                       className="mt-2 appearance-none block w-full px-3 h-[35px] border border-gray-300 rounded-[3px] placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                       onChange={(e) => setName(e.target.value)}
-                      placeholder="Enter coupon code..."
+                      placeholder="Nhập mã giảm giá..."
                     />
                   </div>
 
                   <div>
                     <label className="pb-2">
-                      Discount Type <span className="text-red-500">*</span>
+                      Loại giảm giá <span className="text-red-500">*</span>
                     </label>
                     <select
                       className="w-full mt-2 border h-[35px] rounded-[5px]"
@@ -208,14 +219,29 @@ const AllCoupons = () => {
                       onChange={(e) => setDiscountType(e.target.value)}
                       required
                     >
-                      <option value="percentage">Percentage</option>
-                      <option value="fixed">Fixed Amount</option>
+                      <option value="percentage">Phần trăm</option>
+                      <option value="fixed">Số tiền cố định</option>
                     </select>
                   </div>
 
                   <div>
                     <label className="pb-2">
-                      Discount Value <span className="text-red-500">*</span>
+                      Áp dụng cho <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      className="w-full mt-2 border h-[35px] rounded-[5px]"
+                      value={applyTo}
+                      onChange={(e) => setApplyTo(e.target.value)}
+                      required
+                    >
+                      <option value="product">Sản phẩm</option>
+                      <option value="shipping">Phí ship</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="pb-2">
+                      Giá trị giảm giá <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="number"
@@ -226,39 +252,39 @@ const AllCoupons = () => {
                       onChange={(e) => setValue(e.target.value)}
                       placeholder={
                         discountType === "percentage"
-                          ? "Enter discount percentage..."
-                          : "Enter discount amount (VND)..."
+                          ? "Nhập phần trăm giảm giá..."
+                          : "Nhập số tiền giảm (VNĐ)..."
                       }
                     />
                   </div>
 
                   <div>
-                    <label className="pb-2">Minimum Amount</label>
+                    <label className="pb-2">Số tiền tối thiểu</label>
                     <input
                       type="number"
                       name="minAmount"
                       value={minAmount}
                       className="mt-2 appearance-none block w-full px-3 h-[35px] border border-gray-300 rounded-[3px] placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                       onChange={(e) => setMinAmount(e.target.value)}
-                      placeholder="Enter minimum order amount..."
+                      placeholder="Nhập số tiền tối thiểu..."
                     />
                   </div>
 
                   <div>
-                    <label className="pb-2">Maximum Amount</label>
+                    <label className="pb-2">Số tiền tối đa</label>
                     <input
                       type="number"
                       name="maxAmount"
                       value={maxAmount}
                       className="mt-2 appearance-none block w-full px-3 h-[35px] border border-gray-300 rounded-[3px] placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                       onChange={(e) => setMaxAmount(e.target.value)}
-                      placeholder="Enter maximum order amount..."
+                      placeholder="Nhập số tiền tối đa..."
                     />
                   </div>
 
                   <div>
                     <label className="pb-2">
-                      Start Date <span className="text-red-500">*</span>
+                      Ngày bắt đầu <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="date"
@@ -271,7 +297,7 @@ const AllCoupons = () => {
 
                   <div>
                     <label className="pb-2">
-                      End Date <span className="text-red-500">*</span>
+                      Ngày hết hạn <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="date"
@@ -284,19 +310,19 @@ const AllCoupons = () => {
                   </div>
 
                   <div>
-                    <label className="pb-2">Usage Limit</label>
+                    <label className="pb-2">Giới hạn sử dụng</label>
                     <input
                       type="number"
                       name="usageLimit"
                       value={usageLimit}
                       className="mt-2 appearance-none block w-full px-3 h-[35px] border border-gray-300 rounded-[3px] placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                       onChange={(e) => setUsageLimit(e.target.value)}
-                      placeholder="Enter usage limit (0 for unlimited)..."
+                      placeholder="Nhập giới hạn sử dụng (0 cho không giới hạn)..."
                     />
                   </div>
 
                   <div>
-                    <label className="pb-2">Selected Products</label>
+                    <label className="pb-2">Sản phẩm áp dụng</label>
                     <select
                       multiple
                       className="w-full mt-2 border h-[100px] rounded-[5px]"
@@ -307,7 +333,7 @@ const AllCoupons = () => {
                         )
                       }
                     >
-                      <option value="">All Products</option>
+                      <option value="">Tất cả sản phẩm</option>
                       {products && products.length > 0 ? (
                         products.map((product) => (
                           <option value={product.name} key={product._id}>
@@ -315,19 +341,19 @@ const AllCoupons = () => {
                           </option>
                         ))
                       ) : (
-                        <option disabled>No products available</option>
+                        <option disabled>Không có sản phẩm</option>
                       )}
                     </select>
                     <p className="text-sm text-gray-500 mt-1">
-                      Hold Ctrl (Windows) or Cmd (Mac) to select multiple products.
-                      Leave empty to apply to all products.
+                      Giữ Ctrl (Windows) hoặc Cmd (Mac) để chọn nhiều sản phẩm.
+                      Để trống để áp dụng cho tất cả sản phẩm.
                     </p>
                   </div>
 
                   <div>
                     <input
                       type="submit"
-                      value="Create"
+                      value="Tạo"
                       className="mt-2 appearance-none block w-full px-3 h-[35px] border border-gray-300 rounded-[3px] placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     />
                   </div>

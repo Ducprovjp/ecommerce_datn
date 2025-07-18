@@ -11,7 +11,6 @@ router.post(
   "/create-shop",
   upload.single("file"),
   catchAsyncErrors(async (req, res, next) => {
-    const { name, email, password, address, phoneNumber, zipCode } = req.body;
     await shopService.createShop(req, res, next);
   })
 );
@@ -94,8 +93,8 @@ router.put(
   "/update-seller-info",
   isSeller,
   catchAsyncErrors(async (req, res, next) => {
-    const { name, description, address, phoneNumber, zipCode } = req.body;
-    await shopService.updateSellerInfo({ name, description, address, phoneNumber, zipCode }, req.seller, res, next);
+    const { name, description, phoneNumber, addresses } = req.body;
+    await shopService.updateSellerInfo({ name, description, phoneNumber, addresses }, req.seller, res, next);
   })
 );
 
@@ -115,7 +114,7 @@ router.delete(
   isAuthenticated,
   isAdmin("Admin"),
   catchAsyncErrors(async (req, res, next) => {
- przysId = req.params.id;
+    const sellerId = req.params.id;
     await shopService.deleteSeller(sellerId, res, next);
   })
 );

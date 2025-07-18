@@ -4,9 +4,12 @@ const ErrorHandler = require("../utils/ErrorHandler");
 const couponService = {
   async createCouponCode(couponData, seller, res, next) {
     try {
-      const isCoupounCodeExists = await CouponCode.find({ name: couponData.name });
+      const isCoupounCodeExists = await CouponCode.find({ 
+        name: couponData.name,
+        shopId: seller.id 
+      });
       if (isCoupounCodeExists.length !== 0) {
-        return next(new ErrorHandler("Coupoun code already exists!", 400));
+        return next(new ErrorHandler("Coupon code already exists for this shop!", 400));
       }
 
       const coupounCode = await CouponCode.create({ ...couponData, shopId: seller.id });

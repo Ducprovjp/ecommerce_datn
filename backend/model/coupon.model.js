@@ -4,7 +4,6 @@ const couponCodeSchema = new mongoose.Schema({
   name: {
     type: String,
     required: [true, "Please enter your coupon code name!"],
-    unique: true,
   },
   value: {
     type: Number,
@@ -14,6 +13,12 @@ const couponCodeSchema = new mongoose.Schema({
     type: String,
     enum: ["percentage", "fixed"],
     default: "percentage",
+  },
+  applyTo: {
+    type: String,
+    enum: ["product", "shipping"],
+    default: "product",
+    required: true,
   },
   minAmount: {
     type: Number,
@@ -26,7 +31,7 @@ const couponCodeSchema = new mongoose.Schema({
     required: true,
   },
   selectedProduct: {
-    type: [String], // Changed to array to support multiple products
+    type: [String],
   },
   startDate: {
     type: Date,
@@ -38,7 +43,7 @@ const couponCodeSchema = new mongoose.Schema({
   },
   usageLimit: {
     type: Number,
-    default: 0, // 0 means unlimited
+    default: 0,
   },
   usedCount: {
     type: Number,

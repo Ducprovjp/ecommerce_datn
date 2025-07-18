@@ -1,26 +1,26 @@
+import { Button } from "@material-ui/core";
+import { DataGrid } from "@material-ui/data-grid";
+import axios from "axios";
 import React, { useEffect, useState } from "react";
+import {
+  AiOutlineArrowRight,
+  AiOutlineCamera,
+  AiOutlineDelete,
+} from "react-icons/ai";
+import { MdTrackChanges } from "react-icons/md";
+import { RxCross1 } from "react-icons/rx";
 import { useDispatch, useSelector } from "react-redux";
+import { Link } from "react-router-dom";
+import { toast } from "react-toastify";
+import { getAllOrdersOfUser } from "../../redux/actions/order";
 import {
   deleteUserAddress,
   loadUser,
   updateUserAddress,
   updateUserInformation,
 } from "../../redux/actions/user";
-import {
-  AiOutlineArrowRight,
-  AiOutlineCamera,
-  AiOutlineDelete,
-} from "react-icons/ai";
-import { Link } from "react-router-dom";
-import styles from "../../styles/styles";
-import { DataGrid } from "@material-ui/data-grid";
-import { Button } from "@material-ui/core";
-import { RxCross1 } from "react-icons/rx";
-import { MdTrackChanges } from "react-icons/md";
-import { toast } from "react-toastify";
-import axios from "axios";
-import { getAllOrdersOfUser } from "../../redux/actions/order";
 import { putRequest } from "../../request/api";
+import styles from "../../styles/styles";
 
 const ProfileContent = ({ active }) => {
   const { user, error, successMessage } = useSelector((state) => state.user);
@@ -174,11 +174,11 @@ const ProfileContent = ({ active }) => {
       )}
 
       {/* Track order */}
-      {active === 5 && (
+      {/* {active === 5 && (
         <div>
           <TrackOrder />
         </div>
-      )}
+      )} */}
 
       {/* Change Password */}
       {active === 6 && (

@@ -1,6 +1,11 @@
 const express = require("express");
 const catchAsyncErrors = require("../middleware/catchAsyncErrors");
-const { isAuthenticated, isSeller, isShipper, isAdmin } = require("../middleware/auth");
+const {
+  isAuthenticated,
+  isSeller,
+  isShipper,
+  isAdmin,
+} = require("../middleware/auth");
 const orderService = require("../service/order.service");
 
 const router = express.Router();
@@ -11,16 +16,27 @@ router.post(
   // isAuthenticated,
   catchAsyncErrors(async (req, res, next) => {
     const { cart, shippingAddress, user, totalPrice, paymentInfo } = req.body;
-    await orderService.createOrder({ cart, shippingAddress, user, totalPrice, paymentInfo }, res, next);
+    await orderService.createOrder(
+      { cart, shippingAddress, user, totalPrice, paymentInfo },
+      res,
+      next
+    );
   })
 );
 
-// Delete order
+// Cancel order by seller
 router.put(
-  "/delete-order/:id",
+  "/cancel-order-by-seller/:id",
+  isSeller,
   catchAsyncErrors(async (req, res, next) => {
     const orderId = req.params.id;
-    await orderService.deleteOrder(orderId, res, next);
+    const { sellerCancelReason } = req.body;
+    await orderService.cancelOrderBySeller(
+      orderId,
+      sellerCancelReason,
+      res,
+      next
+    );
   })
 );
 
@@ -67,6 +83,17 @@ router.get(
   })
 );
 
+// Accept order by shipper
+router.put(
+  "/accept-order/:id",
+  isShipper,
+  catchAsyncErrors(async (req, res, next) => {
+    const orderId = req.params.id;
+    const shipperId = req.body.shipperId;
+    await orderService.acceptOrder(orderId, shipperId, res, next);
+  })
+);
+
 // Update order status by shipper
 router.put(
   "/update-order-status-by-shipper/:id",
@@ -74,7 +101,13 @@ router.put(
   catchAsyncErrors(async (req, res, next) => {
     const orderId = req.params.id;
     const { status } = req.body;
-    await orderService.updateOrderStatusByShipper(orderId, status, req.shipper, res, next);
+    await orderService.updateOrderStatusByShipper(
+      orderId,
+      status,
+      req.shipper,
+      res,
+      next
+    );
   })
 );
 
@@ -85,7 +118,22 @@ router.put(
   catchAsyncErrors(async (req, res, next) => {
     const orderId = req.params.id;
     const { status } = req.body;
-    await orderService.updateOrderStatus(orderId, status, req.seller, res, next);
+    await orderService.updateOrderStatus(
+      orderId,
+      status,
+      req.seller,
+      res,
+      next
+    );
+  })
+);
+
+router.put(
+  "/cancel-shipper/:id",
+  isSeller,
+  catchAsyncErrors(async (req, res, next) => {
+    const orderId = req.params.id;
+    await orderService.cancelShipperForOrder(orderId, res, next);
   })
 );
 
@@ -94,8 +142,14 @@ router.put(
   "/order-refund/:id",
   catchAsyncErrors(async (req, res, next) => {
     const orderId = req.params.id;
-    const { status, refundReason } = req.body; 
-    await orderService.requestOrderRefund(orderId, status, refundReason, res, next);
+    const { status, refundReason } = req.body;
+    await orderService.requestOrderRefund(
+      orderId,
+      status,
+      refundReason,
+      res,
+      next
+    );
   })
 );
 

@@ -36,12 +36,9 @@ const OrderDetails = () => {
 
   const orderUpdateHandler = async () => {
     try {
-      await putRequest(
-        `/order/update-order-status-by-shipper/${id}`,
-        {
-          status: selectedStatus,
-        },
-      );
+      await putRequest(`/order/update-order-status-by-shipper/${id}`, {
+        status: selectedStatus,
+      });
       toast.success("Order updated!");
       setDisplayedStatus(selectedStatus); // Cập nhật thẻ hiển thị
       navigate("/shipper-dashboard-orders");
@@ -52,12 +49,9 @@ const OrderDetails = () => {
 
   const refundOrderUpdateHandler = async () => {
     try {
-      await putRequest(
-        `/order/order-refund-success/${id}`,
-        {
-          status: selectedStatus,
-        },
-      );
+      await putRequest(`/order/order-refund-success/${id}`, {
+        status: selectedStatus,
+      });
       toast.success("Order updated!");
       setDisplayedStatus(selectedStatus); // Cập nhật thẻ hiển thị
       dispatch(getAllOrdersOfShipper(shipper._id));
@@ -123,13 +117,25 @@ const OrderDetails = () => {
       {/* Shipping Address */}
       <div className="w-full 800px:flex items-center">
         <div className="w-full 800px:w-[60%]">
-          <h4 className="pt-3 text-[20px] font-[600]">Shipping Address:</h4>
-          <h4 className="pt-3 text-[20px]">{data?.shippingAddress.address1}</h4>
-          <h4 className="text-[20px]">
-            {data?.shippingAddress.ward}, {data?.shippingAddress.district},{" "}
-            {data?.shippingAddress.province}
-          </h4>
-          <h4 className="text-[20px]">{data?.user?.phoneNumber}</h4>
+          <h4 className="text-[20px] font-[600]">Shipping Information</h4>
+          <div className="pt-3">
+            <h5 className="text-[16px]">
+              <strong>Recipient Name:</strong>{" "}
+              {data?.user?.name || "Not specified"}
+            </h5>
+            <h5 className="text-[16px]">
+              <strong>Phone Number:</strong>{" "}
+              {data?.user?.phoneNumber || "Not specified"}
+            </h5>
+            <h5 className="text-[16px]">
+              <strong>Address:</strong> {data?.shippingAddress.address1}
+            </h5>
+            <h5 className="text-[16px]">
+              {data?.shippingAddress.ward}, {data?.shippingAddress.district},{" "}
+              {data?.shippingAddress.province}
+            </h5>
+            <h5 className="text-[16px]">{data?.user?.phoneNumber}</h5>
+          </div>
         </div>
 
         <div className="w-full 800px:w-[40%]">
@@ -158,11 +164,7 @@ const OrderDetails = () => {
               onChange={(e) => setSelectedStatus(e.target.value)}
               className="w-[200px] border h-[35px] rounded-[5px]"
             >
-              {[
-                "Transferred to delivery partner",
-                "On the way",
-                "Delivered",
-              ]
+              {["Transferred to delivery partner", "On the way", "Delivered"]
                 .slice(
                   [
                     "Transferred to delivery partner",

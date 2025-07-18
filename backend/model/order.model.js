@@ -36,29 +36,33 @@ const orderSchema = new mongoose.Schema({
     },
   },
   shipperId: {
-    type: Object,
+    type: mongoose.Schema.Types.ObjectId,
     ref: "Shipper",
     default: null,
   },
   paidAt: {
     type: Date,
-    default: Date.now(),
+    default: Date.now,
   },
   deliveredAt: {
     type: Date,
   },
   createdAt: {
     type: Date,
-    default: Date.now(),
+    default: Date.now,
   },
   reservationExpiresAt: {
     type: Date,
   },
-  refundReason: { 
+  refundReason: {
     type: String,
     default: null,
   },
   cancelReason: {
+    type: String,
+    default: null,
+  },
+  sellerCancelReason: {
     type: String,
     default: null,
   },
