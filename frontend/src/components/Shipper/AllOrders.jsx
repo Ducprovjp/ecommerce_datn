@@ -1,5 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { AiOutlineArrowRight, AiOutlineCheckCircle, AiOutlineClockCircle } from "react-icons/ai";
+import {
+  AiOutlineArrowRight,
+  AiOutlineCheckCircle,
+  AiOutlineClockCircle,
+} from "react-icons/ai";
 import { BsFillBagFill } from "react-icons/bs";
 import { FaHandHolding, FaTruck } from "react-icons/fa";
 import { useDispatch, useSelector } from "react-redux";
@@ -44,7 +48,9 @@ const AllOrders = () => {
     socket.on("orderAccepted", ({ orderId, shipperId }) => {
       console.log(`Order ${orderId} accepted by shipper ${shipperId}`);
       if (shipperId !== shipper._id) {
-        setAvailableOrders((prev) => prev.filter((order) => order._id !== orderId));
+        setAvailableOrders((prev) =>
+          prev.filter((order) => order._id !== orderId)
+        );
         toast.info("An order was accepted by another shipper.");
       }
       dispatch(getAllOrdersOfShipper(shipper._id)); // Refresh order list
@@ -64,11 +70,15 @@ const AllOrders = () => {
   const handleAcceptOrder = async (orderId) => {
     try {
       console.log(`Shipper ${shipper._id} accepting order ${orderId}`);
-      const res = await putRequest(`/order/accept-order/${orderId}`, { shipperId: shipper._id });
+      const res = await putRequest(`/order/accept-order/${orderId}`, {
+        shipperId: shipper._id,
+      });
       if (!res.success) {
         throw new Error(res.message || "Failed to accept order");
       }
-      toast.success("Order accepted successfully! Waiting for seller to confirm.");
+      toast.success(
+        "Order accepted successfully! Waiting for seller to confirm."
+      );
       socket.emit("orderAccepted", { orderId, shipperId: shipper._id });
       dispatch(getAllOrdersOfShipper(shipper._id)); // Refresh order list
     } catch (error) {
@@ -96,21 +106,41 @@ const AllOrders = () => {
   // Define status filters
   const statusFilters = {
     all: { label: "All Orders", icon: <AiOutlineClockCircle />, statuses: [] },
-    pending: { label: "Pending Confirmation", icon: <AiOutlineClockCircle />, statuses: ["Contacting the delivery service"] },
-    accepted: { label: "Newly Accepted", icon: <FaHandHolding />, statuses: ["Transferred to delivery partner"] },
-    shipping: { label: "Shipping", icon: <FaTruck />, statuses: ["On the way"] },
-    delivered: { label: "Delivered", icon: <AiOutlineCheckCircle />, statuses: ["Delivered"] },
+    pending: {
+      label: "Pending Confirmation",
+      icon: <AiOutlineClockCircle />,
+      statuses: ["Contacting the delivery service"],
+    },
+    accepted: {
+      label: "Newly Accepted",
+      icon: <FaHandHolding />,
+      statuses: ["Transferred to delivery partner"],
+    },
+    shipping: {
+      label: "Shipping",
+      icon: <FaTruck />,
+      statuses: ["On the way"],
+    },
+    delivered: {
+      label: "Delivered",
+      icon: <AiOutlineCheckCircle />,
+      statuses: ["Delivered"],
+    },
   };
 
   // Filter orders based on status
   const filteredOrders = availableOrders
     ? filterStatus === "all"
       ? [...availableOrders]
-      : [...availableOrders].filter((order) => statusFilters[filterStatus].statuses.includes(order.status))
+      : [...availableOrders].filter((order) =>
+          statusFilters[filterStatus].statuses.includes(order.status)
+        )
     : [];
 
   // Sort orders by createdAt in descending order
-  const sortedOrders = filteredOrders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  const sortedOrders = filteredOrders.sort(
+    (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+  );
 
   return (
     <div className={`py-4 min-h-screen ${styles.section}`}>
@@ -160,17 +190,26 @@ const AllOrders = () => {
                     {order.cart
                       .slice(0, expandedOrders[order._id] ? undefined : 1)
                       .map((item, index) => (
-                        <div key={index} className="w-full flex items-start mb-5">
+                        <div
+                          key={index}
+                          className="w-full flex items-start mb-5"
+                        >
                           <img
                             src={item.images[0]}
                             alt={item.name}
                             className="w-[80px] h-[80px] object-cover rounded-md"
                           />
                           <div className="w-full pl-3">
-                            <h5 className="text-[20px] font-medium">{item.name}</h5>
+                            <h5 className="text-[20px] font-medium">
+                              {item.name}
+                            </h5>
                             <h5 className="text-[16px] text-[#00000091]">
-                              {item.discountPrice.toLocaleString("en-US")} VND x {item.qty} ={" "}
-                              {(item.discountPrice * item.qty).toLocaleString("en-US")} VND
+                              {item.discountPrice.toLocaleString("en-US")} VND x{" "}
+                              {item.qty} ={" "}
+                              {(item.discountPrice * item.qty).toLocaleString(
+                                "en-US"
+                              )}{" "}
+                              VND
                             </h5>
                           </div>
                         </div>
@@ -197,35 +236,61 @@ const AllOrders = () => {
                         Status: {order.status}
                       </span>
                       <p className="text-[16px]">
-                        <strong>Recipient Name:</strong> {order.user?.name || "Not specified"}
+                        <strong>Pickup Address:</strong>{" "}
+                        {order.cart[0].shop.addresses[0].address1 ||
+                          "Not specified"}
+                        , {order.cart[0].shop.addresses[0].ward || ""},{" "}
+                        {order.cart[0].shop.addresses[0].district || ""},{" "}
+                        {order.cart[0].shop.addresses[0].province || ""}
                       </p>
                       <p className="text-[16px]">
-                        <strong>Pickup Address:</strong> {order.cart[0].shop.addresses[0].address1 || "Not specified"}, {order.cart[0].shop.addresses[0].ward || ""}, {order.cart[0].shop.addresses[0].district || ""}, {order.cart[0].shop.addresses[0].province || ""}
+                        <strong>Delivery Address:</strong>{" "}
+                        {order.shippingAddress?.address1 || "Not specified"},{" "}
+                        {order.shippingAddress?.ward || ""},{" "}
+                        {order.shippingAddress?.district || ""},{" "}
+                        {order.shippingAddress?.province || ""}
                       </p>
                       <p className="text-[16px]">
-                        <strong>Delivery Address:</strong> {order.shippingAddress?.address1 || "Not specified"}, {order.shippingAddress?.ward || ""}, {order.shippingAddress?.district || ""}, {order.shippingAddress?.province || ""}
+                        <strong>Sender:</strong>{" "}
+                        {order.cart[0].shop.name || "Not specified"} (
+                        {maskPhoneNumber(
+                          order.cart[0].shop.phoneNumber,
+                          false,
+                          order.status
+                        )}
+                        )
                       </p>
                       <p className="text-[16px]">
-                        <strong>Sender:</strong> {order.cart[0].shop.name || "Not specified"} ({maskPhoneNumber(order.cart[0].shop.phoneNumber, false, order.status)})
-                      </p>
-                      <p className="text-[16px]">
-                        <strong>Receiver:</strong> {order.user?.name || "Not specified"} ({maskPhoneNumber(order.user?.phoneNumber, true, order.status)})
+                        <strong>Receiver:</strong>{" "}
+                        {order.user?.name || "Not specified"} (
+                        {maskPhoneNumber(
+                          order.user?.phoneNumber,
+                          true,
+                          order.status
+                        )}
+                        )
                       </p>
                     </div>
                     <span className="text-[18px] font-semibold">
-                      Total: {order.totalPrice.toLocaleString("en-US")} VND / 30,000 VND
+                      Total: {order.totalPrice.toLocaleString("en-US")} VND
                     </span>
                   </div>
                   {/* Action Buttons */}
                   <div className="flex justify-end">
-                    {order.status === "Contacting the delivery service" && !order.shipperId ? (
+                    {order.status === "Contacting the delivery service" &&
+                    !order.shipperId ? (
                       <div
                         className={`${styles.button} !bg-[#16b12e] !rounded-[4px] text-white font-[600] !h-[45px] text-[18px]`}
                         onClick={() => handleAcceptOrder(order._id)}
                       >
                         Confirm Accept
                       </div>
-                    ) : ["Transferred to delivery partner", "On the way", "Delivered"].includes(order.status) && order.shipperId?.toString() === shipper._id ? (
+                    ) : [
+                        "Transferred to delivery partner",
+                        "On the way",
+                        "Delivered",
+                      ].includes(order.status) &&
+                      order.shipperId?.toString() === shipper._id ? (
                       <a
                         href={`/shipper/order/${order._id}`}
                         className={`${styles.button} !bg-[#f63b60] !rounded-[4px] text-white font-[600] !h-[45px] text-[18px]`}
@@ -233,7 +298,8 @@ const AllOrders = () => {
                         View Details
                         <AiOutlineArrowRight className="ml-2" size={20} />
                       </a>
-                    ) : order.status === "Contacting the delivery service" && order.shipperId?.toString() === shipper._id ? (
+                    ) : order.status === "Contacting the delivery service" &&
+                      order.shipperId?.toString() === shipper._id ? (
                       <div className="text-gray-600 text-[16px]">
                         Waiting for seller to confirm
                       </div>

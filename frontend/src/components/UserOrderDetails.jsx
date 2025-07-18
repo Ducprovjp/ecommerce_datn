@@ -299,7 +299,7 @@ const UserOrderDetails = () => {
               >
                 <option value="">Select a reason</option>
                 <option value="Hàng có vấn đề (bể, vỡ, sai màu, hàng lỗi,...)">
-                  هàng có vấn đề (bể, vỡ, sai màu, hàng lỗi,...)
+                  Hàng có vấn đề (bể, vỡ, sai màu, hàng lỗi,...)
                 </option>
                 <option value="Chưa nhận được hàng/nhận thiếu hàng">
                   Chưa nhận được hàng/nhận thiếu hàng
